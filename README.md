@@ -1,6 +1,6 @@
 # Dunlop growth rate project repository
 
-This repository contains the scripts used to analyze data for the [put pub here].
+This repository contains the scripts used to analyze data and create figures for Wattenburger and Buckley XXXX XXXXX.
 
 [full citation]
 
