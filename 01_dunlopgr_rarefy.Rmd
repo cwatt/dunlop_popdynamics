@@ -1,0 +1,222 @@
+---
+title: "Dunlop growth rates - Rarefy"
+author: "Cassi Wattenburger"
+date: "2/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+```
+
+**Goal of this script:** Remove non-prokaryotic ASVs and rarefy data to reduce sequencing-depth bias.
+
+# Import libraries
+
+```{r}
+library("phyloseq")
+library("ape")
+library("vegan")
+library("ggplot2")
+library("reshape")
+library("dplyr")
+
+sessionInfo()
+```
+
+# Import raw data
+
+```{r}
+# import count table, taxonomy table, tree, metadata
+# growthrate.counts.finalv2.tsv is the same as the original, but I fixe a # in the header that screwed things up
+otu <- read.table(file="/home/cassi/growthrate2018/output/growthrate.counts.finalv2.tsv", sep = '\t', header=TRUE)
+tax <- read.table(file="/home/cassi/growthrate2018/output/growthrate.taxonomy.final.tsv", sep = '\t', header=TRUE)
+meta <- read.table(file="growthrate_metadata.tsv", sep = '\t', header=TRUE)
+tree <- read_tree("/home/cassi/growthrate2018/output/growthrate.tree.final.nwk")
+```
+
+```{r}
+# time point info for microcosm data
+tp <- read.csv("growthrate_timepoint_metadata.csv")
+meta <- merge(meta, tp, by=1)
+
+# experiment metadata (field sample or microcosm sample?)
+meta <- mutate(meta, Experiment=(ifelse(is.na(Cammend), paste("Field"), paste("Microcosm"))))
+```
+
+```{r}
+# remove sequencing controls
+otu.noctrl <- otu[, -which(names(otu) %in% c("X261","X262","X263","X264","X265","X266","X267","X268","X269","X270",
+                                             "X271","X272","X273","X274","X275","X276","X277","X278","X279","X280",
+                                             "X281","X282","X283","X284","X285","X286","X287"))]
+```
+
+# Compare min/max read depth
+
+```{r, echo=FALSE, results="hide"}
+# see the ratio of largest to smallest seq depth
+# min and max sequencing depth
+rownames(otu.noctrl) <- otu.noctrl[,1]
+otu.noctrl <- otu.noctrl[,-1]
+otu.noctrl.trans <- t(otu.noctrl)
+depth <- rowSums(otu.noctrl.trans)
+min(depth)
+max(depth)
+min(depth)/max(depth)
+```
+
+That's a huge desparity in read depth. Rarefication may be the best solution compared to CSS normalization; CSS normalization can't correct for the correlation b/w richness and read depth, but rarefication can.
+
+```{r}
+# calculate richness of each sample
+otu.noctrl.trans <- t(otu.noctrl)
+rich <- specnumber(otu.noctrl.trans) 
+depth.df <- as.data.frame(depth)
+rich.df <- as.data.frame(rich)
+depth.rich <- merge(depth.df, rich.df, by=0)
+```
+
+# Richness by read depth bias
+```{r, echo=FALSE}
+ggplot(depth.rich, aes(x=depth, y=rich)) +
+  geom_point() +
+  labs(title="Raw count data", x="Read depth", y="Richness") +
+  geom_text(aes(label=Row.names), hjust=0, vjust=0, size=2.5, color="red") +
+  theme_test()
+```
+
+I'll rarefy the data.
+
+# Create phyloseq object
+```{r, echo=FALSE, results="hide"}
+# Reformat otu count, taxonomy, metadata dataframes so that phyloseq accepts them
+rownames(otu) <- otu[,1]
+otu <- otu[,-1]
+#rownames(otu) <- sort(rownames(otu)) #!!!!!!!!!!!!! THIS IS A PROBLEM, doesn't sort rest of dataframe!!!
+colnames(otu) <- gsub("X", "sa", colnames(otu))
+otu.m <- as.matrix(otu)
+rownames(tax) <- tax[,1]
+tax <- tax[,-1] 
+#rownames(tax) <- sort(rownames(tax)) #!!!!!!!!!!!!! THIS IS A PROBLEM, doesn't sort rest of dataframe!!!
+tax.m <- as.matrix(tax)
+rownames(meta) <- meta[,1]
+
+# Create phyloseq object
+OTU <- otu_table(otu.m,taxa_are_rows=TRUE)
+TAX <- tax_table(tax.m)
+SAM <- sample_data(meta, errorIfNULL=TRUE)
+TREE <- tree
+physeq.raw <- phyloseq(OTU, TAX, TREE, SAM)
+```
+
+Raw data phyloseq object:
+
+```{r}
+physeq.raw
+```
+
+```{r, eval=FALSE}
+save(physeq.raw, file="rdata.files/gr_physeq.raw.RData")
+```
+
+# Remove non-prokaryotic ASVs
+
+Remove controls first:
+
+```{r}
+# Remove controls from phyloseq object
+all.raw = sample_names(physeq.raw)
+remove.ctrls = c("sa261","sa262","sa263","sa264","sa265","sa266","sa267","sa268","sa269","sa270", "sa271","sa272","sa273","sa274","sa275","sa276","sa277","sa278","sa279","sa280","sa281","sa282","sa283","sa284","sa285","sa286","sa287")
+keep.raw = all.raw[!(all.raw %in% remove.ctrls)]
+physeq.raw.noctrl = subset_samples(physeq.raw, rownames(sample_data(physeq.raw)) %in% keep.raw)
+```
+
+Remove chloroplast, mitochondrial, unknown, and Eukaryotic domain sequences:
+
+```{r, echo=FALSE, results="hide"}
+# Remove chloroplasts, mitochondria, unknown domains
+chloro = subset_taxa(physeq.raw.noctrl, Class=="Chloroplast")
+mito = subset_taxa(physeq.raw.noctrl, Family=="Mitochondria")
+unknown = subset_taxa(physeq.raw.noctrl, Domain=="Unassigned")
+unknown2 = subset_taxa(physeq.raw.noctrl, Domain=="putative Unassigned")
+unknown3 = subset_taxa(physeq.raw.noctrl, Domain=="putative Bacteria")
+eukarya = subset_taxa(physeq.raw.noctrl, Domain=="Eukaryota")
+eukarya2 = subset_taxa(physeq.raw.noctrl, Domain=="putative Eukaryota")
+
+# Remove non-prokarotes from dataset
+allnames = taxa_names(physeq.raw.noctrl)
+chloronames = taxa_names(chloro)
+mitonames = taxa_names(mito)
+unknownnames = taxa_names(unknown)
+unknownnames2 = taxa_names(unknown2)
+unknownnames3 = taxa_names(unknown3)
+euknames = taxa_names(eukarya)
+euknames2 = taxa_names(eukarya2)
+keeptaxa1 = allnames[!(allnames %in% chloronames)]
+keeptaxa2 = keeptaxa1[!(keeptaxa1 %in% mitonames)]
+keeptaxa3 = keeptaxa2[!(keeptaxa2 %in% unknownnames)]
+keeptaxa4 = keeptaxa3[!(keeptaxa3 %in% unknownnames2)]
+keeptaxa5 = keeptaxa4[!(keeptaxa4 %in% unknownnames3)]
+keeptaxa6 = keeptaxa5[!(keeptaxa5 %in% euknames)]
+keeptaxa7 = keeptaxa6[!(keeptaxa6 %in% euknames2)]
+# keeptaxa7 has all the taxa names that we will keep for analysis
+
+physeq.raw.pruned = prune_taxa(keeptaxa7, physeq.raw.noctrl)
+physeq.raw.pruned
+```
+
+```{r, eval=FALSE}
+save(physeq.raw.pruned, file="rdata.files/gr_physeq.raw.pruned.RData")
+```
+
+# Rarefy
+
+```{r, echo=FALSE, results="hide"}
+load("rdata.files/gr_physeq.raw.pruned.RData")
+
+# look at read depth distribution by sample
+reads.raw = data.frame(nreads = sample_sums(physeq.raw.pruned))
+sam = data.frame(sample_data(physeq.raw.pruned))
+read.sam <- merge(reads.raw, sam, by=0)
+```
+
+```{r}
+ggplot(read.sam, aes(x=reorder(SampleID, -nreads), y=nreads)) +
+  geom_bar(stat="identity") +
+  ggtitle("Read depth by sample") +
+  labs(x="Sample") +
+  geom_hline(yintercept=10000) +
+  theme()
+  theme_test()
+```
+
+Black line is at 10K reads.
+
+Samples under 5k-12k reads:
+
+```{r, echo=FALSE}
+nrow(subset(read.sam, nreads<5000))
+nrow(subset(read.sam, nreads<6000))
+nrow(subset(read.sam, nreads<7000))
+nrow(subset(read.sam, nreads<8000))
+nrow(subset(read.sam, nreads<9000))
+nrow(subset(read.sam, nreads<10000))
+nrow(subset(read.sam, nreads<11000))
+nrow(subset(read.sam, nreads<12000))
+```
+
+I'll rarefy to 9,000 taxa per sample, and lose 1 sample.
+
+Rarefied dataset:
+
+```{r}
+physeq.rarefy = rarefy_even_depth(physeq.raw.pruned, 9000, rngseed=2018)
+```
+
+Sample 16 was lost due to low read depth.
+
+```{r, eval=FALSE}
+save(physeq.rarefy, file="rdata.files/gr_physeq.rarefy.RData")
+```

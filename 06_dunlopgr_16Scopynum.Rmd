@@ -1,0 +1,450 @@
+---
+title: "Dunlop growth rates - 16S copy number"
+author: "Cassandra Wattenburger"
+date: "11/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Use PAPRICA results to explore how in-situ growth rate relates to predicted genomic features of bacteria.
+
+Notes:
+
+* 16S copy number estimations were conducted using PAPRICA v0.5 (vs 0.6 had placement issues)
+* Only representative sequences of ASVS with growth rate estimates were used for PAPRICA analysis
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(cowplot)
+
+sessionInfo()
+```
+
+# Import PAPRICA and growth estimation data
+
+* PAPRICA results
+* in-situ growth rate estimates (cleaned)
+
+```{r}
+# Import PAPRICA output
+papEdge = read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.edge_data.csv")
+papSeqs = read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.combined_16S.bacteria.tax.clean.unique.align.csv")
+
+# Merge and remove unnecessary columns
+papEdge2 = papEdge %>% select(edge_num = X1, nedge, genome_size, n16S)
+papSeqs2 = papSeqs %>% select(edge_num, ASV=name, distal_length, pendant_length)
+paprica = merge(papEdge2, papSeqs2, by="edge_num") %>% select(ASV, edge_num, nedge, distal_length, pendant_length, genome_size, n16S)
+paprica
+
+# Import growth rate estimates
+grest = readRDS("rdata.files/gr_gr.final_rm0.rds") %>% select(ASV, Soil, Amendment, Replicate, k)
+
+# Import taxonomic info
+tax = read_tsv("output/growthrate.taxonomy.final.tsv") %>% select(ASV=OTU, everything())
+
+# Merge PAPRICA results with growth rate estimates and taxonomy
+paprica.gr = inner_join(paprica, grest, by="ASV")
+paprica.gr = inner_join(paprica.gr, tax, by="ASV")
+
+# Average growth rates across replicates
+paprica.gr.avgall = paprica.gr %>% # overall
+  group_by(ASV, Phylum, Class, Order, Family, Genus) %>%
+  summarize(avgk=mean(k), n16S=mean(n16S), genome_size=mean(genome_size), distal_length=mean(distal_length))
+
+paprica.gr.avgsoil = paprica.gr %>% # by soil
+  group_by(ASV, Soil, Phylum, Class, Order, Family, Genus) %>%
+  summarize(avgk=mean(k), n16S=mean(n16S), genome_size=mean(genome_size), distal_length=mean(distal_length))
+
+paprica.gr.avgtrt = paprica.gr %>% # by treatment 
+  group_by(ASV, Soil, Amendment, Phylum, Class, Order, Family, Genus) %>% 
+  summarize(avgk=mean(k), n16S=mean(n16S), genome_size=mean(genome_size), distal_length=mean(distal_length)) # PAPRICA results identical b/w replicates
+
+
+```
+
+# Average distal lengths
+
+The distal length is the phylogenetic distance from the edge where each ASV was placed on the reference tree to the furthest tip on the tree descending from that edge. We want this not to exceed 15% for the PAPRICA results to be reliable, based on results from Louca et al. 2018.
+
+Louca, S., Doebeli, M. & Parfrey, L. W. Correcting for 16S rRNA gene copy numbers in microbiome surveys remains an unsolved problem. Microbiome 6, 41 (2018).
+
+Numbers listed as mean, min, max, standard deviation.
+
+Overall
+
+```{r}
+# Overall
+mean(paprica.gr.avgall$distal_length)
+min(paprica.gr.avgall$distal_length)
+max(paprica.gr.avgall$distal_length)
+sd(paprica.gr.avgall$distal_length)
+```
+
+Cropped
+```{r}
+# Cropped
+mean(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="C3",]$distal_length)
+min(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="C3",]$distal_length)
+max(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="C3",]$distal_length)
+sd(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="C3",]$distal_length)
+```
+
+Successional
+```{r}
+# Successional
+mean(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="S17",]$distal_length)
+min(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="S17",]$distal_length)
+max(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="S17",]$distal_length)
+sd(paprica.gr.avgsoil[paprica.gr.avgsoil$Soil=="S17",]$distal_length)
+```
+
+Cropped, C-amended
+```{r}
+# Cropped, C-amended
+mean(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+min(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+max(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+sd(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+```
+
+Cropped, water
+```{r}
+# Cropped, water
+mean(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+min(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+max(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+sd(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+```
+
+Successional, C-amended
+```{r}
+# Successional, C-amended
+mean(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+min(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+max(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+sd(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$distal_length)
+```
+
+Successional, water
+```{r}
+# Successional, water
+mean(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+min(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+max(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+sd(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$distal_length)
+```
+
+High variation, but these distances look good. There may be ASVs that are much more distantly related to the reference genomes than the average, but for the most part these numbers suggest that the ASVs are well-represented by the reference genomes. Additionally, this is the distance to the furthest neighbor, not the nearest, so these numbers are over-inflated to begin with.
+
+Interestingly, the C-amended treatments typically have lower average distal lengths than the water-amended treatments. Reference genomes had to be cultured and isolated to be sequenced and it makes sense that more "culturable" ASVs might grow in a soil treatment that was amended with simple sugars.
+
+# Relationship between 16S copy number and in-situ growth rates
+
+Main Hypothesis: positive relationship between in-situ growth rate and 16S copy number (more copies = faster maximal growth)
+
+Null Hypothesis: no relationship between in-situ growth rate and 16S copy number (in-situ != maximal growth, stochasticity in growth response adds noise to grwoth rate estimations)
+
+Visualize:
+
+```{r}
+# Visualize
+paprica.gr.avgall %>% ggplot(aes(x=avgk, y=n16S)) +
+  geom_point(aes(color=Phylum)) +
+  geom_smooth(method="lm") +
+  labs(x="avg specific growth rate", y="estimated 16S copies") +
+  theme_test()
+
+paprica.gr.avgsoil %>% ggplot(aes(x=avgk, y=n16S)) +
+  geom_point(aes(color=Phylum)) +
+  geom_smooth(method="lm") +
+  facet_wrap(~Soil) +
+  labs(x="avg specific growth rate", y="estimated 16S copies") +
+  theme_test()
+
+paprica.gr.avgtrt %>% ggplot(aes(x=avgk, y=n16S)) +
+  geom_point(aes(color=Phylum)) +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  labs(x="avg specific growth rate", y="estimated 16S copies") +
+  theme_test()
+```
+
+Colors are phyla.
+
+**Statistics:**
+
+Try simple linear regression first.
+
+```{r}
+# Linear regression on log-transformed growth rate
+n16S.S17y.lm = lm(avgk~n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",])
+
+# Check assumptions
+hist(n16S.S17y.lm$residuals) # assumption of normality
+plot(predict(n16S.S17y.lm), resid(n16S.S17y.lm)) # assumption of homoskedasticity
+```
+
+Normality looks fine, but there is heterskedasticity and there are outliers. 
+
+Instead, Spearman correlation with permutation, because the data inherently contains ties. 
+See: https://stats.stackexchange.com/questions/50015/spearman-correlation-in-the-presence-of-many-ties-how-to-spot-a-problem
+
+```{r}
+# Create permuted spearman correlation function
+spearman_permute = function(x, y) {
+  set.seed(1) # make sure it is reproducible
+  perm.estimates = c()
+  for (i in 1:1000) { # permute 1000 times
+    perm = sample(y) # randomize response variable
+    perm.test = suppressWarnings(cor.test(x, perm, method="spearman", alternative="greater")) # spearman correlation with permuted data
+    perm.estimates = append(perm.estimates, perm.test$estimate) # permuted estimates
+  }
+  actual.test = suppressWarnings(cor.test(x, y, method="spearman", alternative="greater")) # spearman correlation with actual data
+  actual.estimate = actual.test$estimate # actual data estimate (rho)
+  est.exceed = sum(abs(perm.estimates) > actual.estimate) # number of permutations that exceed the non-permuted data rho
+  est.equal = sum(abs(perm.estimates) == actual.estimate) # number of permutations that equal the non-permuted data rho
+  permuted.pval = (est.exceed + est.equal/2) / length(perm.estimates) # proportion of exceedances: the p-value
+  return(c(permuted.pval, actual.estimate)) # the p=value (expand out to include actual estimate)
+}
+
+# Tests
+n16S.C3y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$avgk)
+
+n16S.C3n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
+
+n16S.S17y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$avgk)
+
+n16S.S17n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
+
+# Multiple test correction
+n16S.spearperm.pvals = c(n16S.C3y.spearperm[1], n16S.C3n.spearperm[1], n16S.S17y.spearperm[1], n16S.S17n.spearperm[1])
+n16S.spearperm.padj = p.adjust(n16S.spearperm.pvals, method="hochberg", n=length(n16S.spearperm.pvals))
+
+# Estimates
+n16S.spearperm.rhos = c(n16S.C3y.spearperm[2], n16S.C3n.spearperm[2], n16S.S17y.spearperm[2], n16S.S17n.spearperm[2])
+
+# Results table
+n16S.spearperm.results = data.frame(Soil = c(rep("C3", 2), rep("S17", 2)), Amendment=c("Y","N","Y","N"), p.adj=n16S.spearperm.padj, rho = n16S.spearperm.rhos)
+n16S.spearperm.results
+```
+
+There are week positive correlations for most treatments except cropped water.
+
+
+# Explore bimodal distributions
+
+I want to make sure that the trends found in the other script hold up when the data is normalized by the 16S copy number, which is a confounding factor since faster-growing taxa tend to have higher 16S copy number than slower growing taxa, which would inflate the read count abundances from sequencing.
+
+Import field data:
+
+```{r}
+# Import field community data
+field = readRDS("rdata.files/field.norm.cleaned.rds")
+
+# Import grouped ASVs
+gr.group = readRDS("rdata.files/gr.groups.rds")
+
+# Add group labels
+field.group = field %>% 
+  inner_join(gr.group, var=c("Soil", "ASV", "Domain", "Phylum", "Class", "Order", "Family", "Genus",)) %>%
+  filter(!norm_abund==0) %>% # remove 0 values, ie ASV not present
+  mutate(group = parse_factor(group, levels=c("slow", "fast"))) # more intuitive order for groups
+```
+
+Correct normalized abundances for 16S copy number (divide by n16S)
+
+```{r}
+# Add n16S predictions and corect abundances
+field.group.n16S = field.group %>% 
+  inner_join(paprica, var="ASV") %>%
+  mutate(corr_abund = norm_abund/n16S)
+```
+
+### Individual ASV abundances
+
+```{r}
+# Visualize
+field.group.n16S %>% 
+  ggplot(aes(x=group, y=log(corr_abund), color=as.factor(Block))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Individual ASV abundances", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+```
+
+**Statistics**
+
+Linear-mixed effects model
+
+* Block as random effect
+* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
+
+```{r}
+# Cropped
+field.group.ind.C3.lmer = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model
+plot(resid(field.group.ind.C3.lmer)) # check normality
+plot(predict(field.group.ind.C3.lmer), resid(field.group.ind.C3.lmer)) # check variances
+anova(field.group.ind.C3.lmer) # results
+
+# Successional
+field.group.ind.S17.lmer = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model
+plot(resid(field.group.ind.S17.lmer)) # check normality
+plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check variances
+anova(field.group.ind.S17.lmer) # results
+```
+
+
+### Total abundances
+
+```{r}
+# Calculate total aggregated abundances
+field.group.n16S.total = field.group.n16S %>% 
+  group_by(Soil, Block, Replicate, group) %>%
+  summarize(total_abund = sum(norm_abund))
+
+# Visualize
+field.group.n16S.total %>% 
+  ggplot(aes(x=group, y=log(total_abund), color=as.factor(Block))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Total, aggregated abundance", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+
+field.group.n16S.total %>% 
+  ggplot(aes(x=group, y=log(total_abund))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Total, aggregated abundance", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+```
+
+**Statistics**
+
+Linear-mixed effects model.
+
+* Block as random effect
+* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
+
+```{r}
+# Cropped
+field.group.sum.C3.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.n16S.total[field.group.n16S.total$Soil=="C3",]) # fit model
+plot(resid(field.group.sum.C3.lmer)) # check normality
+plot(predict(field.group.sum.C3.lmer), resid(field.group.sum.C3.lmer)) # check variances
+anova(field.group.sum.C3.lmer) # results
+
+# Successional
+field.group.sum.S17.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.n16S.total[field.group.n16S.total$Soil=="S17",]) # fit model
+plot(resid(field.group.sum.S17.lmer)) # check normality
+plot(predict(field.group.sum.S17.lmer), resid(field.group.sum.S17.lmer)) # check variances
+anova(field.group.sum.S17.lmer) # results
+```
+
+No change in results. Trends were not confounded by 16S copy number.
+
+
+# Figures
+
+16S copy number vs in-situ growth rate.
+
+```{r}
+# Overall
+p1 = paprica.gr.avgtrt %>%
+  mutate(Soil = fct_relevel(Soil, "S17", "C3"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
+  ggplot(aes(x=log(avgk), y=n16S)) +
+  geom_point(shape=1) +
+  labs(title="Overall", x=expression("Specific growth rate (ln normalized reads day"^{-1}*")"), y="Estimated 16S copy number") +
+  theme_test() +
+  theme(axis.line = element_line(colour = "black"),
+        strip.background = element_blank(),
+        strip.text = element_text(size=10),
+        title = element_text(size=8),
+        axis.title.x = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10))
+p1
+
+# By treatment
+p2 = paprica.gr.avgtrt %>%
+  mutate(Soil = fct_relevel(Soil, "S17", "C3"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
+  ggplot(aes(x=log(avgk), y=n16S)) +
+  geom_point(shape=1) +
+  facet_grid(Amendment ~ Soil, switch="y") +
+  labs(x=expression("Specific growth rate (ln normalized reads day"^{-1}*")")) +
+  theme_test() +
+  theme(axis.line = element_line(colour = "black"),
+        strip.background = element_blank(),
+        strip.text = element_text(size=10),
+        axis.title.x = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_blank())
+p2
+
+copynum.plot = plot_grid(p1, p2, axis="t", align="h", labels=c("a","b"), label_size=10)
+copynum.plot
+```
+
+I'll make small aesthetic tweaks to this in adobe illustrator
+
+* make font sizes equal
+* make sure plots are aligned vertically
+
+```{r, eval=FALSE}
+ggsave(plot=copynum.plot, fil="figures/fig_copynum.pdf", device=pdf, width=190, height=100, unit="mm")
+```
+
+
+Group abudances, corrected for copy number.
+
+```{r}
+p3 = field.group.n16S %>%
+  mutate(Soil = fct_relevel(Soil, "S17"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
+  ggplot(aes(x=group, y=log(corr_abund))) +
+  geom_boxplot() +
+  geom_jitter(shape=1, alpha=0.2) +
+  facet_wrap(~Soil, nrow=2) +
+  labs(y="16S copy number corrected abundance (ln)") +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p3
+
+p4 = field.group.n16S.total %>%
+  mutate(Soil = fct_relevel(Soil, "S17"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
+  ggplot(aes(x=group, y=log(total_abund))) +
+  geom_boxplot() +
+  #geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil, nrow=2) +
+  labs(y="") +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p4
+
+plot_grid(p3, p4)
+```
+

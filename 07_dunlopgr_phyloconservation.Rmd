@@ -1,0 +1,281 @@
+---
+title: "Dunlop growth rates - phylogenetic conservation"
+author: "Cassandra Wattenburger"
+date: "11/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Investigate phylogenetic conservation of in-situ growth rates.
+
+Hypothesis: in-situ growth rates are conserved.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(phyloseq)
+library(vegan)
+library(ape)
+
+sessionInfo()
+```
+
+# Import data
+
+* microcosm abundance data
+* growth rate estimates
+
+```{r}
+# Microcosm data
+ucosms = readRDS("rdata.files/ucosm.norm.cleaned.rds")
+
+# Growth rate estimates
+gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
+
+# Merge datasets
+ucosms.gr = ucosms %>%
+  inner_join(gr.est)
+
+# Average ASV by replicate
+ucosms.gr.avg = ucosms.gr %>%
+  group_by(Soil, Amendment, ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
+  summarise(avg.k = mean(k), avg.start = mean(Start), avg.end = mean(End), avg.length = mean(Length))
+```
+
+# Phyla-level in-situ growth rates
+
+Visualize:
+
+```{r}
+# Overall
+ucosms.gr.avg %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Overall", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+# By treatment
+ucosms.gr.avg %>%
+  filter(Soil=="C3", Amendment=="N") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Cropped, water", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+ucosms.gr.avg %>%
+  filter(Soil=="C3", Amendment=="Y") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Cropped, C-amended", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+ucosms.gr.avg %>%
+  filter(Soil=="S17", Amendment=="N") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Successional, water", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+ucosms.gr.avg %>%
+  filter(Soil=="C3", Amendment=="Y") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Successional, C-amended", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+# By soil
+ucosms.gr.avg %>%
+  filter(Soil=="C3") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Cropped, water and C-amended", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+ucosms.gr.avg %>%
+  filter(Soil=="S17") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Successional, water and C-amended", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+# By amendment
+ucosms.gr.avg %>%
+  filter(Amendment=="N") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "Water, both soils", y = "", x = "log mean specific growth rate") +
+  theme_test()
+
+ucosms.gr.avg %>%
+  filter(Amendment=="Y") %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2) +
+  labs(title = "C-amended, both soils", y = "", x = "log mean specific growth rate") +
+  theme_test()
+```
+
+# Zoom in on populated phyla
+
+Proteobacteria, Actinobacteria, Verrucomicrobia, Acidobacteria, Planctomycetes all have many estimates. Let's break them down further.
+
+```{r}
+# NOTE: figure out how to add number of observations label to these graphs
+
+# Visualize
+for (p in c("Proteobacteria", "Actinobacteria", "Verrucomicrobia", "Acidobacteria", "Planctomycetes")) {
+  # Class level
+  print(ucosms.gr.avg %>%
+    filter(Phylum==p) %>%
+    ggplot(aes(x=log(avg.k), y=fct_reorder(Class, -avg.k))) +
+    geom_boxplot() +
+    geom_jitter(alpha = 0.2) +
+    labs(title = paste(p, "classes, overall"), y = "", x = "log mean specific growth rate") +
+    theme_test())
+    
+  # Genus level
+  print(ucosms.gr.avg %>%
+    filter(Phylum==p) %>%
+    ggplot(aes(x=log(avg.k), y=fct_reorder(Genus, -avg.k))) +
+    geom_boxplot() +
+    geom_jitter(alpha = 0.2) +
+    labs(title = paste(p, "genera, overall"), y = "", x = "log mean specific growth rate") +
+    theme_test())
+}
+```
+
+Overall, taxonomic groups tend to have a wide spread of data, particularly if they have more observations. This seems to indicate that there is not much taxonomic conservation in growth rates.
+
+# Mantel correlogram
+
+Import microcosm data in phyloseq.
+
+```{r}
+# Old messy script, couldn't be bothered to clean up
+
+# Import normalized data
+load("rdata.files/gr_microcosm.norm.tax.RData")
+
+# Reformat count data for phyloseq
+count = microcosm.norm.tax[,c(1,2,7)]
+count.wide = dcast(data = count, formula = variable ~ SampleID, value.var = "value")
+rownames(count.wide) = count.wide[,1]
+count.wide = count.wide[,-1]
+count.wide = as.matrix(count.wide)
+OTU = otu_table(count.wide, taxa_are_rows=TRUE)
+
+# Reformat taxonomy for phyloseq
+tax = unique(microcosm.norm.tax[,c(1,8:13)])
+rownames(tax) <- tax[,1]
+tax = tax[,-1] 
+tax = as.matrix(tax)
+TAX = tax_table(tax)
+
+# Reformat metadata for phyloseq
+meta = unique(microcosm.norm.tax[,c(2:4,6)])
+SAM = sample_data(meta, errorIfNULL=TRUE)
+
+# Phylogenetic tree
+tree = read_tree("/home/cassi/growthrate2018/output/growthrate.tree.final.nwk")
+
+# Import into phyloseq
+physeq = phyloseq(OTU, TAX, tree, SAM)
+
+# Import growth rate estimates for each ASV
+gr.estavg = gr.est %>%
+  group_by(Soil, Amendment, ASV) %>%
+  summarize(avg = mean(k))
+```
+
+Calculate phylogenetic distances and correlate
+
+```{r, eval=FALSE}
+# Run mantel correlogs within each soil and amendment treatment separately
+for (s in c("S17","C3")) { 
+  for (a in c("Y","N")) { 
+    # Subset data by treatment
+    sub.physeq = subset_samples(physeq, Soil==s & Cammend==a)
+    
+    # Remove OTUs not found in at least 3 samples
+    OTU.table = otu_table(sub.physeq)
+    OTU.table[OTU.table > 0] = 1
+    OTU.freq = rowSums(OTU.table)
+    OTU.freq = OTU.freq[OTU.freq > 2]
+    sub.physeq = prune_taxa(names(OTU.freq), sub.physeq)
+    
+    # Remove OTUs without growth estimates
+    sub.gr = gr.estavg[gr.estavg$Soil==s & gr.estavg$Amendment==a,]
+    gr.OTU = as.character(unique(sub.gr$ASV)) # 567 asvs
+    sub.physeq = prune_taxa(gr.OTU, sub.physeq) # 567 asvs
+    
+    # Calculate phylogenetic distances
+    sub.tree = phy_tree(sub.physeq)
+    phylo.dist = cophenetic(sub.tree) 
+    sample_OTUs = sub.tree$tip.label 
+    sam.phylo.dist = phylo.dist[sample_OTUs, sample_OTUs]
+    sam.phylo.dist[upper.tri(sam.phylo.dist, diag=TRUE)] = NA
+    
+    # Generate distance matrices from estimated growth rates
+    sub.gr = sub.gr[sub.gr$ASV %in% sample_OTUs,] # Only include estimates from taxa in tree
+    sub.gr = sub.gr[,c(3,4)]
+    sub.gr = column_to_rownames(sub.gr, var="ASV")
+    sub.gr = sub.gr[,1, drop=FALSE]
+    gr.dist = as.matrix(dist(sub.gr), labels=TRUE)
+    
+    # Correlog
+    gr.phylo.crlg=mantel.correlog(sam.phylo.dist, gr.dist)
+    
+    # Save results
+    filename = paste0("rdata.files/", s, a, ".mantelcorrelog.rds")
+    saveRDS(gr.phylo.crlg, file=filename)
+  }
+}
+```
+
+```{r}
+# Read in mantel correlogs
+S17y.gr.crlg=data.frame(readRDS("rdata.files/S17Y.mantelcorrelog.rds")$mantel.res)
+S17n.gr.crlg=data.frame(readRDS("rdata.files/S17N.mantelcorrelog.rds")$mantel.res)
+C3y.gr.crlg=data.frame(readRDS("rdata.files/C3Y.mantelcorrelog.rds")$mantel.res)
+C3n.gr.crlg=data.frame(readRDS("rdata.files/C3N.mantelcorrelog.rds")$mantel.res)
+```
+
+```{r}
+# Combine mantel correlog calculations into one data frame
+S17y.gr.crlg = mutate(S17y.gr.crlg, Soil="Successional", Amend="Y")
+S17n.gr.crlg = mutate(S17n.gr.crlg, Soil="Successional", Amend="N")
+C3y.gr.crlg = mutate(C3y.gr.crlg, Soil="Cropped", Amend="Y")
+C3n.gr.crlg = mutate(C3n.gr.crlg, Soil="Cropped", Amend="N")
+
+gr.crlg = rbind(S17y.gr.crlg, S17n.gr.crlg, C3y.gr.crlg, C3n.gr.crlg)
+gr.crlg = mutate(gr.crlg, sig=ifelse(Pr.corrected. <= 0.05, "significant", "non-significant")) %>% filter(!(is.na(Pr.corrected.)))
+```
+
+Visualize
+
+```{r, results="show"}
+# plot correlograms
+ggplot(data=gr.crlg, aes(x=class.index, y=Mantel.cor)) +
+  geom_point(data=gr.crlg[gr.crlg$sig=="significant",], color="black", size=2, shape=16) +
+  geom_point(data=gr.crlg[gr.crlg$sig=="non-significant",], color="black", size=2, shape=1) +
+  geom_line() +
+  geom_hline(yintercept=0, linetype=2) +
+  labs(x="Phylogenetic distance", y="Mantel correlation (specific growth rate)") +
+  facet_grid(Soil~Amend) +
+  theme_test()
+```
+
+Filled circles are significant, unfilled circles are not significant. It appears there may be some conservation at very close phylogenetic distances in the cropped C-amended treatment only? Not very convincing.

@@ -1,0 +1,370 @@
+ls[32m[I 15:34:57.556 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 15:34:57.556 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 15:34:57.573 NotebookApp][m Writing notebook server cookie secret to /run/user/1023/jupyter/notebook_cookie_secret
+
+[32m[I 15:35:04.084 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 15:35:04.084 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 15:35:04.120 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 15:35:04.120 NotebookApp][m 0 active kernels
+[32m[I 15:35:04.120 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 15:35:04.120 NotebookApp][m http://localhost:3331/?token=0138e24cfa1086b68954909f159a5dbe6631fbcf6b315bc7
+[32m[I 15:35:04.120 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 15:35:04.121 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3331/?token=0138e24cfa1086b68954909f159a5dbe6631fbcf6b315bc7
+[32m[I 15:35:04.121 NotebookApp][m Starting initial scan of virtual environments...
+^C[32m[I 15:35:10.132 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3331/?token=0138e24cfa1086b68954909f159a5dbe6631fbcf6b315bc7
+Shutdown this notebook server (y/[n])? 
+Execution halted
+[32m[I 15:35:10.192 NotebookApp][m Found new kernels in environments: conda_anaconda3, conda_qiime2-2018.2
+No answer for 5s: resuming operation...
+[32m[I 15:37:59.833 NotebookApp][m Found new kernels in environments: conda_r_qiime2-2018.2
+sl  ls
+exit
+1 q
+k ^C[32m[I 10:31:35.080 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3331/?token=0138e24cfa1086b68954909f159a5dbe6631fbcf6b315bc7
+Shutdown this notebook server (y/[n])? n
+resuming operation...
+^C[32m[I 10:32:09.799 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3331/?token=0138e24cfa1086b68954909f159a5dbe6631fbcf6b315bc7
+Shutdown this notebook server (y/[n])? y
+[C 10:32:13.229 NotebookApp] Shutdown confirmed
+[32m[I 10:32:13.230 NotebookApp][m Shutting down 0 kernels
+[32m[I 10:32:50.768 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 10:32:50.768 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 10:32:51.282 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 10:32:51.283 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 10:32:51.289 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 10:32:51.289 NotebookApp][m 0 active kernels
+[32m[I 10:32:51.289 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 10:32:51.289 NotebookApp][m http://localhost:3331/?token=2e18634cc13985ec5bfba66d261b63fb527f97a053a86d7d
+[32m[I 10:32:51.289 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 10:32:51.289 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3331/?token=2e18634cc13985ec5bfba66d261b63fb527f97a053a86d7d
+[32m[I 10:32:51.289 NotebookApp][m Starting initial scan of virtual environments...
+[32m[I 10:32:53.514 NotebookApp][m Found new kernels in environments: conda_anaconda3, conda_qiime2-2018.2, conda_r_qiime2-2018.2
+^C[32m[I 10:33:57.682 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3331/?token=2e18634cc13985ec5bfba66d261b63fb527f97a053a86d7d
+Shutdown this notebook server (y/[n])? y
+[C 10:33:58.800 NotebookApp] Shutdown confirmed
+[32m[I 10:33:58.801 NotebookApp][m Shutting down 0 kernels
+[32m[I 10:34:07.012 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 10:34:07.013 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 10:34:07.532 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 10:34:07.532 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 10:34:07.538 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 10:34:07.538 NotebookApp][m 0 active kernels
+[32m[I 10:34:07.538 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 10:34:07.538 NotebookApp][m http://localhost:3333/?token=3fd8ceb549eae5c3aeb54dca5c384550604ef6b0dd8fa7c0
+[32m[I 10:34:07.538 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 10:34:07.538 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3333/?token=3fd8ceb549eae5c3aeb54dca5c384550604ef6b0dd8fa7c0
+[32m[I 10:34:07.538 NotebookApp][m Starting initial scan of virtual environments...
+[32m[I 10:34:09.824 NotebookApp][m Found new kernels in environments: conda_anaconda3, conda_qiime2-2018.2, conda_r_qiime2-2018.2
+^C[32m[I 10:36:38.919 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3333/?token=3fd8ceb549eae5c3aeb54dca5c384550604ef6b0dd8fa7c0
+Shutdown this notebook server (y/[n])? y
+[C 10:36:40.571 NotebookApp] Shutdown confirmed
+[32m[I 10:36:40.572 NotebookApp][m Shutting down 0 kernels
+[32m[I 10:42:01.280 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 10:42:01.280 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 10:42:01.286 NotebookApp][m Writing notebook server cookie secret to /run/user/1023/jupyter/notebook_cookie_secret
+[32m[I 10:42:01.801 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 10:42:01.801 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 10:42:01.808 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 10:42:01.808 NotebookApp][m 0 active kernels
+[32m[I 10:42:01.808 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 10:42:01.808 NotebookApp][m http://localhost:3335/?token=8c9902f0bb92eaaef855ed0d5a1fdbb259a9c5c57a61cf15
+[32m[I 10:42:01.808 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 10:42:01.808 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3335/?token=8c9902f0bb92eaaef855ed0d5a1fdbb259a9c5c57a61cf15
+[32m[I 10:42:01.808 NotebookApp][m Starting initial scan of virtual environments...
+[32m[I 10:42:04.011 NotebookApp][m Found new kernels in environments: conda_anaconda3, conda_qiime2-2018.2, conda_r_qiime2-2018.2
+exit
+^C[32m[I 12:21:10.229 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3335/?token=8c9902f0bb92eaaef855ed0d5a1fdbb259a9c5c57a61cf15
+Shutdown this notebook server (y/[n])? y
+[C 12:21:11.525 NotebookApp] Shutdown confirmed
+[32m[I 12:21:11.526 NotebookApp][m Shutting down 0 kernels
+[32m[I 12:21:28.505 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 12:21:28.505 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 12:21:29.055 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 12:21:29.055 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 12:21:29.061 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 12:21:29.061 NotebookApp][m 0 active kernels
+[32m[I 12:21:29.061 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 12:21:29.061 NotebookApp][m http://localhost:3330/?token=f2a62471eb55a508c437d2e721a668b1c0c238101fb600b1
+[32m[I 12:21:29.061 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 12:21:29.061 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3330/?token=f2a62471eb55a508c437d2e721a668b1c0c238101fb600b1
+[32m[I 12:21:29.062 NotebookApp][m Starting initial scan of virtual environments...
+[32m[I 12:21:31.590 NotebookApp][m Found new kernels in environments: conda_anaconda3, conda_qiime2-2018.2, conda_r_qiime2-2018.2
+[32m[I 12:22:00.724 NotebookApp][m 302 GET /?token=f2a62471eb55a508c437d2e721a668b1c0c238101fb600b1 (127.0.0.1) 1.81ms
+http://localhost:3330/?token=f2a62471eb55a508c437d2e721a668b1c0c238101fb600b1
+[32m[I 12:24:29.424 NotebookApp][m Kernel started: 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 12:24:34.778 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 12:26:25.301 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:28:25.287 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:32:25.295 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:36:25.286 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:38:26.258 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 13:08:26.260 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 13:56:26.238 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:06:26.242 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:36:30.626 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+Usage: qiime demux emp-paired [OPTIONS]
+
+Error: Invalid value for "--i-seqs": Path "/home/cassi/growthrate2018/output.16s/growthrate.qza" does not exist.
+Usage: qiime demux emp-paired [OPTIONS]
+
+Error: Invalid value for "--i-seqs": Path "/home/cassi/growthrate2018/output.16s/growthrate.qza" does not exist.
+[32m[I 14:38:26.221 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[33m[W 14:59:04.785 NotebookApp][m WebSocket ping timeout after 119995 ms.
+[32m[I 14:59:09.788 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:d24089d5d308456384a15e9f3cd105a8
+[32mSaved SampleData[PairedEndSequencesWithQuality] to: /home/cassi/growthrate2018/output/growthrate.demux.qza[0m
+[32m[I 13:54:54.468 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 13:54:54.469 NotebookApp][m Discarding 7 buffered messages for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:d24089d5d308456384a15e9f3cd105a8
+Usage: qiime demux summarize [OPTIONS]
+
+Error: Invalid value for "--i-data": Path "/home/cassi/growthrate2018//output.16s.database/growthrate.demux.qza" does not exist.
+[32m[I 13:56:54.497 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 13:58:54.500 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:00:54.513 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.demux.QC.summary.qzv[0m
+[32m[I 14:18:54.559 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:20:54.471 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:21:01.438 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 14:22:23.897 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:eff64d2c857c47a989b57aba983a043e
+[32m[I 15:18:14.963 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 15:20:15.084 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[33m[W 15:24:14.965 NotebookApp][m WebSocket ping timeout after 119936 ms.
+[32m[I 15:24:19.968 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:a35980f168ef4f8b9de1b3d48935beeb
+[32mSaved FeatureTable[Frequency] to: /home/cassi/growthrate2018//output/growthrate.table.qza[0m
+[32mSaved FeatureData[Sequence] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.final.qza[0m
+[32m[I 10:35:09.310 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 10:35:09.313 NotebookApp][m Discarding 9 buffered messages for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:a35980f168ef4f8b9de1b3d48935beeb
+[32m[I 10:37:10.117 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 11:11:23.151 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 11:11:30.561 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:85e003734acd45b19b86bccfaa7260bb
+[32m[I 18:28:48.255 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 18:30:48.433 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 18:43:39.061 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 18:43:49.353 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:d351f59415a24208b8f13b864ce44740
+[32mSaved FeatureTable[Frequency] to: /home/cassi/growthrate2018//output/growthrate.table.qza[0m
+[32mSaved FeatureData[Sequence] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.final.qza[0m
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.table.qzv[0m
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.final.qzv[0m
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.table.qzv[0m
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.final.qzv[0m
+[32m[I 21:34:51.644 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 21:34:51.645 NotebookApp][m Discarding 22 buffered messages for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:d351f59415a24208b8f13b864ce44740
+[32m[I 21:36:51.573 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 21:36:54.803 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 21:40:51.574 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 21:42:52.063 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32mSaved FeatureData[AlignedSequence] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.aligned.qza[0m
+[33m[W 22:04:21.646 NotebookApp][m WebSocket ping timeout after 119813 ms.
+[32m[I 22:04:26.647 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:943ba020cbd845a98d0a61336b63a659
+[32mSaved FeatureData[AlignedSequence] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.aligned.masked.qza[0m
+[32mSaved Phylogeny[Unrooted] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.tree.unrooted.qza[0m
+[32mSaved Phylogeny[Rooted] to: /home/cassi/growthrate2018//output/growthrate.rep.seqs.tree.final.qza[0m
+[32m[I 09:44:35.217 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 09:44:35.218 NotebookApp][m Discarding 2 buffered messages for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:943ba020cbd845a98d0a61336b63a659
+[32m[I 09:45:07.284 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32mSaved FeatureData[Taxonomy] to: /home/cassi/growthrate2018//output/growthrate.taxonomy.final.qza[0m
+[32mSaved Visualization to: /home/cassi/growthrate2018//output/growthrate.taxonomy.final.summary.qzv[0m
+[32m[I 09:50:35.508 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 09:56:34.908 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 09:58:34.895 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:00:34.916 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:02:35.531 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:04:34.971 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:09:46.534 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:20:34.934 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:22:35.495 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:24:35.453 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:30:34.856 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:32:34.876 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 11:56:02.699 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 11:56:04.345 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:08a801346cac45dc8b58196e95d14a96
+[32m[I 10:20:34.930 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[33m[W 10:23:34.934 NotebookApp][m WebSocket ping timeout after 119918 ms.
+[32m[I 10:23:39.936 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:f63a61f9afa5475281ac231fc1cbd46c
+[32m[I 13:35:25.070 NotebookApp][m Adapting to protocol v5.1 for kernel 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab
+[32m[I 13:35:48.590 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 13:35:56.400 NotebookApp][m Starting buffering for 03c2d5ac-ce1b-4b87-bf89-2063b75d19ab:291fb550744b48108f0d5b30c66b4601
+[32m[I 14:06:48.273 NotebookApp][m 302 GET /tree (127.0.0.1) 59.76ms
+exit
+^\[IPKernelApp] WARNING | Parent appears to have exited, shutting down.
+^C[32m[I 16:01:39.633 NotebookApp][m Using EnvironmentKernelSpecManager...
+[32m[I 16:01:39.633 NotebookApp][m Started periodic updates of the kernel list (every 3 minutes).
+[32m[I 16:01:40.157 NotebookApp][m The port 3330 is already in use, trying another port.
+[32m[I 16:01:40.190 NotebookApp][m JupyterLab beta preview extension loaded from /home/cassi/anaconda3/lib/python3.6/site-packages/jupyterlab
+[32m[I 16:01:40.191 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 16:01:40.196 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 16:01:40.197 NotebookApp][m 0 active kernels
+[32m[I 16:01:40.197 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 16:01:40.197 NotebookApp][m http://localhost:3331/?token=8e550af26d068962423bde0edd14869fcd62257b8c4af2b6
+[32m[I 16:01:40.197 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 16:01:40.197 NotebookApp] 
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://localhost:3331/?token=8e550af26d068962423bde0edd14869fcd62257b8c4af2b6
+[32m[I 16:01:40.197 NotebookApp][m Starting initial scan of virtual environments...
+[32m[I 16:01:42.293 NotebookApp][m Found new kernels in environments: conda_qiime2-2018.2, conda_anaconda3, conda_r_qiime2-2018.2
+[32m[I 16:02:46.872 NotebookApp][m 302 GET /?token=8e550af26d068962423bde0edd14869fcd62257b8c4af2b6 (127.0.0.1) 1.09ms
+[32m[I 16:03:00.331 NotebookApp][m Kernel started: 12a63751-f440-4ba2-a839-2fc1eab35a92
+[32m[I 16:03:00.994 NotebookApp][m Adapting to protocol v5.1 for kernel 12a63751-f440-4ba2-a839-2fc1eab35a92
+[32m[I 16:46:59.184 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 16:52:01.408 NotebookApp][m Starting buffering for 12a63751-f440-4ba2-a839-2fc1eab35a92:18359383c87c4da092868a8618397c3a
+[32m[I 10:01:03.372 NotebookApp][m Adapting to protocol v5.1 for kernel 12a63751-f440-4ba2-a839-2fc1eab35a92
+[32m[I 12:03:22.122 NotebookApp][m Starting buffering for 12a63751-f440-4ba2-a839-2fc1eab35a92:676f557fcbae4bf18bc9ca339ba6546c
+[32m[I 10:50:49.562 NotebookApp][m 302 GET /?token=8e550af26d068962423bde0edd14869fcd62257b8c4af2b6 (127.0.0.1) 1.05ms
+[32m[I 10:50:56.532 NotebookApp][m Adapting to protocol v5.1 for kernel 12a63751-f440-4ba2-a839-2fc1eab35a92
+[32m[I 13:44:15.855 NotebookApp][m Starting buffering for 12a63751-f440-4ba2-a839-2fc1eab35a92:45e8821c090148bba310934ca97f61f4
+[32m[I 15:42:25.141 NotebookApp][m 302 GET /?token=8e550af26d068962423bde0edd14869fcd62257b8c4af2b6 (127.0.0.1) 2.27ms
+[32m[I 15:42:33.612 NotebookApp][m Adapting to protocol v5.1 for kernel 12a63751-f440-4ba2-a839-2fc1eab35a92
+[32m[I 17:42:16.165 NotebookApp][m Starting buffering for 12a63751-f440-4ba2-a839-2fc1eab35a92:301705bd015a4ed78a4c7cf83bd24f28
+[32m[I 12:35:05.682 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 12:35:05.682 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 12:35:05.682 NotebookApp][m http://localhost:3331/?token=ec6c46aeadbcf1c6ef1fff236448e677e6aeba119a028ddc
+[32m[I 12:35:05.682 NotebookApp][m  or http://127.0.0.1:3331/?token=ec6c46aeadbcf1c6ef1fff236448e677e6aeba119a028ddc
+[32m[I 12:35:05.682 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 12:35:05.700 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-38801-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3331/?token=ec6c46aeadbcf1c6ef1fff236448e677e6aeba119a028ddc
+     or http://127.0.0.1:3331/?token=ec6c46aeadbcf1c6ef1fff236448e677e6aeba119a028ddc
+[32m[I 12:36:23.790 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 12:36:23.791 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 12:36:23.791 NotebookApp][m http://localhost:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+[32m[I 12:36:23.791 NotebookApp][m  or http://127.0.0.1:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+[32m[I 12:36:23.791 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 12:36:23.798 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-38879-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+     or http://127.0.0.1:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+^C[32m[I 12:36:57.463 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+ or http://127.0.0.1:3330/?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b
+Shutdown this notebook server (y/[n])? n
+resuming operation...
+y
+e[32m[I 12:39:37.341 NotebookApp][m The port 3330 is already in use, trying another port.
+[32m[I 12:39:37.344 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 12:39:37.345 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 12:39:37.345 NotebookApp][m http://localhost:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+[32m[I 12:39:37.345 NotebookApp][m  or http://127.0.0.1:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+[32m[I 12:39:37.345 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 12:39:37.349 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-40389-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+     or http://127.0.0.1:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+^X  ^C[32m[I 12:39:59.412 NotebookApp][m interrupted
+Serving notebooks from local directory: /home/cassi/growthrate2018
+0 active kernels
+The Jupyter Notebook is running at:
+http://localhost:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+ or http://127.0.0.1:3331/?token=943ad5ee950c578b46e356399918af8d4edbfa7e2472134b
+Shutdown this notebook server (y/[n])? y
+[C 12:40:01.363 NotebookApp] Shutdown confirmed
+[32m[I 12:40:01.364 NotebookApp][m Shutting down 0 kernels
+[32m[I 12:40:27.571 NotebookApp][m 302 GET /?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b (127.0.0.1) 1.01ms
+[32m[I 12:40:46.524 NotebookApp][m Writing notebook-signing key to /home/cassi/.local/share/jupyter/notebook_secret
+[33m[W 12:40:46.525 NotebookApp][m Notebook growthrate.16S.DADA2.pipeline.ipynb is not trusted
+[32m[I 12:40:47.784 NotebookApp][m Kernel started: 9f7021c7-7909-45a3-b138-12711efd43b4
+[32m[I 12:42:47.936 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:44:47.876 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:45:21.155 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 12:57:06.208 NotebookApp][m Starting buffering for 9f7021c7-7909-45a3-b138-12711efd43b4:25effd3311924a1e9b15e4c0e58b2518
+[32m[I 10:40:28.043 NotebookApp][m 302 GET /?token=9ea2e8e1a5837b572b4360fc9c60e30569a6a934e2735f1b (127.0.0.1) 2.15ms
+[32m[I 10:41:23.578 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 10:41:36.646 NotebookApp][m Starting buffering for 9f7021c7-7909-45a3-b138-12711efd43b4:cec2d95d3ce64c848f63c7968af16905
+[32m[I 13:08:18.763 NotebookApp][m JupyterLab extension loaded from /home/cassi/anaconda3/lib/python3.7/site-packages/jupyterlab
+[32m[I 13:08:18.763 NotebookApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 13:08:18.765 NotebookApp][m Serving notebooks from local directory: /home/cassi/growthrate2018
+[32m[I 13:08:18.765 NotebookApp][m The Jupyter Notebook is running at:
+[32m[I 13:08:18.765 NotebookApp][m http://localhost:3330/?token=0a58a0c38ef2fa5a2979fcf786cccf83c1d41337df87a38c
+[32m[I 13:08:18.765 NotebookApp][m  or http://127.0.0.1:3330/?token=0a58a0c38ef2fa5a2979fcf786cccf83c1d41337df87a38c
+[32m[I 13:08:18.765 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 13:08:18.767 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-17878-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3330/?token=0a58a0c38ef2fa5a2979fcf786cccf83c1d41337df87a38c
+     or http://127.0.0.1:3330/?token=0a58a0c38ef2fa5a2979fcf786cccf83c1d41337df87a38c
+[32m[I 13:08:26.464 NotebookApp][m 302 GET /?token=0a58a0c38ef2fa5a2979fcf786cccf83c1d41337df87a38c (127.0.0.1) 1.18ms
+[32m[I 13:08:35.915 NotebookApp][m Kernel started: 07f48d38-30a6-4b95-95de-f99de7c5bb8a
+[32m[I 13:10:36.218 NotebookApp][m Saving file at /growthrate.16S.DADA2.pipeline.ipynb
+[32m[I 13:28:11.018 NotebookApp][m Creating new notebook in 
+[32m[I 13:28:12.900 NotebookApp][m Kernel started: 0e4bcf6a-7bb5-4d6d-b37e-76641abcb265
+[32m[I 13:30:12.960 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:32:12.975 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:34:12.954 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:36:12.961 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:38:12.956 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:40:13.029 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:42:12.973 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:44:13.029 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:46:12.976 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:48:12.966 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:50:12.953 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:52:12.949 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:54:13.031 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:56:12.953 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:58:12.964 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 13:59:32.600 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 17:21:26.267 NotebookApp][m Saving file at /growthrate.16Scopynum.copyrighter.ipynb
+[32m[I 19:02:32.751 NotebookApp][m Starting buffering for 0e4bcf6a-7bb5-4d6d-b37e-76641abcb265:44bd5c99f5e2496faf9f39f0bb625772
+[32m[I 19:02:32.756 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:73b5360e2da54bd99b2f6956da4a778b
+[32m[I 13:20:37.579 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:54168832038a4693abb7952c4c45d2dc
+[32m[I 14:55:35.051 NotebookApp][m Starting buffering for 0e4bcf6a-7bb5-4d6d-b37e-76641abcb265:9ea686936fbe43ae871d1c7a2231251f
+[32m[I 14:56:22.959 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:671131d85e7f42e98d5a734952ffa5dd
+[32m[I 15:38:06.877 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:7d1b5ac38397415981bf9d2d751625b9

@@ -1,0 +1,271 @@
+---
+title: "Dunlop growth rates - data exploration and summary statistics"
+author: "Cassandra Wattenburger"
+date: "11/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Explore the properties of the data and descriptive statistics of in-situ growth rates.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(phyloseq)
+
+sessionInfo()
+```
+
+# Load data and clean up
+
+There are inconsistencies in the data structure, variable names, and metadata that need to be cleaned up for easier manipulation and analysis.
+
+Internal-standard normalized microcosm and field community data:
+
+```{r}
+# Original, rarefied phyloseq object (not normalized)
+load("rdata.files/gr_physeq.rarefy.RData")
+tax = as.data.frame(tax_table(physeq.rarefy)) %>% rownames_to_column(var="ASV") # taxonomy extract
+
+# Microcosms
+load("rdata.files/gr_microcosm.norm.tax.RData")
+ucosms = microcosm.norm.tax
+
+# Replicates
+ucosm.rep1 = seq(81, 260, by=3)
+ucosm.rep2 = seq(82, 260, by=3)
+ucosm.rep3 = seq(83, 260, by=3)
+
+# Clean up
+ucosms = ucosms %>% 
+  mutate(Sample = str_remove(SampleID, "sa"), Sample = parse_number(Sample)) %>% # convert sample numbers into numeric (easier manipulation)
+  mutate(Replicate = ifelse(Sample %in% ucosm.rep1, 1, ifelse(Sample %in% ucosm.rep2, 2, ifelse(Sample %in% ucosm.rep3, 3, NA)))) %>% # add replicates
+  select(Sample, Amendment=Cammend, Soil, Day=Days, Replicate, norm_abund=value, ASV=variable, Domain, Phylum, Class, Order, Family, Genus) # rename/reorder
+
+# Field
+load("rdata.files/gr_field.norm.RData")
+field = field.norm
+
+# Replicates
+field.rep1 = seq(1, 80, by=4)
+field.rep2 = seq(2, 80, by=4)
+field.rep3 = seq(3, 80, by=4)
+field.rep4 = seq(4, 80, by=4)
+
+# Clean up
+field = field %>%
+  mutate(Sample = str_remove(SampleID, "sa"), Sample = parse_number(Sample)) %>% # convert sample numbers into numeric (easier manipulation)
+  pivot_longer(9:33122, names_to = "ASV", values_to="norm_abund") %>% # tidy format
+  filter(Soil %in% c("C3", "S17")) %>% # only these plots are relevant
+  mutate(Replicate = ifelse(Sample %in% field.rep1, 1, ifelse(Sample %in% field.rep2, 2, ifelse(Sample %in% field.rep3, 3, ifelse(Sample %in% field.rep4, 4, NA))))) %>% # add replciates
+  select(Sample, Soil, Block, Replicate, ASV, norm_abund) %>% # rename/reorder
+  left_join(tax, by="ASV") # add taxonomy
+```
+
+Estimated in-situ growth rates:
+
+```{r}
+gr.est = readRDS("rdata.files/gr_gr.final_rm0.rds")
+
+# Clean up
+gr.est = gr.est %>% 
+  left_join(tax, by="ASV") %>% # add taxonomy
+  select(Soil, Amendment, Replicate, label, Slope, k, g, Start, End, Length, ASV, Domain, Phylum, Class, Order, Family, Genus) # rename/reorder
+```
+
+```{r, eval=FALSE}
+# Save cleaned datasets for use in future scripts
+saveRDS(ucosms, file="rdata.files/ucosm.norm.cleaned.rds")
+saveRDS(field, file="rdata.files/field.norm.cleaned.rds")
+saveRDS(gr.est, file="rdata.files/gr.final.cleaned.rds")
+```
+
+# Overview of community diversity
+
+Number of ASVs/phyla
+
+```{r}
+# Microcosms
+ucosms %>% filter(norm_abund != 0) %>% distinct(ASV) %>% nrow() # total ASVs (not including 0 abundance)
+
+ucosms %>%  # average ASVs per sample
+  filter(norm_abund != 0) %>% 
+  group_by(Sample) %>% 
+  summarize(num_ASV = length(unique(ASV))) %>% 
+  colMeans()
+
+ucosms %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic placement
+  filter(norm_abund != 0) %>% 
+  mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>%
+  distinct(Phylum) %>% 
+  nrow()
+
+# Field
+field %>% filter(norm_abund != 0) %>% distinct(ASV) %>% nrow() # total ASVs (not including 0 abundance)
+
+field %>%  # average ASVs per sample
+  filter(norm_abund != 0) %>% 
+  group_by(Sample) %>% 
+  summarize(num_ASV = length(unique(ASV))) %>% 
+  colMeans()
+
+field %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic placement
+  filter(norm_abund != 0) %>% 
+  mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>% 
+  distinct(Phylum) %>% 
+  nrow() 
+
+# Microcosms and field together (full dataset)
+ucosms %>% bind_rows(field) %>% filter(norm_abund != 0) %>% distinct(ASV) %>% nrow() # total ASVs (not including 0 abundance)
+
+ucosms %>% # average number of ASVs
+  bind_rows(field) %>% 
+  filter(norm_abund != 0) %>% 
+  group_by(Sample) %>% 
+  summarize(num_ASV = length(unique(ASV))) %>% 
+  colMeans()
+
+ucosms %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic placement
+  bind_rows(field) %>% 
+  filter(norm_abund != 0) %>% 
+  mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>%
+  distinct(Phylum) %>% 
+  nrow() 
+
+# Estimated growth rates
+gr.est %>% distinct(ASV) %>% nrow() # total ASVs (not including 0 abundance)
+
+gr.est %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic placement
+  mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>% 
+  distinct(Phylum) %>% 
+  nrow() 
+```
+
+Most abundant phyla
+
+```{r}
+# Microcosms (tp0)
+ucosms %>% 
+  filter(Day==0) %>%
+  group_by(Replicate, Phylum) %>% 
+  summarize(total_abund = sum(norm_abund)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -total_abund), x=total_abund)) +
+  geom_boxplot() +
+  labs(title="Microcosms at TP0", x="Total normalized abundance", y="Phylum") +
+  theme_test()
+
+# Field
+field %>% 
+  group_by(Replicate, Phylum) %>% 
+  summarize(total_abund = sum(norm_abund)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -total_abund), x=total_abund)) +
+  geom_boxplot() +
+  labs(title="Field", x="Total normalized abundance", y="Phylum") +
+  theme_test()
+
+# Growth rate estimates
+gr.est %>% 
+  group_by(Replicate, Phylum) %>%
+  summarize(num_ASV = length(ASV)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -num_ASV), x=num_ASV)) +
+  geom_boxplot() +
+  labs(title="Growth estimates", x="Total ASVs", y="Phylum") +
+  theme_test()
+
+# Count total ASVs in overall data
+gr.est %>% group_by(Phylum) %>% count(Phylum) %>% arrange(-n)
+```
+
+Top 5 most abundant phyla in all data categories are Proteobacteria, Actinobacteria, Acidobacteria, Verrucomicrobia, and Planctomycetes in that order.
+
+# Growth estimate summaries
+
+Start of growth
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(avg_start = mean(Start)) %>%
+  ggplot(aes(x=Soil, y=avg_start, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Start of growth window", y="Day") +
+  theme_test()
+```
+
+End of growth window
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(avg_end = mean(End)) %>%
+  ggplot(aes(x=Soil, y=avg_end, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="End of growth window", y="Day") +
+  theme_test()
+```
+
+Length of growth window
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(avg_len = mean(Length)) %>%
+  ggplot(aes(x=Soil, y=avg_len, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Length of growth window", y="Day") +
+  theme_test()
+```
+
+
+Specific growth rates
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(avg_k = mean(k)) %>%
+  ggplot(aes(x=Soil, y=avg_k, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Specific growth rate", y="Specific growth rate (per Day)") +
+  theme_test()
+```
+
+Create table
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment) %>%
+  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(Start), sd_start = sd(Start), avg_end = mean(End), sd_end = sd(End), avg_len = mean(Length), sd_len = sd(Length))
+```
+
+Generation time (note that short generation times are fast growth, long generation times are slow growth)
+
+```{r}
+gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
+```
+
+# Overlapping estimates between treatments
+
+```{r}
+# Isolate treatment ASV names
+gr.C3.asv = gr.est %>% filter(Soil=="C3") %>% distinct(ASV)
+gr.S17.asv = gr.est %>% filter(Soil=="S17") %>% distinct(ASV)
+gr.C3y.asv = gr.est %>% filter(Soil=="C3", Amendment=="Y") %>% distinct(ASV)
+gr.C3n.asv = gr.est %>% filter(Soil=="C3", Amendment=="N") %>% distinct(ASV)
+gr.S17y.asv = gr.est %>% filter(Soil=="S17", Amendment=="Y") %>% distinct(ASV)
+gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
+
+# Overlap
+inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
+inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
+inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
+```
+
+
+

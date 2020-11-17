@@ -1,0 +1,32 @@
+# I'm only using git to track changes to scripts, data will not be included
+
+# Directories
+output
+rdata.files
+archive
+biogeochem_data
+dunlop_site
+SOM_data
+protocols
+librarypre_metadata
+groupedASVs
+.Rproj.user
+copynum_est
+figures
+libraryprep_metadata/
+picogreen_data/
+pics/
+rmarkdown_files/
+rscripts_messy/
+temp/
+appfiles/
+.ipynb_checpoints/
+
+# Files
+*.csv
+*.tsv
+
+#Other
+.RData
+.Rhistory
+growthrate2018.Rproj

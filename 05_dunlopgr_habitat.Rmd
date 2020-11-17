@@ -1,0 +1,607 @@
+---
+title: "Dunlop growth rates - habitat"
+author: "Cassandra Wattenburger"
+date: "11/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Investigate the effects of soil habitat on in-situ growth rates
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(cowplot)
+library(data.table)
+library(phyloseq)
+library(lmerTest)
+
+sessionInfo()
+```
+
+Import estimated growth rates:
+
+```{r}
+gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
+```
+
+
+# Growth rate habitat distributions
+
+Average across replicates: makes for cleaner presentation.
+
+```{r}
+gr.estavg = gr.est %>% 
+  group_by(Soil, Amendment, ASV, Domain, Phylum, Class, Order, Family, Genus) %>% 
+  summarize(avgk = mean(k), avgStart = mean(Start), avgEnd = mean(End), avgLength = mean(Length))
+```
+
+Kernel density graphs
+
+See: https://www.statsmodels.org/dev/examples/notebooks/generated/kernel_density.html
+
+```{r, results="show"}
+gr.estavg %>% 
+  filter(Amendment=="N") %>%
+  ggplot(aes(x=log(avgk), color=Soil, fill=Soil)) +
+  geom_density(alpha=0.5) +
+  labs(title="Only water", x="log specific growth rate", y="Kernel Density") +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(labels = c("Cropped", "Successional"), values=c("#F8766D","#00BFC4")) +
+  scale_fill_manual(labels = c("Cropped", "Successional"), values=c("#F8766D","#00BFC4")) +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0))
+
+gr.estavg %>% 
+  filter(Amendment=="Y") %>%
+  ggplot(aes(x=log(avgk), color=Soil, fill=Soil)) +
+  geom_density(alpha=0.5) +
+  labs(title="C-amended", x="log specific growth rate", y="Kernel Density") +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(labels = c("Cropped", "Successional"), values=c("#F8766D","#00BFC4")) +
+  scale_fill_manual(labels = c("Cropped", "Successional"), values=c("#F8766D","#00BFC4")) +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0))
+
+gr.estavg %>% 
+  filter(Soil=="C3") %>%
+  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
+  geom_density(alpha=0.5) +
+  labs(title="Cropped", x="log specific growth rate", y="Kernel Density") +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(labels = c("C-added", "Water"), values=c("#E78E43", "#423EC5")) +
+  scale_fill_manual(labels = c("C-added", "Water"), values=c("#E78E43", "#423EC5")) +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0))
+
+gr.estavg %>% 
+  filter(Soil=="S17") %>%
+  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
+  geom_density(alpha=0.5) +
+  labs(title="Successional", x="log specific growth rate", y="Kernel Density") +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(labels = c("C-added", "Water"), values=c("#E78E43", "#423EC5")) +
+  scale_fill_manual(labels = c("C-added", "Water"), values=c("#E78E43", "#423EC5")) +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0))
+```
+
+
+# Growth rate distribution binning
+
+Hypothesis: growth rate distributions will differ by soil and by amendment.
+
+In order to conduct tests on the distirbution of the data, I need to bin it discretely. The bins will need to be equal width and have the same start and end points across treatments so that they are comparable, and the number of bins must be chosen to simplify the data without losing too much of the "shape" of the distribution (see smoothed histograms above for reference).
+
+Ranging from 5 to 10 bins.
+
+Overall:
+
+```{r}
+for (i in 5:10) {
+  print(gr.estavg %>%
+    ggplot(aes(x=log(avgk))) +
+    geom_histogram(bins=i, color="black", fill="gray") +
+    theme_test() +
+    labs(title=paste("Overall,", i, "bins", sep=" ")))
+}
+```
+
+Treatments:
+
+```{r}
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    for (i in 5:10) {
+      print(gr.estavg %>%
+        filter(Soil==s, Amendment==a) %>%
+        ggplot(aes(x=log(avgk))) +
+        geom_histogram(bins=i, color="black", fill="gray") +
+        theme_test() +
+        labs(title=paste(s, a, i, "bins")))
+    }
+  }
+}
+```
+
+It looks like 5 bins is too few, 6 or 7 seem to more adequately capture the distributions. I'll choose 7 bins.
+
+There need to be the same number and width of bins in each dataset.
+
+Caculate min, max, and range of specific growth rate values in whole dataset:
+
+```{r, , results="show"}
+print(paste("Min:", min(log(gr.estavg$avgk))))
+print(paste("Max:", max(log(gr.estavg$avgk))))
+print(paste("Range:", max(log(gr.estavg$avgk))-min(log(gr.estavg$avgk))))
+```
+
+Calculate bin width based on range:
+
+```{r, results="show"}
+width = (max(log(gr.estavg$avgk))-min(log(gr.estavg$avgk)))/7
+print(paste("Bin width:", width))
+
+kmin=min(log(gr.estavg$avgk))
+print(paste("Bin 1 boundaries: less than", kmin+width))
+print(paste("Bin 2 boundaries:", kmin+width, "to",  kmin+width*2))
+print(paste("Bin 3 boundaries:", kmin+width*2, "to",  kmin+width*3))
+print(paste("Bin 4 boundaries:", kmin+width*3, "to",  kmin+width*4))
+print(paste("Bin 5 boundaries:", kmin+width*4, "to",  kmin+width*5))
+print(paste("Bin 6 boundaries:", kmin+width*5, "to",  kmin+width*6))
+print(paste("Bin 7 boundaries:", kmin+width*6, "and greater"))
+```
+
+```{r}
+# Bin data based on boundaries chosen and log k
+gr.est.bins = gr.est %>% mutate(bin = ifelse(log(k) < kmin+width, 1, ifelse(log(k) < kmin+width*2, 2, ifelse(log(k) < kmin+width*3, 3, ifelse(log(k) < kmin+width*4, 4, ifelse(log(k) < kmin+width*5, 5, ifelse(log(k) < kmin+width*6, 6, 7)))))))
+
+# Calculate bin information (proportion, frequency)
+gr.bins = data.frame()
+for (s in as.character(unique(gr.est.bins$Soil))) { 
+  for (a in as.character(unique(gr.est.bins$Amendment))) {
+    for (r in as.character(unique(gr.est.bins$Replicate))) {
+      total = nrow(gr.est.bins[gr.est.bins$Soil==s & gr.est.bins$Amendment==a & gr.est.bins$Replicate==r,])
+      for (b in as.character(unique(gr.est.bins$bin))) {
+        bin = gr.est.bins[gr.est.bins$Soil==s & gr.est.bins$Amendment==a & gr.est.bins$Replicate==r & gr.est.bins$bin==b,]
+        binfreq = nrow(bin)
+        binratio = binfreq/total
+        thisrow = data.frame(s, a, r, b, binfreq, binratio)
+        gr.bins = rbind(gr.bins, thisrow)   
+      }
+    }
+  }
+}
+colnames(gr.bins) = c("Soil","Amendment","Replicate","bin","frequency","proportion")
+gr.bins$bin = factor(gr.bins$bin, levels=c(1,2,3,4,5,6,7))
+```
+
+Plot bins:
+
+```{r, results="show"}
+ggplot(gr.bins) +
+  geom_boxplot(aes(x=bin, y=proportion, color=Soil)) +
+  facet_wrap(~Amendment) +
+  theme_test() +
+  labs(x="Slow to fast", y="Proportion of total taxa")
+
+ggplot(gr.bins) +
+  geom_boxplot(aes(x=bin, y=frequency, color=Soil)) +
+  facet_wrap(~Amendment) +
+  theme_test() +
+  labs(x="Slow to fast", y="Frequency")
+
+ggplot(gr.bins) +
+  geom_boxplot(aes(x=bin, y=proportion, color=Amendment)) +
+  facet_wrap(~Soil) +
+  scale_color_manual(values=c("#E78E43", "#423EC5")) +
+  theme_test() +
+  labs(x="Slow to fast", y="Proportion of total taxa")
+
+ggplot(gr.bins) +
+  geom_boxplot(aes(x=bin, y=frequency, color=Amendment)) +
+  facet_wrap(~Soil) +
+  scale_color_manual(values=c("#E78E43", "#423EC5")) +
+  theme_test() +
+  labs(x="Slow to fast", y="Frequency")
+```
+
+**Statistics**
+
+First, I want to know if the distribution of growth rates differs by habitat or amendment. I'll use a contingency table and Fisher's exact test.
+
+See: http://www.biostathandbook.com/fishers.html
+
+```{r}
+# Average replicates and round (Frischer's needs integers, not continuous numbers)
+gr.bins.avg = gr.bins %>% group_by(Soil, Amendment, bin) %>% summarize(avgfreq = mean(frequency)) %>% mutate(avgfreq.rnd = round(avgfreq))
+
+# Make contingency tables
+conting.y = dcast(gr.bins.avg[gr.bins.avg$Amendment=="Y",], Soil~bin, value.var="avgfreq.rnd")
+conting.y = conting.y[,-1] %>% as.matrix()
+
+conting.n = dcast(gr.bins.avg[gr.bins.avg$Amendment=="N",], Soil~bin, value.var="avgfreq.rnd")
+conting.n = conting.n[,-1] %>% as.matrix()
+
+conting.C3 = dcast(gr.bins.avg[gr.bins.avg$Soil=="C3",], Amendment~bin, value.var="avgfreq.rnd")
+conting.C3 = conting.C3[,-1] %>% as.matrix()
+
+conting.S17 = dcast(gr.bins.avg[gr.bins.avg$Soil=="S17",], Amendment~bin, value.var="avgfreq.rnd")
+conting.S17 = conting.S17[,-1] %>% as.matrix()
+
+# Run Fisher's exact tests
+set.seed(1)
+fish.testy = fisher.test(conting.y, simulate.p.value = TRUE)
+fish.testn = fisher.test(conting.n, simulate.p.value = TRUE)
+fish.testC3 = fisher.test(conting.C3, simulate.p.value = TRUE)
+fish.testS17 = fisher.test(conting.S17, simulate.p.value = TRUE)
+
+# Multiple test correction
+fish.pvals = c(fish.testn$p.value, fish.testy$p.value, fish.testC3$p.value, fish.testS17$p.value)
+fish.padj = p.adjust(fish.pvals, method="holm", n=length(fish.pvals))
+print(paste("Unamended cropped vs Succ., adj. p-value:", fish.padj[1]))
+print(paste("Amended cropped vs Succ., adj. p-value:", fish.padj[2]))
+print(paste("Cropped amended vs unamended, adj. p-value:", fish.padj[3]))
+print(paste("Succ. amended vs unamended, adj. p-value:", fish.padj[4]))
+```
+
+
+# Growth rate shift up/down
+
+Among ASVs that were estimated in both cropped and successional soil treatments, do they reliably shift up or down in growth rate?
+
+Hypotheses: 
+
+1. ASVs found in water and C-amended treatments will grow faster in the C-amended treatment in both soils because of higher resource availability.
+
+2. ASVs found in both cropped and successional soils overall will grow faster in the cropped soil because of greater disturbances in the cropped soil.
+
+```{r}
+# Isolate treatment data
+gr.C3.avgk = gr.est %>% 
+  filter(Soil=="C3") %>% 
+  group_by(Soil, ASV) %>% 
+  summarize(C3.avgk=mean(k))
+
+gr.S17.avgk = gr.est %>%
+  filter(Soil=="S17") %>% 
+  group_by(Soil, ASV) %>% 
+  summarize(S17.avgk=mean(k))
+
+gr.C3y.avgk = gr.est %>% 
+  filter(Soil=="C3", Amendment=="Y") %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(C3y.avgk=mean(k))
+
+gr.C3n.avgk = gr.est %>% 
+  filter(Soil=="C3", Amendment=="N") %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(C3n.avgk=mean(k))
+
+gr.S17y.avgk = gr.est %>% 
+  filter(Soil=="S17", Amendment=="Y") %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(S17y.avgk=mean(k))
+
+gr.S17n.avgk = gr.est %>% 
+  filter(Soil=="S17", Amendment=="N") %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(S17n.avgk=mean(k))
+```
+
+Visualize:
+
+```{r}
+# Overall cropped vs succesional
+inner_join(gr.C3.avgk, gr.S17.avgk, by="ASV") %>%
+  ggplot(aes(x=C3.avgk, y=S17.avgk)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(x="Cropped, log specific growth rate", y="Successional, log specific growth rate") +
+  theme_test()
+
+# Cropped C-amended vs water
+inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV") %>% 
+  ggplot(aes(x=C3y.avgk, y=C3n.avgk)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(x="Cropped C-amended, log specific growth rate", y="Cropped water-amended, log specific growth rate") +
+  theme_test()
+
+# Succesional C-amended vs water
+inner_join(gr.S17y.avgk, gr.S17n.avgk, by="ASV") %>% 
+  ggplot(aes(x=S17y.avgk, y=S17n.avgk)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(x="Successional C-amended, log specific growth rate", y="Successional water-amended, log specific growth rate") +
+  theme_test()
+```
+
+Doesn't look promising.
+
+**Statistcs**
+
+Try simple linear regression first:
+
+```{r}
+# Test overall cropped vs successional using linear regression
+gr.C3S17.avgk = inner_join(gr.C3.avgk, gr.S17.avgk, by="ASV")
+gr.C3S17.avgk.lm = lm(C3.avgk ~ S17.avgk, data=gr.C3S17.avgk)
+
+# Evaluate assumptions of linear regression
+hist(gr.C3S17.avgk.lm$residuals) # evaluate assumption of normality
+plot(predict(gr.C3S17.avgk.lm), resid(gr.C3S17.avgk.lm)) # evaluate assumption of homoskedasticity
+
+# P value
+summary(gr.C3S17.avgk.lm)$coefficients[2,4]
+```
+
+```{r}
+# Cropped C-amended vs water
+gr.C3yn.avgk = inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV")
+gr.C3yn.avgk.lm = lm(C3y.avgk ~ C3n.avgk, data=gr.C3yn.avgk)
+
+# Evaluate assumptions of linear regression
+hist(gr.C3yn.avgk.lm$residuals) # evaluate assumption of normality
+plot(predict(gr.C3yn.avgk.lm), resid(gr.C3yn.avgk.lm)) # evaluate assumption of homoskedasticity
+
+# P value
+summary(gr.C3yn.avgk.lm)$coefficients[2,4]
+```
+
+```{r}
+# Successional C-amended vs water
+gr.S17yn.avgk = inner_join(gr.S17y.avgk, gr.S17n.avgk, by="ASV")
+gr.S17yn.avgk.lm = lm(S17y.avgk ~ S17n.avgk, data=gr.S17yn.avgk)
+
+# Evaluate assumptions of linear regression
+hist(gr.S17yn.avgk.lm$residuals) # evaluate assumption of normality
+plot(predict(gr.S17yn.avgk.lm), resid(gr.S17yn.avgk.lm)) # evaluate assumption of homoskedasticity
+
+# P value
+summary(gr.S17yn.avgk.lm)$coefficients[2,4]
+```
+
+Assumptions look fine, but the successional overlap data is just sparse. Anyways, nothing is significant.
+
+
+# Explore bimodal distributions - slow and fast groups?
+
+The growth rate distribution graphs show distinct bimodal distributions in the water treatment. This seems to indicate differing populations, which I want to explore further.
+
+Split data into "fast" and "slow" groups based on the bimodal distributions.
+
+**Split by the bimodal distributions in unamended soils:**
+
+Choose thresholds for each soil:
+
+```{r, results="show"}
+gr.estavg %>% 
+  filter(Soil=="C3") %>%
+  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
+  geom_density(alpha=0.5) +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(values=c("#E78E43", "#423EC5")) +
+  scale_fill_manual(values=c("#E78E43", "#423EC5")) +
+  labs(title="Cropped", x="ln speciifc growth rate", y="Density") +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0)) +
+  geom_vline(xintercept=-2.4, linetype=2)
+
+gr.estavg %>% 
+  filter(Soil=="S17") %>%
+  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
+  geom_density(alpha=0.5) +
+  theme_test() +
+  theme(#legend.position="none",
+        title=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_color_manual(values=c("#E78E43", "#423EC5")) +
+  scale_fill_manual(values=c("#E78E43", "#423EC5")) +
+  labs(title="Successional", x="ln speciifc growth rate", y="Density") +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(-5,0)) +
+  geom_vline(xintercept=-1.9, linetype=2)
+```
+
+Label ASVs based on avg growth rate threshold:
+
+```{r}
+# Water only
+gr.estavg.group = gr.estavg %>% 
+  filter(Amendment=="N") %>% 
+  mutate(group = ifelse(Soil=="C3" & log(avgk) < -2.4, "slow", ifelse(Soil=="S17" & log(avgk) < -1.9, "slow", "fast")))
+
+gr.estavg.group = gr.estavg.group[,c(1,3:ncol(gr.estavg.group))]
+```
+
+```{r, eval=FALSE}
+# save 
+saveRDS(gr.estavg.group, file="rdata.files/gr.groups.rds")
+```
+
+### Abundances of groups in field communities
+
+Do these taxa exist in the in-field community data? If so, what are they're abundances? I.e. did the soil shape the growth dynamics we observed in the microcosms?
+
+Hypothesis: abundances of slow and fast taxa within field communities differ between cropped and successional soils.
+
+Import field data:
+
+```{r}
+# Import data
+field = readRDS("rdata.files/field.norm.cleaned.rds")
+
+# Add group labels
+field.group = field %>% 
+  inner_join(gr.estavg.group, var=c("Soil", "ASV", "Domain", "Phylum", "Class", "Order", "Family", "Genus",)) %>%
+  filter(!norm_abund==0) %>% # remove 0 values, ie ASV not present
+  mutate(group = parse_factor(group, levels=c("slow", "fast"))) # more intuitive order for groups
+```
+
+#### Individual ASV normalized abundances in each group:
+
+```{r}
+# Visualize
+field.group %>% 
+  ggplot(aes(x=group, y=log(norm_abund), color=as.factor(Block))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Individual ASV abundances", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+```
+
+**Statistics**
+
+Linear-mixed effects model
+
+* Block as random effect
+* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
+
+```{r}
+# Cropped
+field.group.ind.C3.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate), data=field.group[field.group$Soil=="C3",]) # fit model
+plot(resid(field.group.ind.C3.lmer)) # check normality
+plot(predict(field.group.ind.C3.lmer), resid(field.group.ind.C3.lmer)) # check variances
+anova(field.group.ind.C3.lmer) # results
+
+# Successional
+field.group.ind.S17.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate), data=field.group[field.group$Soil=="S17",]) # fit model
+plot(resid(field.group.ind.S17.lmer)) # check normality
+plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check variances
+anova(field.group.ind.S17.lmer) # results
+```
+
+#### Total, aggregated abundances in each group:
+
+```{r}
+# Sum abundances in each group
+field.group.sum = field.group %>% 
+  group_by(Soil, Block, Replicate, group) %>%
+  summarize(total_abund = sum(norm_abund))
+
+# Visualize
+field.group.sum %>% 
+  ggplot(aes(x=group, y=log(total_abund), color=as.factor(Block))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Total, aggregated abundance", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+
+field.group.sum %>% 
+  ggplot(aes(x=group, y=log(total_abund))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  labs(title="Total, aggregated abundance", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme_test()
+```
+
+Strong block effect in cropped soil.
+
+**Statistics**
+
+Linear-mixed effects model.
+
+* Block as random effect
+* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
+
+```{r}
+# Cropped
+field.group.sum.C3.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.sum[field.group.sum$Soil=="C3",]) # fit model
+plot(resid(field.group.sum.C3.lmer)) # check normality
+plot(predict(field.group.sum.C3.lmer), resid(field.group.sum.C3.lmer)) # check variances
+anova(field.group.sum.C3.lmer) # results
+
+# Successional
+field.group.sum.S17.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.sum[field.group.sum$Soil=="S17",]) # fit model
+plot(resid(field.group.sum.S17.lmer)) # check normality
+plot(predict(field.group.sum.S17.lmer), resid(field.group.sum.S17.lmer)) # check variances
+anova(field.group.sum.S17.lmer) # results
+```
+
+Conclusion: we found evidence that, in the cropped soil, ASVs in the "fast" group are, in-total and individually, more abundant than ASVs in the "slow" group. No such evidence in successional soil.
+
+
+# Figures
+
+Distribution of growth rates by treatment.
+
+```{r}
+p1 = gr.estavg %>%
+  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, N="Water", Y="C-added")) %>%
+  ggplot(aes(x=log(avgk), fill=Soil)) +
+  geom_density(alpha=0.5) +
+  facet_wrap(~Amendment, ncol=1) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  labs(y="Kernel density", x=expression("Specific growth rate (ln normalized reads day"^{-1}*")")) +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = c(.2,.9),
+        legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(0.5, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 0.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p1
+
+p2 = gr.bins %>%
+  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, N="Water", Y="C-added")) %>%
+  ggplot(aes(x=bin, y=frequency, fill=Soil)) +
+  geom_boxplot(alpha=0.5) +
+  facet_wrap(~Amendment, ncol=1) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  labs(x="Bin number", y="Number of ASVs") +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(0.5, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p2
+
+habitatdist.plot = plot_grid(p1, p2, align="hv", labels=c("a", "b"), label_size=10)
+habitatdist.plot
+```
+
+```{r, eval=FALSE}
+
+```
