@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 **Goal of this script:** Investigate phylogenetic conservation of in-situ growth rates.
@@ -65,7 +67,7 @@ ucosms.gr.avg %>%
   filter(Soil=="C3", Amendment=="N") %>%
   ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
   geom_boxplot() +
-  geom_jitter(alpha = 0.2) +
+  geom_jitter(shape=1, alpha = 0.2) +
   labs(title = "Cropped, water", y = "", x = "log mean specific growth rate") +
   theme_test()
 

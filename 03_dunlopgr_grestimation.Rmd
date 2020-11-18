@@ -2,7 +2,7 @@
 title: "Dunlop growth rates - estimate growth rates"
 author: "Cassandra Wattenburger"
 date: "11/15/2020"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -217,7 +217,7 @@ colnames(gr.est) = c("label","Soil","Amendment","ASV","Replicate","Start","End",
 
 I can't find any guidance on how to determine whether or not a fit is "perfect" but I know that the residuals are essentially equally to 0 for perfect fits. I'll use 0.0001 as a filtering threshold for removal.
 
-```{r, echo=TRUE, results="show"}
+```{r}
 # Remove "perfect" fits as precaution
 gr.noperf = filter(gr.est, Residuals >= 0.0001)
 nrow(gr.est)
@@ -229,7 +229,7 @@ nrow(gr.noperf)
 
 * Smallest slope p-value
 
-```{r, echo=TRUE, results="show"}
+```{r}
 # Best p-value for each curve
 gr.best = data.frame()
 for (l in as.character(unique(gr.noperf$label))) {
@@ -286,7 +286,7 @@ ggplot(length.df, aes(x=NA, y=day)) +
 
 Simulate random data points, 1000 times:
 
-```{r, echo=TRUE, results="show"}
+```{r}
 # Simulate time series
 set.seed(101)
 tps = c(0, 0.333, 0.667, 1, 1.5, 2, 3, 5, 7, 9, 13, 17, 21, 28, 50)
@@ -466,7 +466,7 @@ Filter essentially perfect fits and choose best estimate.
 
 Same method as in growthrate_growthestimation_rm0.Rmd
 
-```{r, echo=TRUE}
+```{r}
 # Remove essentially perfect fits
 sim.noperf = filter(sim.est, residuals >= 0.0001)
 
@@ -482,7 +482,7 @@ for (i in as.character(unique(sim.noperf$sim))) {
 
 False positive rates:
 
-```{r, echo=TRUE, results="show"}
+```{r}
 # False positives
 a = nrow(sim.best[sim.best$pval <= 0.05,])
 b = nrow(sim.best[sim.best$pval <= 0.025,])
@@ -502,7 +502,7 @@ ggplot(false.df, aes(x=pvalue, y=false)) +
 
 10%, 5%, 2.5%, 1% false positive p-value thresholds:
 
-```{r, echo=TRUE, results="show"}
+```{r}
 # Pvalue thresholds for false positive rates:
 nrow(sim.best[sim.best$pval <= 0.013,]) # ~10%, 100/1000
 nrow(sim.best[sim.best$pval <= 0.01,]) # ~7.5%, 75/100
@@ -743,7 +743,7 @@ Where k is specific growth rate, B is abundance at beginning, b is abundance at 
 
 I found this guide helpful: http://miller-lab.net/MillerLab/protocols/general-bacteriology/calculating-growth-rate/
 
-```{r, echo=TRUE}
+```{r}
 # Generate abundances over time interval based on estimated slope
 k.df = data.frame()
 B=1 # Start with one bacteria

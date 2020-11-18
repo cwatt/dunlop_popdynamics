@@ -1,0 +1,134 @@
+---
+title: "Dunlop growth rate - miscellanious"
+author: "Cassandra Wattenburger"
+date: "11/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Further visualizations and analyses that don't fit into a particular theme or category.
+
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(phyloseq)
+
+set.seed(4)
+
+sessionInfo()
+```
+
+
+# Import data
+
+```{r}
+ucosm = readRDS("rdata.files/ucosm.norm.cleaned.rds")
+field = readRDS("rdata.files/field.norm.cleaned.rds")
+gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
+```
+
+# DNA conc. over time
+
+```{r}
+# Import DNA conc. info
+dna = read_csv("growthrate_dnaconc.csv") %>% select("Sample" = SampleID, "dna_conc" = Conc.)
+ucosm.dna = inner_join(ucosm, dna, by="Sample")
+
+ucosm.dna %>% 
+  group_by(Soil, Amendment, Day) %>%
+  summarize(dna_conc = mean(dna_conc)) %>%
+  mutate(Amendment = recode_factor(Amendment, Y="C-added", N="Water"),
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
+  ggplot(aes(x=Day, y=dna_conc, linetype=Soil)) +
+  facet_wrap(~Amendment) +
+  geom_point() +
+  geom_line() +
+  labs(y="DNA concentration (ng/μL)") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+```
+
+There appears to be a decrease in DNA concentration over time, particularly in the C-added soil. Not what I expected. Perhaps priming effec of some sort?
+
+# Field vs ucosm beta diversity
+
+How much did processing the soil and placing it in microcosms change the composition?
+
+Import data into phyloseq:
+
+```{r}
+# Merge data
+
+# Add sample type labels
+ucosm = mutate(ucosm, Type = "Microcosm")
+field = mutate(field, Type = "Field")
+ucosm.field = bind_rows(ucosm, field)
+
+# ASV table
+ucosm.field.count = ucosm.field %>%
+  select(Sample, norm_abund, ASV) %>%
+  pivot_wider(names_from = ASV, values_from = norm_abund) %>%
+  column_to_rownames(var="Sample")
+ucosm.field.count = t(ucosm.field.count)
+ucosm.field.count = as.matrix(ucosm.field.count)
+
+# Taxonomy
+# GIVING ERROR, NOT SURE WHY
+#ucosm.field.tax = ucosm.field %>%
+#  select(ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
+#  unique() %>%
+#  as.data.frame()
+#rownames(ucosm.field.tax) = ucosm.field.tax$ASV
+#ucosm.field.tax = ucosm.field.tax[,-1]
+#ucosm.field.tax = as.matrix(ucosm.field.tax)
+
+# Metadata
+ucosm.field.meta = ucosm.field %>%
+  select(Sample, Soil, Amendment, Replicate, Day, Block, Type) %>%
+  unique()
+rownames(ucosm.field.meta) = ucosm.field.meta$Sample
+
+tree = read.tree("output/growthrate.tree.final.nwk")
+
+# Phyloseq
+OTU = otu_table(ucosm.field.count, taxa_are_rows = TRUE)
+#TAX = tax_table(ucosm.field.tax)
+SAM = sample_data(ucosm.field.meta, errorIfNULL = TRUE)
+physeq = phyloseq(OTU, SAM, tree)
+```
+
+Ordinate:
+```{r}
+physeq.day0 = subset_samples(physeq, Day %in% c(NA, 0))
+day0.ord = ordinate(physeq.day0, method="NMDS", distance="bray")
+plot_ordination(physeq.day0, day0.ord, color="Type", shape="Soil") +
+  theme_test()
+```
+
+**Statistics**
+
+```{r}
+
+```
+
+
+# Microcosms over time
+
+```{r}
+physeq.ord = ordinate(physeq, method="NMDS", distance="bray")
+plot_ordination(physeq, physeq.ord, color="Soil") +
+  facet_grid(~Amendment) +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+```
+

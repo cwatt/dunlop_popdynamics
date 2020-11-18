@@ -2,12 +2,14 @@
 title: "Dunlop growth rates - 16S copy number"
 author: "Cassandra Wattenburger"
 date: "11/11/2020"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 **Goal of this script:** Use PAPRICA results to explore how in-situ growth rate relates to predicted genomic features of bacteria.
@@ -281,6 +283,8 @@ field.group.n16S %>%
 
 **Statistics**
 
+REVISIT MODELS, CHANGES SIGNIFICANCE, SEE WHICH MODEL IS BETTER FIT AND GO WITH THAT
+
 Linear-mixed effects model
 
 * Block as random effect
@@ -300,6 +304,7 @@ plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check
 anova(field.group.ind.S17.lmer) # results
 ```
 
+Not sure about that.
 
 ### Total abundances
 
@@ -332,7 +337,7 @@ field.group.n16S.total %>%
 Linear-mixed effects model.
 
 * Block as random effect
-* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
+* Repeated measures because slow and fast are measured from same plot for each replicate
 
 ```{r}
 # Cropped
@@ -394,7 +399,7 @@ copynum.plot = plot_grid(p1, p2, axis="t", align="h", labels=c("a","b"), label_s
 copynum.plot
 ```
 
-I'll make small aesthetic tweaks to this in adobe illustrator
+I'll make small aesthetic tweaks to this oustide of ggplot2, probably.
 
 * make font sizes equal
 * make sure plots are aligned vertically
@@ -407,44 +412,28 @@ ggsave(plot=copynum.plot, fil="figures/fig_copynum.pdf", device=pdf, width=190, 
 Group abudances, corrected for copy number.
 
 ```{r}
-p3 = field.group.n16S %>%
-  mutate(Soil = fct_relevel(Soil, "S17"), 
-         Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
-  ggplot(aes(x=group, y=log(corr_abund))) +
-  geom_boxplot() +
-  geom_jitter(shape=1, alpha=0.2) +
-  facet_wrap(~Soil, nrow=2) +
-  labs(y="16S copy number corrected abundance (ln)") +
-  theme_test() +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        strip.background = element_blank(),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
-        axis.text = element_text(size = 8))
-p3
+ASVlabs = list()
 
-p4 = field.group.n16S.total %>%
+p3 = field.group.n16S.total %>%
   mutate(Soil = fct_relevel(Soil, "S17"), 
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
   ggplot(aes(x=group, y=log(total_abund))) +
   geom_boxplot() +
-  #geom_jitter(alpha=0.2) +
-  facet_wrap(~Soil, nrow=2) +
-  labs(y="") +
+  #geom_text() +
+  facet_wrap(~Soil) +
+  labs(y="Total normalized abundance") +
   theme_test() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         strip.background = element_blank(),
-        axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
-        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
+        axis.line = element_line(colour = "black"),
         axis.text = element_text(size = 8))
-p4
+p3
+```
 
-plot_grid(p3, p4)
+```{r, eval=FALSE}
+ggsave(plot=p3, file="figures/fig_totalabund.pdf", device=pdf, width=90, height=70, units="mm")
 ```
 
