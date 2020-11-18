@@ -610,3 +610,88 @@ habitatdist.plot
 ```{r, eval=FALSE}
 ggsave(plot=habitatdist.plot, file="figures/fig_habitatdist.pdf", device=pdf, width=140, height=90, units="mm")
 ```
+
+Shift in growth rate between treatments.
+
+```{r}
+p3 = inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3y.avgk), y=log(C3n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, C-amended", y="Cropped, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p3
+
+p4 = inner_join(gr.S17y.avgk, gr.S17n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(S17y.avgk), y=log(S17n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Successional, C-amended", y="Succesional, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p4
+
+p5 = inner_join(gr.C3y.avgk, gr.S17y.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3y.avgk), y=log(S17y.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, C-amended", y="Succesional, C-amended") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p5
+
+p6 = inner_join(gr.C3n.avgk, gr.S17n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3n.avgk), y=log(S17n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, water", y="Succesional, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p6
+
+shift.plot = plot_grid(p3, p4, p5, p6)
+shift.plot
+
+```
+
+```{r, eval=FALSE}
+ggsave(shift.plot, file="figures/suppfig_shiftgr.pdf", device=pdf, width=140, height=140, units="mm")
+```
+

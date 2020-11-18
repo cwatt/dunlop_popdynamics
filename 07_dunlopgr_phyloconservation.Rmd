@@ -280,4 +280,28 @@ ggplot(data=gr.crlg, aes(x=class.index, y=Mantel.cor)) +
   theme_test()
 ```
 
-Filled circles are significant, unfilled circles are not significant. It appears there may be some conservation at very close phylogenetic distances in the cropped C-amended treatment only? Not very convincing.
+Filled circles are significant, unfilled circles are not significant. It appears there may be some conservation at very close phylogenetic distances in the cropped C-amended treatment only? Not very convincing. Plus I haven't corrected for multiple comparisons which would almost certainly wipe that point out.
+
+
+# Figures
+
+```{r}
+# Overall
+p1 = ucosms.gr.avg %>%
+  ggplot(aes(x=log(avg.k), y=fct_reorder(Phylum, -avg.k))) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2, shape=1) +
+  labs(y = "", x = expression("Specific growth rate (ln day"^{-1}*")")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        title = element_text(size=10),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p1
+```
+
+```{r, eval=FALSE}
+ggsave(p1, file="figures/suppfig_phylagr.pdf", device=pdf, width=140, height=140, units="mm")
+```
+

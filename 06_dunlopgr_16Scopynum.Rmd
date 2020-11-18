@@ -24,8 +24,11 @@ Notes:
 ```{r}
 library(tidyverse)
 library(cowplot)
+library(MuMIn)
 
 sessionInfo()
+
+rm(list=ls())
 ```
 
 # Import PAPRICA and growth estimation data
@@ -145,6 +148,7 @@ sd(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment
 High variation, but these distances look good. There may be ASVs that are much more distantly related to the reference genomes than the average, but for the most part these numbers suggest that the ASVs are well-represented by the reference genomes. Additionally, this is the distance to the furthest neighbor, not the nearest, so these numbers are over-inflated to begin with.
 
 Interestingly, the C-amended treatments typically have lower average distal lengths than the water-amended treatments. Reference genomes had to be cultured and isolated to be sequenced and it makes sense that more "culturable" ASVs might grow in a soil treatment that was amended with simple sugars.
+
 
 # Relationship between 16S copy number and in-situ growth rates
 
@@ -290,21 +294,54 @@ Linear-mixed effects model
 * Block as random effect
 * Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
 
+I'm going to try two different models, one that has an interaction effect with block, because I think that may be the case.
+
+Cropped soil:
+
 ```{r}
 # Cropped
-field.group.ind.C3.lmer = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model
-plot(resid(field.group.ind.C3.lmer)) # check normality
-plot(predict(field.group.ind.C3.lmer), resid(field.group.ind.C3.lmer)) # check variances
-anova(field.group.ind.C3.lmer) # results
+field.group.ind.C3.lmer1 = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model 1
 
-# Successional
-field.group.ind.S17.lmer = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model
-plot(resid(field.group.ind.S17.lmer)) # check normality
-plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check variances
-anova(field.group.ind.S17.lmer) # results
+field.group.ind.C3.lmer2 = lmer(log(corr_abund) ~ group * Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model 2
+
+# Compare models
+# Check r-squared of each
+r.squaredGLMM(field.group.ind.C3.lmer1)
+r.squaredGLMM(field.group.ind.C3.lmer2)
+# Check results
+summary(field.group.ind.C3.lmer1)
+summary(field.group.ind.C3.lmer2)
 ```
 
-Not sure about that.
+Not sure what to think. One model says that group is highly significant, the other insignificant. They both explain about the same amount of variance. That's fishy. Proceed with caution.
+
+Successional soil:
+
+```{r}
+# Successional
+field.group.ind.S17.lmer1 = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model 1
+
+field.group.ind.S17.lmer2 = lmer(log(corr_abund) ~ group * Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model 2
+
+# Compare models
+# Check r-squared of each
+r.squaredGLMM(field.group.ind.S17.lmer1)
+r.squaredGLMM(field.group.ind.S17.lmer2)
+# Check results
+summary(field.group.ind.S17.lmer1)
+summary(field.group.ind.S17.lmer2)
+```
+
+Same situation, but at least the model results agree with one another.
+
+Model 1 results:
+
+```{r}
+plot(resid(field.group.ind.S17.lmer1)) # check normality
+plot(predict(field.group.ind.S17.lmer1), resid(field.group.ind.S17.lmer1)) # check variances
+summary(field.group.ind.S17.lmer1) # results
+```
+
 
 ### Total abundances
 
@@ -358,7 +395,7 @@ No change in results. Trends were not confounded by 16S copy number.
 
 # Figures
 
-16S copy number vs in-situ growth rate.
+### 16S copy number vs in-situ growth rate
 
 ```{r}
 # Overall
@@ -367,15 +404,15 @@ p1 = paprica.gr.avgtrt %>%
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
          Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
   ggplot(aes(x=log(avgk), y=n16S)) +
-  geom_point(shape=1) +
-  labs(title="Overall", x=expression("Specific growth rate (ln normalized reads day"^{-1}*")"), y="Estimated 16S copy number") +
+  geom_point(shape=1, alpha=0.6) +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8, fill="gray") +
+  labs(title="Overall", x=expression("Specific growth rate (ln day"^{-1}*")"), y="Estimated 16S copy number") +
   theme_test() +
   theme(axis.line = element_line(colour = "black"),
         strip.background = element_blank(),
         strip.text = element_text(size=10),
-        title = element_text(size=8),
-        axis.title.x = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
-        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10))
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1, 0, 0), "mm"), size=10))
 p1
 
 # By treatment
@@ -384,18 +421,19 @@ p2 = paprica.gr.avgtrt %>%
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
          Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
   ggplot(aes(x=log(avgk), y=n16S)) +
-  geom_point(shape=1) +
+  geom_point(shape=1, alpha=0.6) +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8, fill="gray") +
   facet_grid(Amendment ~ Soil, switch="y") +
-  labs(x=expression("Specific growth rate (ln normalized reads day"^{-1}*")")) +
+  labs(x=expression("Specific growth rate (ln day"^{-1}*")")) +
   theme_test() +
   theme(axis.line = element_line(colour = "black"),
         strip.background = element_blank(),
         strip.text = element_text(size=10),
-        axis.title.x = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
         axis.title.y = element_blank())
 p2
 
-copynum.plot = plot_grid(p1, p2, axis="t", align="h", labels=c("a","b"), label_size=10)
+copynum.plot = plot_grid(p1, NULL, p2, nrow=1, axis="t", align="h", rel_widths=c(1,0.02,1), labels=c("a", NA, "b"), label_size=10)
 copynum.plot
 ```
 
@@ -405,11 +443,11 @@ I'll make small aesthetic tweaks to this oustide of ggplot2, probably.
 * make sure plots are aligned vertically
 
 ```{r, eval=FALSE}
-ggsave(plot=copynum.plot, fil="figures/fig_copynum.pdf", device=pdf, width=190, height=100, unit="mm")
+ggsave(plot=copynum.plot, file="figures/fig_copynum.pdf", device=pdf, width=190, height=100, unit="mm")
 ```
 
 
-Group abudances, corrected for copy number.
+### Group abudances, corrected for copy number
 
 ```{r}
 ASVlabs = list()

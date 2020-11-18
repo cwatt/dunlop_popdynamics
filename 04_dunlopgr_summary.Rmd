@@ -21,6 +21,8 @@ library(tidyverse)
 library(phyloseq)
 
 sessionInfo()
+
+rm(list=ls())
 ```
 
 # Load data and clean up
@@ -236,7 +238,7 @@ gr.est %>%
   theme_test()
 ```
 
-Create table
+Create table:
 
 ```{r}
 gr.est %>%
@@ -266,6 +268,131 @@ gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
 inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
 inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
 inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
+```
+
+
+# Biogeochemical data analysis
+
+Analyze SOM and pH data collected from in-field samples.
+
+### SOM
+
+```{r}
+# Import data
+som = read_csv("biogeochem_data/growthrate_insitu_som.csv")
+som = som %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(som = (Preignition - Postignition) / (Preignition - Crucible) * 100, # calculate % SOM
+         Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+som %>% 
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  labs(y="Soil organic matter (%)") +
+  theme_test()
+```
+
+**Statistics**
+
+```{r}
+# Trying two models, one with interactive effect with block
+som.lm1 = lm(som ~ Soil + Block, data=som)
+som.lm2 = lm(som ~ Soil*Block, data=som)
+
+# Compare models
+summary(som.lm1)
+summary(som.lm2)
+anova(som.lm1, som.lm2) # comparison
+```
+
+The model that accounts for an interaction with block fits best.
+
+```{r}
+hist(resid(som.lm2)) # assess nomrality assumption
+plot(predict(som.lm2), resid(som.lm2)) # assess equal variances assumption
+summary(som.lm2)
+```
+
+There's a significant difference between soil som that depends on the block.
+
+Plot block effect:
+
+```{r}
+som %>%
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(x="", y="Soil organic matter (%)", title="Block effect") +
+  theme_test()
+```
+
+WOW! Block 2 is downslope of block 1, so runoff may be driving SOM accumulation in block 2.
+
+
+### pH
+
+```{r}
+# Import data
+ph = read_csv("biogeochem_data/growthrate_insitu_ph.csv")
+ph = ph %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  labs(x="") +
+  theme_test()
+```
+
+
+**Statistics**
+
+```{r}
+# Trying two models, one with interactive effect with block
+ph.lm1 = lm(pH ~ Soil + Block, data=ph)
+ph.lm2 = lm(pH ~ Soil*Block, data=ph)
+
+# Compare
+summary(ph.lm1)
+summary(ph.lm2)
+anova(ph.lm1, ph.lm2)
+```
+
+Model that allows interaction with block explains much more variance (see adjusted R-squared). ANOVA comparison also finds significant difference between the models.
+
+```{r}
+hist(resid(ph.lm2)) # assess nomrality assumption
+plot(predict(ph.lm2), resid(ph.lm2)) # assess equal variances assumption
+summary(ph.lm2)
+```
+
+There is a significant difference in the pH of soils that depends on the block. Expected based on results from SOM data.
+
+Plot block effect:
+
+```{r}
+ph %>%
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(x="", y="Soil organic matter (%)", title="Block effect") +
+  theme_test()
+```
+
+Block 2 seems to have lower pH overall compared to block 1. 
+
+### Make table of results
+
+```{r}
+# Merge SOM and pH data
+som.ph = full_join(som, ph) %>%
+  group_by(Soil) %>%
+  summarize(som.avg = mean(som, na.rm=TRUE), som.sd = sd(som, na.rm=TRUE),
+            ph.avg = mean(pH, na.rm=TRUE), ph.sd = sd(pH, na.rm=TRUE))
+som.ph
 ```
 
 
