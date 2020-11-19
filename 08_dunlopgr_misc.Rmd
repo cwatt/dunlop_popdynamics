@@ -19,11 +19,14 @@ knitr::opts_chunk$set(results = "show")
 
 ```{r}
 library(tidyverse)
+library(ape)
 library(phyloseq)
 
 set.seed(4)
 
 sessionInfo()
+
+rm(list=ls())
 ```
 
 
@@ -59,14 +62,12 @@ ucosm.dna %>%
 
 There appears to be a decrease in DNA concentration over time, particularly in the C-added soil. Not what I expected. Perhaps priming effec of some sort?
 
-# Field vs ucosm beta diversity
-
-How much did processing the soil and placing it in microcosms change the composition?
+# Beta diversity
 
 Import data into phyloseq:
 
 ```{r}
-# Merge data
+# Merge data from microcosm and field
 
 # Add sample type labels
 ucosm = mutate(ucosm, Type = "Microcosm")
@@ -94,17 +95,24 @@ ucosm.field.count = as.matrix(ucosm.field.count)
 # Metadata
 ucosm.field.meta = ucosm.field %>%
   select(Sample, Soil, Amendment, Replicate, Day, Block, Type) %>%
-  unique()
+  unique() %>%
+  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, Y="C-amended", N="Water"))
 rownames(ucosm.field.meta) = ucosm.field.meta$Sample
 
+# Read phylogenetic tree
 tree = read.tree("output/growthrate.tree.final.nwk")
 
-# Phyloseq
-OTU = otu_table(ucosm.field.count, taxa_are_rows = TRUE)
-#TAX = tax_table(ucosm.field.tax)
-SAM = sample_data(ucosm.field.meta, errorIfNULL = TRUE)
-physeq = phyloseq(OTU, SAM, tree)
+# Create phyloseq object
+physeq = phyloseq(otu_table(ucosm.field.count, taxa_are_rows = TRUE),
+                  #tax_table(ucosm.field.tax),
+                  sample_data(ucosm.field.meta, errorIfNULL = TRUE),
+                  tree)
 ```
+
+### Field vs ucosm
+
+How much did processing the soil and placing it in microcosms change the composition? Hopefully not much.
 
 Ordinate:
 ```{r}
@@ -120,15 +128,38 @@ plot_ordination(physeq.day0, day0.ord, color="Type", shape="Soil") +
 
 ```
 
+### All data
 
-# Microcosms over time
+I'd just like to get a feel for how the communities differed between treatments and over time.
+
+Compare between treatments:
 
 ```{r}
 physeq.ord = ordinate(physeq, method="NMDS", distance="bray")
+
+# Compare soils
 plot_ordination(physeq, physeq.ord, color="Soil") +
   facet_grid(~Amendment) +
   theme_test() +
   theme(strip.background = element_blank(),
         legend.title = element_blank())
+
+plot_ordination(physeq, physeq.ord, color="Amendment") +
+  facet_grid(~Soil) +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
 ```
 
+Over time:
+
+```{r}
+# Over time
+plot_ordination(physeq, physeq.ord, color="Soil") +
+  facet_grid(Amendment~Day) +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+```
+
+The communities do seem to separate over time, succesional moves further up, cropped moves further down. Moreso, in C-amended vs water treatments, maybe?
