@@ -24,6 +24,8 @@ library(phyloseq)
 library(lmerTest)
 
 sessionInfo()
+
+rm(list=ls())
 ```
 
 Import estimated growth rates:
@@ -32,8 +34,212 @@ Import estimated growth rates:
 gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
 ```
 
+# Growth properties
 
-# Growth rate habitat distributions
+Average across ASVs to get community level data. ASVs within same community are not independent of one-another, which would screw up statistics. Unfortunately, singleton ASV estimates prevents me frrom using a mixed-linear effects model with ASV as a random effect, which would be ideal, so we must average instead.
+
+```{r}
+gr.est.avg = gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>% # average across ASVs
+  summarize(avg_start = mean(Start),
+            avg_end = mean(End),
+            avg_length = mean(Length),
+            avg_k = mean(k))
+```
+
+
+### Start of growth
+
+```{r}
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_start, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Start of growth", y="Day") +
+  theme_test()
+```
+
+**Statistics**
+
+Try ANOVA.
+
+```{r}
+strt.aov = aov(avg_start ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(strt.aov))
+```
+
+Model residuals are not normal. Try log transform.
+
+```{r}
+strt.aov2 = aov(log(avg_start) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(strt.aov2))
+plot(predict(strt.aov2), resid(strt.aov2))
+summary(strt.aov2)
+```
+
+Start of growth is affected by soil and depends on the amendment.
+
+Post hoc: 
+
+Only interested in certain contrasts, ie doesn't make sense to compare cropped water to successional C-amended.
+
+Using Welch's t-tests (fewer assumptions) with Benjamini-Hochberg correction.
+
+```{r}
+# Contrasts
+start.wtest1 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
+start.wtest2 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
+start.wtest3 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
+start.wtest4 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
+
+# Adjust p-values
+start.pvals = c(start.wtest1$p.value, start.wtest2$p.value, start.wtest3$p.value, start.wtest4$p.value)
+start.adjpvals = p.adjust(start.pvals, method="BH", n=length(start.pvals))
+
+# Results
+start.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = start.adjpvals)
+start.results
+```
+
+### End of growth window
+
+```{r}
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_end, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="End of growth", y="Day") +
+  theme_test()
+```
+
+**Statistics**
+
+```{r}
+end.aov = aov(avg_end ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(end.aov))
+plot(predict(end.aov), resid(end.aov))
+summary(end.aov)
+```
+
+End of growth is affected by soil and depends on the amendment.
+
+Post hoc: 
+
+Only interested in certain contrasts, ie doesn't make sense to compare cropped water to successional C-amended.
+
+Using Welch's t-tests (fewer assumptions) with Benjamini-Hochberg correction.
+
+```{r}
+# Contrasts
+end.wtest1 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
+end.wtest2 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
+end.wtest3 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
+end.wtest4 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
+
+# Adjust p-values
+end.pvals = c(end.wtest1$p.value, end.wtest2$p.value, end.wtest3$p.value, end.wtest4$p.value)
+end.adjpvals = p.adjust(end.pvals, method="BH", n=length(end.pvals))
+
+# Results
+end.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = end.adjpvals)
+end.results
+```
+
+No significance.
+
+
+### Length of growth window
+
+```{r}
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_length, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Length of growth", y="Day") +
+  theme_test()
+```
+
+**Statistics**
+
+```{r}
+length.lm = lm(avg_length ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(length.lm))
+```
+
+Linear model fit is not normal. Try log transform.
+
+```{r}
+length.lm2 = lm(log(avg_length) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(length.lm2))
+plot(predict(length.lm2), resid(length.lm2))
+summary(length.lm2)
+```
+
+Length of growth in not significant.
+
+### Specific growth rates
+
+```{r}
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=log(avg_k), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Specific growth rate", y="Specific growth rate, ln (per Day)") +
+  theme_test()
+```
+
+
+**Statistics**
+
+```{r}
+k.aov = lm(avg_k ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(k.aov))
+```
+
+Try log transform.
+
+```{r}
+k.aov2 = aov(log(avg_k) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(k.aov2))
+plot(predict(k.aov2), resid(k.aov2))
+summary(k.aov2)
+```
+
+No significance found.
+
+### Create table of results:
+
+```{r}
+gr.est %>%
+  group_by(Soil, Amendment) %>%
+  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(Start), sd_start = sd(Start), avg_end = mean(End), sd_end = sd(End), avg_len = mean(Length), sd_len = sd(Length))
+```
+
+
+### End of growth
+
+
+Generation time:
+
+```{r}
+gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
+```
+
+
+# Overlapping estimates between treatments
+
+```{r}
+# Isolate treatment ASV names
+gr.C3.asv = gr.est %>% filter(Soil=="C3") %>% distinct(ASV)
+gr.S17.asv = gr.est %>% filter(Soil=="S17") %>% distinct(ASV)
+gr.C3y.asv = gr.est %>% filter(Soil=="C3", Amendment=="Y") %>% distinct(ASV)
+gr.C3n.asv = gr.est %>% filter(Soil=="C3", Amendment=="N") %>% distinct(ASV)
+gr.S17y.asv = gr.est %>% filter(Soil=="S17", Amendment=="Y") %>% distinct(ASV)
+gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
+
+# Overlap
+inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
+inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
+inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
+```
+
+# Growth rate distributions
 
 Average across replicates: makes for cleaner presentation.
 
@@ -480,27 +686,6 @@ field.group %>%
   theme_test()
 ```
 
-**Statistics**
-
-Linear-mixed effects model
-
-* Block as random effect
-* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
-
-```{r}
-# Cropped
-field.group.ind.C3.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate), data=field.group[field.group$Soil=="C3",]) # fit model
-plot(resid(field.group.ind.C3.lmer)) # check normality
-plot(predict(field.group.ind.C3.lmer), resid(field.group.ind.C3.lmer)) # check variances
-anova(field.group.ind.C3.lmer) # results
-
-# Successional
-field.group.ind.S17.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate), data=field.group[field.group$Soil=="S17",]) # fit model
-plot(resid(field.group.ind.S17.lmer)) # check normality
-plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check variances
-anova(field.group.ind.S17.lmer) # results
-```
-
 #### Total, aggregated abundances in each group:
 
 ```{r}
@@ -529,33 +714,10 @@ field.group.sum %>%
 
 Strong block effect in cropped soil.
 
-**Statistics**
-
-Linear-mixed effects model.
-
-* Block as random effect
-* Repeated measures because slow and fast are measured from same plot for each replicaterom same sample).
-
-```{r}
-# Cropped
-field.group.sum.C3.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.sum[field.group.sum$Soil=="C3",]) # fit model
-plot(resid(field.group.sum.C3.lmer)) # check normality
-plot(predict(field.group.sum.C3.lmer), resid(field.group.sum.C3.lmer)) # check variances
-anova(field.group.sum.C3.lmer) # results
-
-# Successional
-field.group.sum.S17.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate), data=field.group.sum[field.group.sum$Soil=="S17",]) # fit model
-plot(resid(field.group.sum.S17.lmer)) # check normality
-plot(predict(field.group.sum.S17.lmer), resid(field.group.sum.S17.lmer)) # check variances
-anova(field.group.sum.S17.lmer) # results
-```
-
-Conclusion: we found evidence that, in the cropped soil, ASVs in the "fast" group are, in-total and individually, more abundant than ASVs in the "slow" group. No such evidence in successional soil.
-
 
 # Figures
 
-Distribution of growth rates by treatment.
+### Distribution of growth rates
 
 ```{r}
 p1 = gr.estavg %>%
@@ -611,7 +773,7 @@ habitatdist.plot
 ggsave(plot=habitatdist.plot, file="figures/fig_habitatdist.pdf", device=pdf, width=140, height=90, units="mm")
 ```
 
-Shift in growth rate between treatments.
+### Shift in growth rate
 
 ```{r}
 p3 = inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV") %>% 
@@ -693,5 +855,58 @@ shift.plot
 
 ```{r, eval=FALSE}
 ggsave(shift.plot, file="figures/suppfig_shiftgr.pdf", device=pdf, width=140, height=140, units="mm")
+```
+
+### Start and end of growth
+
+Note sure if will include.
+
+```{r}
+p7 = gr.est.avg %>%
+  mutate(Soil = recode_factor(Soil, C3="Cropped", S17="Successional"),
+         Amendment = recode_factor(Amendment, Y="C-amended", N="Water")) %>%
+  ggplot(aes(x=Soil, y=avg_start)) +
+  geom_boxplot(aes(fill=Amendment)) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  scale_y_continuous(limits=c(0,4)) +
+  labs(title="Start of growth", y="Day") +
+  theme(legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.position = c(0.15, 0.8),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        title = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p7
+
+p8 = gr.est.avg %>%
+  mutate(Soil = recode_factor(Soil, C3="Cropped", S17="Successional"),
+         Amendment = recode_factor(Amendment, Y="C-amended", N="Water")) %>%
+  ggplot(aes(x=Soil, y=avg_end)) +
+  geom_boxplot(aes(fill=Amendment)) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  scale_y_continuous(limits=c(0,10)) +
+  labs(title="End of growth", y="Day") +
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        title = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p8
+
+startend.plots = plot_grid(p7, p8, nrow=2, labels=c("a", "b"), label_size=10)
+startend.plots
+```
+
+```{r, eval=FALSE}
+ggsave(startend.plots, file="figures/fig_startend.pdf", device=pdf, width=140, height=90, units="mm")
 ```
 

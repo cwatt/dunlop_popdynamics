@@ -302,7 +302,7 @@ Cropped soil:
 # Cropped
 field.group.ind.C3.lmer1 = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model 1
 
-field.group.ind.C3.lmer2 = lmer(log(corr_abund) ~ group * Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model 2
+field.group.ind.C3.lmer2 = lmer(log(corr_abund) ~ group + Block + group:Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="C3",]) # fit model 2
 
 # Compare models
 # Check r-squared of each
@@ -321,7 +321,7 @@ Successional soil:
 # Successional
 field.group.ind.S17.lmer1 = lmer(log(corr_abund) ~ group + Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model 1
 
-field.group.ind.S17.lmer2 = lmer(log(corr_abund) ~ group * Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model 2
+field.group.ind.S17.lmer2 = lmer(log(corr_abund) ~ group + Block + group:Block + (1|Replicate), data=field.group.n16S[field.group.n16S$Soil=="S17",]) # fit model 2
 
 # Compare models
 # Check r-squared of each
@@ -404,14 +404,16 @@ p1 = paprica.gr.avgtrt %>%
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
          Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
   ggplot(aes(x=log(avgk), y=n16S)) +
-  geom_point(shape=1, alpha=0.6) +
-  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8, fill="gray") +
-  labs(title="Overall", x=expression("Specific growth rate (ln day"^{-1}*")"), y="Estimated 16S copy number") +
+  geom_jitter(shape=1, alpha=0.5, height=0.2) +
+  labs(title="Overall", y="16S copy number", x=expression("Specific growth rate (ln, day"^{-1}*")")) +
   theme_test() +
-  theme(axis.line = element_line(colour = "black"),
-        strip.background = element_blank(),
-        strip.text = element_text(size=10),
-        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        title = element_text(size=10),
+        axis.text = element_text(size=8),
+        axis.title.x = element_blank(),
         axis.title.y = element_text(margin = unit(c(0, 1, 0, 0), "mm"), size=10))
 p1
 
@@ -421,47 +423,48 @@ p2 = paprica.gr.avgtrt %>%
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
          Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
   ggplot(aes(x=log(avgk), y=n16S)) +
-  geom_point(shape=1, alpha=0.6) +
-  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8, fill="gray") +
+  geom_jitter(shape=1, alpha=0.5, height=0.2) +
   facet_grid(Amendment ~ Soil, switch="y") +
-  labs(x=expression("Specific growth rate (ln day"^{-1}*")")) +
+  labs(y="16S copy number", x=expression("Specific growth rate (ln, day"^{-1}*")")) +
   theme_test() +
   theme(axis.line = element_line(colour = "black"),
         strip.background = element_blank(),
         strip.text = element_text(size=10),
+        axis.text = element_text(size=8),
         axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
-        axis.title.y = element_blank())
+        axis.title.y = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10))
 p2
 
-copynum.plot = plot_grid(p1, NULL, p2, nrow=1, axis="t", align="h", rel_widths=c(1,0.02,1), labels=c("a", NA, "b"), label_size=10)
+copynum.plot = plot_grid(p1, p2, nrow=2, axis="t", align="v", rel_heights = c(0.8,1), labels=c("a", "b"), label_size=10)
 copynum.plot
 ```
 
-I'll make small aesthetic tweaks to this oustide of ggplot2, probably.
+I'll make small aesthetic tweaks to this outside of ggplot2.
 
 * make font sizes equal
+* change positions of strip labels in b
 * make sure plots are aligned vertically
+* add Spearman correlation results
 
 ```{r, eval=FALSE}
-ggsave(plot=copynum.plot, file="figures/fig_copynum.pdf", device=pdf, width=190, height=100, unit="mm")
+ggsave(plot=copynum.plot, file="figures/fig_copynum.pdf", device=pdf, width=140, height=100, unit="mm")
 ```
 
 
 ### Group abudances, corrected for copy number
 
 ```{r}
-ASVlabs = list()
-
 p3 = field.group.n16S.total %>%
   mutate(Soil = fct_relevel(Soil, "S17"), 
          Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
-  ggplot(aes(x=group, y=log(total_abund))) +
-  geom_boxplot() +
-  #geom_text() +
-  facet_wrap(~Soil) +
+  ggplot(aes(x=Soil, y=log(total_abund))) +
+  geom_boxplot(aes(fill=group)) +
+  scale_fill_manual(values=c(NA, "gray")) +
   labs(y="Total normalized abundance") +
-  theme_test() +
-  theme(panel.grid.major = element_blank(), 
+  theme(legend.key = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.2, 0.9),
+        panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         strip.background = element_blank(),
@@ -472,6 +475,6 @@ p3
 ```
 
 ```{r, eval=FALSE}
-ggsave(plot=p3, file="figures/fig_totalabund.pdf", device=pdf, width=90, height=70, units="mm")
+ggsave(plot=p3, file="figures/fig_totalabund.pdf", device=pdf, width=90, height=90, units="mm")
 ```
 

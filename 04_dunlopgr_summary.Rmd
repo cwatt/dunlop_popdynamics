@@ -18,7 +18,9 @@ knitr::opts_chunk$set(results = "show")
 
 ```{r}
 library(tidyverse)
+library(cowplot)
 library(phyloseq)
+library(lme4)
 
 sessionInfo()
 
@@ -89,7 +91,8 @@ saveRDS(field, file="rdata.files/field.norm.cleaned.rds")
 saveRDS(gr.est, file="rdata.files/gr.final.cleaned.rds")
 ```
 
-# Overview of community diversity
+
+# Overview of communities
 
 Number of ASVs/phyla
 
@@ -144,10 +147,24 @@ ucosms %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic 
 # Estimated growth rates
 gr.est %>% distinct(ASV) %>% nrow() # total ASVs (not including 0 abundance)
 
-gr.est %>% # total phyla, not counting 0 abundance ASVs, or uncertain taxonomic placement
+gr.est %>% # total phyla, not counting 0 abundance ASVs, not counting putative/unclassified
   mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>% 
   distinct(Phylum) %>% 
-  nrow() 
+  nrow()
+
+# Number of estimates per phylum
+gr.est %>% 
+  mutate(Phylum = str_remove(Phylum, "putative ")) %>% # roll putative into the phylum
+  distinct(ASV, Phylum) %>%
+  group_by(Phylum) %>%
+  summarize(total = n()) %>%
+  arrange(-total)
+
+# Number of estimates per treatment
+gr.est %>%
+  group_by(Soil, Amendment) %>%
+  distinct(ASV) %>%
+  summarize(total = n())
 ```
 
 Most abundant phyla
@@ -187,91 +204,10 @@ gr.est %>% group_by(Phylum) %>% count(Phylum) %>% arrange(-n)
 
 Top 5 most abundant phyla in all data categories are Proteobacteria, Actinobacteria, Acidobacteria, Verrucomicrobia, and Planctomycetes in that order.
 
-# Growth estimate summaries
-
-Start of growth
-
-```{r}
-gr.est %>%
-  group_by(Soil, Amendment, Replicate) %>%
-  summarize(avg_start = mean(Start)) %>%
-  ggplot(aes(x=Soil, y=avg_start, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="Start of growth window", y="Day") +
-  theme_test()
-```
-
-End of growth window
-
-```{r}
-gr.est %>%
-  group_by(Soil, Amendment, Replicate) %>%
-  summarize(avg_end = mean(End)) %>%
-  ggplot(aes(x=Soil, y=avg_end, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="End of growth window", y="Day") +
-  theme_test()
-```
-
-Length of growth window
-
-```{r}
-gr.est %>%
-  group_by(Soil, Amendment, Replicate) %>%
-  summarize(avg_len = mean(Length)) %>%
-  ggplot(aes(x=Soil, y=avg_len, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="Length of growth window", y="Day") +
-  theme_test()
-```
-
-
-Specific growth rates
-
-```{r}
-gr.est %>%
-  group_by(Soil, Amendment, Replicate) %>%
-  summarize(avg_k = mean(k)) %>%
-  ggplot(aes(x=Soil, y=avg_k, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="Specific growth rate", y="Specific growth rate (per Day)") +
-  theme_test()
-```
-
-Create table:
-
-```{r}
-gr.est %>%
-  group_by(Soil, Amendment) %>%
-  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(Start), sd_start = sd(Start), avg_end = mean(End), sd_end = sd(End), avg_len = mean(Length), sd_len = sd(Length))
-```
-
-Generation time (note that short generation times are fast growth, long generation times are slow growth)
-
-```{r}
-gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
-```
-
-
-# Overlapping estimates between treatments
-
-```{r}
-# Isolate treatment ASV names
-gr.C3.asv = gr.est %>% filter(Soil=="C3") %>% distinct(ASV)
-gr.S17.asv = gr.est %>% filter(Soil=="S17") %>% distinct(ASV)
-gr.C3y.asv = gr.est %>% filter(Soil=="C3", Amendment=="Y") %>% distinct(ASV)
-gr.C3n.asv = gr.est %>% filter(Soil=="C3", Amendment=="N") %>% distinct(ASV)
-gr.S17y.asv = gr.est %>% filter(Soil=="S17", Amendment=="Y") %>% distinct(ASV)
-gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
-
-# Overlap
-inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
-inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
-inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
-```
-
 
 # Biogeochemical data analysis
+
+REVISIT STATS
 
 Analyze SOM and pH data collected from in-field samples.
 
@@ -297,13 +233,14 @@ som %>%
 
 ```{r}
 # Trying two models, one with interactive effect with block
-som.lm1 = lm(som ~ Soil + Block, data=som)
-som.lm2 = lm(som ~ Soil*Block, data=som)
+som.lmer = lmer(som ~ Soil + (1|Block), data=som) # Block is random effect
+hist(resid(som.lmer))
+plot(predict(som.lmer), resid(som.lmer))
 
-# Compare models
-summary(som.lm1)
-summary(som.lm2)
-anova(som.lm1, som.lm2) # comparison
+som.lmer2 = lmer(log(som) ~ Soil + (1|Block), data=som) # Block is random effect
+hist(resid(som.lmer2))
+plot(predict(som.lmer2), resid(som.lmer2))
+
 ```
 
 The model that accounts for an interaction with block fits best.
@@ -352,8 +289,8 @@ ph %>%
 
 ```{r}
 # Trying two models, one with interactive effect with block
-ph.lm1 = lm(pH ~ Soil + Block, data=ph)
-ph.lm2 = lm(pH ~ Soil*Block, data=ph)
+ph.lm1 = lmer(pH ~ Soil + Block, data=ph)
+ph.lm2 = lmer(pH ~ Soil + Block + Soil:Block, data=ph)
 
 # Compare
 summary(ph.lm1)
