@@ -21,6 +21,7 @@ rscripts_messy/
 temp/
 appfiles/
 .ipynb_checpoints/
+field_comparison/
 
 # Files
 *.csv

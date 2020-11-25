@@ -20,7 +20,8 @@ knitr::opts_chunk$set(results = "show")
 library(tidyverse)
 library(cowplot)
 library(phyloseq)
-library(lme4)
+library(lmerTest)
+library(emmeans)
 
 sessionInfo()
 
@@ -207,9 +208,8 @@ Top 5 most abundant phyla in all data categories are Proteobacteria, Actinobacte
 
 # Biogeochemical data analysis
 
-REVISIT STATS
-
 Analyze SOM and pH data collected from in-field samples.
+
 
 ### SOM
 
@@ -227,44 +227,44 @@ som %>%
   geom_boxplot() +
   labs(y="Soil organic matter (%)") +
   theme_test()
-```
 
-**Statistics**
-
-```{r}
-# Trying two models, one with interactive effect with block
-som.lmer = lmer(som ~ Soil + (1|Block), data=som) # Block is random effect
-hist(resid(som.lmer))
-plot(predict(som.lmer), resid(som.lmer))
-
-som.lmer2 = lmer(log(som) ~ Soil + (1|Block), data=som) # Block is random effect
-hist(resid(som.lmer2))
-plot(predict(som.lmer2), resid(som.lmer2))
-
-```
-
-The model that accounts for an interaction with block fits best.
-
-```{r}
-hist(resid(som.lm2)) # assess nomrality assumption
-plot(predict(som.lm2), resid(som.lm2)) # assess equal variances assumption
-summary(som.lm2)
-```
-
-There's a significant difference between soil som that depends on the block.
-
-Plot block effect:
-
-```{r}
-som %>%
+som %>% 
   ggplot(aes(x=Soil, y=som)) +
   geom_boxplot() +
   facet_wrap(~Block) +
-  labs(x="", y="Soil organic matter (%)", title="Block effect") +
+  labs(y="Soil organic matter (%)") +
   theme_test()
 ```
 
-WOW! Block 2 is downslope of block 1, so runoff may be driving SOM accumulation in block 2.
+Strong block effect.
+
+**Statistics**
+
+Linear regression
+* Soil and Block as fixed effects with interaction term
+
+```{r}
+som.lm = lm(som ~ Soil* Block, data=som)
+
+hist(resid(som.lm))
+plot(resid(som.lm), predict(som.lm))
+
+som.lm2 = lm(log(som) ~ Soil* Block, data=som)
+
+hist(resid(som.lm2))
+plot(resid(som.lm2), predict(som.lm2))
+```
+
+Neither of the residuals look like they fit the assumptions of the linear model... I'll do a welch's t-tests instead, since it looks like unequal variances seem to be the issue. I can't add interaction term, so we'll do a separate test for each block to account for the interaction.
+
+Welch's t-tests
+
+```{r}
+t.test(som ~ Soil, data=som[som$Block==1,], var.equal=FALSE) # block 1 only
+t.test(som ~ Soil, data=som[som$Block==2,], var.equal=FALSE) # block 2 only
+```
+
+SOM is signficant between soils in block 2 but not block 1. Likely due to block 2 being downslope of block 1.
 
 
 ### pH
@@ -282,44 +282,34 @@ ph %>%
   geom_boxplot() +
   labs(x="") +
   theme_test()
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(x="") +
+  theme_test()
 ```
+
+Also looks like there is a strong block effect here.
 
 
 **Statistics**
 
-```{r}
-# Trying two models, one with interactive effect with block
-ph.lm1 = lmer(pH ~ Soil + Block, data=ph)
-ph.lm2 = lmer(pH ~ Soil + Block + Soil:Block, data=ph)
-
-# Compare
-summary(ph.lm1)
-summary(ph.lm2)
-anova(ph.lm1, ph.lm2)
-```
-
-Model that allows interaction with block explains much more variance (see adjusted R-squared). ANOVA comparison also finds significant difference between the models.
+Linear regression
+* Soil and Block as fixed effects with interaction term
 
 ```{r}
-hist(resid(ph.lm2)) # assess nomrality assumption
-plot(predict(ph.lm2), resid(ph.lm2)) # assess equal variances assumption
-summary(ph.lm2)
+ph.lm = lm(pH ~ Soil*Block, data=ph)
+
+hist(resid(ph.lm)) # check normality
+plot(resid(ph.lm), predict(ph.lm)) # check variances
+
+summary(ph.lm)
 ```
 
-There is a significant difference in the pH of soils that depends on the block. Expected based on results from SOM data.
+There is a significant soil, block, and interaction between block and soil for pH.
 
-Plot block effect:
-
-```{r}
-ph %>%
-  ggplot(aes(x=Soil, y=pH)) +
-  geom_boxplot() +
-  facet_wrap(~Block) +
-  labs(x="", y="Soil organic matter (%)", title="Block effect") +
-  theme_test()
-```
-
-Block 2 seems to have lower pH overall compared to block 1. 
 
 ### Make table of results
 
