@@ -434,3 +434,33 @@ p3
 ggsave(plot=p3, file="figures/fig_totalabund.pdf", device=pdf, width=90, height=90, units="mm")
 ```
 
+
+### ASV abundances, corrected for copy number
+
+```{r}
+p4 = field.group.n16S %>% 
+  mutate(Soil = fct_relevel(Soil, "S17"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped")) %>%
+  ggplot(aes(x=Soil, y=log(corr_abund), fill=group)) +
+  geom_boxplot() +
+  #geom_jitter(alpha=0.2) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  labs(title="Individual ASV abundances", x="", y="natural log internal-standard normalized abundance", color="Block") +
+  theme(legend.key = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p4
+
+
+```
+
+```{r, eval=FALSE}
+ggsave(plot=p4, file="figures/fig_indabund.pdf", device=pdf, width=90, height=90, units="mm")
+```

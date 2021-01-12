@@ -8,7 +8,7 @@ biogeochem_data
 dunlop_site
 SOM_data
 protocols
-librarypre_metadata
+libraryprep_metadata
 groupedASVs
 .Rproj.user
 copynum_est
@@ -26,7 +26,7 @@ field_comparison/
 # Files
 *.csv
 *.tsv
-
+exploration*
 #Other
 .RData
 .Rhistory

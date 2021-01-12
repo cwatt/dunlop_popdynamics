@@ -74,6 +74,38 @@ field = field %>%
   left_join(tax, by="ASV") # add taxonomy
 ```
 
+Number of ASVs/phyla in dataset
+
+```{r}
+# Extract from phyloseq
+count = as.data.frame(otu_table(physeq.rarefy))
+meta = data.frame(sam_data(physeq.rarefy))
+
+# Remove unused samples
+## Only microcosm adn S17/C3 from field relevant
+meta.rm = meta %>% subset(Soil == "C3" | Soil == "S17")
+
+count.rm = count %>%
+  t() %>%
+  as.data.frame() %>%
+  merge(meta.rm, by=0) %>%
+  column_to_rownames(var="Row.names") %>%
+  select(everything(), -(SampleID:Experiment))
+
+# Remove absent ASVs
+count.rm0 = colSums(count.rm, dims=1)
+count.rm0 = count.rm0[count.rm0 > 0]
+
+# Total ASVs
+length(count.rm0)
+asvs = names(count.rm0)
+
+# Total phyla
+tax.rm0 = tax[tax$ASV %in% asvs,]
+phyla = unique(tax.rm0$Phylum)
+```
+
+
 Estimated in-situ growth rates:
 
 ```{r}

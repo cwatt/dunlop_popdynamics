@@ -74,13 +74,362 @@ sessionInfo()
     ## [82] IRanges_2.20.2      cluster_2.1.0       statmod_1.4.34     
     ## [85] ellipsis_0.3.1
 
+``` r
+rm(list=ls())
+```
+
 Import estimated growth rates:
 
 ``` r
 gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
 ```
 
-# Growth rate habitat distributions
+# Growth properties
+
+Average across ASVs to get community level data. ASVs within same
+community are not independent of one-another, which would screw up
+statistics. Unfortunately, singleton ASV estimates prevents me frrom
+using a mixed-linear effects model with ASV as a random effect, which
+would be ideal, so we must average instead.
+
+``` r
+gr.est.avg = gr.est %>%
+  group_by(Soil, Amendment, Replicate) %>% # average across ASVs
+  summarize(avg_start = mean(Start),
+            avg_end = mean(End),
+            avg_length = mean(Length),
+            avg_k = mean(k))
+```
+
+### Start of growth
+
+``` r
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_start, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Start of growth", y="Day") +
+  theme_test()
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+**Statistics**
+
+Try
+ANOVA.
+
+``` r
+strt.aov = aov(avg_start ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(strt.aov))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+Model residuals are not normal. Try log
+transform.
+
+``` r
+strt.aov2 = aov(log(avg_start) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(strt.aov2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
+plot(predict(strt.aov2), resid(strt.aov2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
+
+``` r
+summary(strt.aov2)
+```
+
+    ##                Df Sum Sq Mean Sq F value   Pr(>F)    
+    ## Soil            1 0.0440  0.0440   3.491   0.0987 .  
+    ## Amendment       1 0.9104  0.9104  72.185 2.82e-05 ***
+    ## Soil:Amendment  1 0.1338  0.1338  10.610   0.0116 *  
+    ## Residuals       8 0.1009  0.0126                     
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Start of growth is affected by soil and depends on the amendment.
+
+Post hoc:
+
+Only interested in certain contrasts, ie doesn’t make sense to compare
+cropped water to successional C-amended.
+
+Using Welch’s t-tests (fewer assumptions) with Benjamini-Hochberg
+correction.
+
+``` r
+# Contrasts
+start.wtest1 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
+start.wtest2 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
+start.wtest3 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
+start.wtest4 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
+
+# Adjust p-values
+start.pvals = c(start.wtest1$p.value, start.wtest2$p.value, start.wtest3$p.value, start.wtest4$p.value)
+start.adjpvals = p.adjust(start.pvals, method="BH", n=length(start.pvals))
+
+# Results
+start.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = start.adjpvals)
+start.results
+```
+
+    ##                      contrast      pvals
+    ## 1             Cropped, C vs W 0.01021037
+    ## 2        Successional, C vs W 0.09463981
+    ## 3 C-amended, cropped vs succ. 0.09463981
+    ## 4     Water, cropped vs succ. 0.10136663
+
+### End of growth window
+
+``` r
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_end, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="End of growth", y="Day") +
+  theme_test()
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+**Statistics**
+
+``` r
+end.aov = aov(avg_end ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(end.aov))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
+plot(predict(end.aov), resid(end.aov))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+
+``` r
+summary(end.aov)
+```
+
+    ##                Df Sum Sq Mean Sq F value Pr(>F)  
+    ## Soil            1  3.683   3.683   9.550 0.0149 *
+    ## Amendment       1  1.645   1.645   4.266 0.0727 .
+    ## Soil:Amendment  1  0.801   0.801   2.077 0.1875  
+    ## Residuals       8  3.085   0.386                 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+End of growth is affected by soil and depends on the amendment.
+
+Post hoc:
+
+Only interested in certain contrasts, ie doesn’t make sense to compare
+cropped water to successional C-amended.
+
+Using Welch’s t-tests (fewer assumptions) with Benjamini-Hochberg
+correction.
+
+``` r
+# Contrasts
+end.wtest1 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
+end.wtest2 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
+end.wtest3 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
+end.wtest4 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
+
+# Adjust p-values
+end.pvals = c(end.wtest1$p.value, end.wtest2$p.value, end.wtest3$p.value, end.wtest4$p.value)
+end.adjpvals = p.adjust(end.pvals, method="BH", n=length(end.pvals))
+
+# Results
+end.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = end.adjpvals)
+end.results
+```
+
+    ##                      contrast     pvals
+    ## 1             Cropped, C vs W 0.1765747
+    ## 2        Successional, C vs W 0.7194618
+    ## 3 C-amended, cropped vs succ. 0.4649738
+    ## 4     Water, cropped vs succ. 0.1765747
+
+No significance.
+
+### Length of growth window
+
+``` r
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=avg_length, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Length of growth", y="Day") +
+  theme_test()
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+**Statistics**
+
+``` r
+length.lm = lm(avg_length ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(length.lm))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+Linear model fit is not normal. Try log
+transform.
+
+``` r
+length.lm2 = lm(log(avg_length) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(length.lm2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+``` r
+plot(predict(length.lm2), resid(length.lm2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
+
+``` r
+summary(length.lm2)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(avg_length) ~ Soil + Amendment + Soil:Amendment, 
+    ##     data = gr.est.avg)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.16575 -0.06974 -0.01896  0.06178  0.17176 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)         1.83972    0.07691  23.920 9.94e-09 ***
+    ## SoilS17            -0.23148    0.10877  -2.128    0.066 .  
+    ## AmendmentN         -0.12181    0.10877  -1.120    0.295    
+    ## SoilS17:AmendmentN -0.04011    0.15382  -0.261    0.801    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.1332 on 8 degrees of freedom
+    ## Multiple R-squared:  0.6391, Adjusted R-squared:  0.5037 
+    ## F-statistic: 4.722 on 3 and 8 DF,  p-value: 0.03518
+
+Length of growth in not significant.
+
+### Specific growth rates
+
+``` r
+gr.est.avg %>%
+  ggplot(aes(x=Soil, y=log(avg_k), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Specific growth rate", y="Specific growth rate, ln (per Day)") +
+  theme_test()
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+**Statistics**
+
+``` r
+k.aov = lm(avg_k ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(k.aov))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+Try log
+transform.
+
+``` r
+k.aov2 = aov(log(avg_k) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(k.aov2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+plot(predict(k.aov2), resid(k.aov2))
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+
+``` r
+summary(k.aov2)
+```
+
+    ##                Df Sum Sq Mean Sq F value Pr(>F)
+    ## Soil            1 0.0067 0.00672   0.051  0.827
+    ## Amendment       1 0.1532 0.15320   1.156  0.314
+    ## Soil:Amendment  1 0.0706 0.07057   0.533  0.486
+    ## Residuals       8 1.0599 0.13249
+
+No significance found.
+
+### Create table of results:
+
+``` r
+gr.est %>%
+  group_by(Soil, Amendment) %>%
+  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(Start), sd_start = sd(Start), avg_end = mean(End), sd_end = sd(End), avg_len = mean(Length), sd_len = sd(Length))
+```
+
+    ## # A tibble: 4 x 10
+    ## # Groups:   Soil [2]
+    ##   Soil  Amendment avg_k  sd_k avg_start sd_start avg_end sd_end avg_len sd_len
+    ##   <fct> <fct>     <dbl> <dbl>     <dbl>    <dbl>   <dbl>  <dbl>   <dbl>  <dbl>
+    ## 1 C3    Y         0.268 0.159      1.75     1.08    7.31   2.12    6.57   2.35
+    ## 2 C3    N         0.235 0.123      3.81     1.83    8.43   2.11    5.62   1.66
+    ## 3 S17   Y         0.296 0.178      2.49     2.00    6.76   2.41    5.27   2.40
+    ## 4 S17   N         0.219 0.190      3.53     3.10    7.04   2.94    4.51   1.70
+
+### End of growth
+
+Generation time:
+
+``` r
+gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
+```
+
+    ##       min_g   max_g   mean_g
+    ## 1 0.7039976 63.5031 5.043394
+
+# Overlapping estimates between treatments
+
+``` r
+# Isolate treatment ASV names
+gr.C3.asv = gr.est %>% filter(Soil=="C3") %>% distinct(ASV)
+gr.S17.asv = gr.est %>% filter(Soil=="S17") %>% distinct(ASV)
+gr.C3y.asv = gr.est %>% filter(Soil=="C3", Amendment=="Y") %>% distinct(ASV)
+gr.C3n.asv = gr.est %>% filter(Soil=="C3", Amendment=="N") %>% distinct(ASV)
+gr.S17y.asv = gr.est %>% filter(Soil=="S17", Amendment=="Y") %>% distinct(ASV)
+gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
+
+# Overlap
+inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
+```
+
+    ## [1] 88
+
+``` r
+inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
+```
+
+    ## [1] 77
+
+``` r
+inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
+```
+
+    ## [1] 12
+
+# Growth rate distributions
 
 Average across replicates: makes for cleaner presentation.
 
@@ -112,7 +461,7 @@ gr.estavg %>%
   scale_x_continuous(limits=c(-5,0))
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ``` r
 gr.estavg %>% 
@@ -131,7 +480,7 @@ gr.estavg %>%
   scale_x_continuous(limits=c(-5,0))
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
 
 ``` r
 gr.estavg %>% 
@@ -150,7 +499,7 @@ gr.estavg %>%
   scale_x_continuous(limits=c(-5,0))
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-21-3.png)<!-- -->
 
 ``` r
 gr.estavg %>% 
@@ -169,7 +518,7 @@ gr.estavg %>%
   scale_x_continuous(limits=c(-5,0))
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-21-4.png)<!-- -->
 
 # Growth rate distribution binning
 
@@ -197,7 +546,7 @@ for (i in 5:10) {
 }
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-4.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-5.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-5-6.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-3.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-4.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-5.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-6.png)<!-- -->
 
 Treatments:
 
@@ -216,7 +565,7 @@ for (s in c("C3", "S17")) {
 }
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-4.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-5.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-6.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-7.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-8.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-9.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-10.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-11.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-12.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-13.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-14.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-15.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-16.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-17.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-18.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-19.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-20.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-21.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-22.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-23.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-6-24.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-2.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-3.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-4.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-5.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-6.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-7.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-8.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-9.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-10.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-11.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-12.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-13.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-14.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-15.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-16.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-17.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-18.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-19.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-20.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-21.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-22.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-23.png)<!-- -->![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-24.png)<!-- -->
 
 It looks like 5 bins is too few, 6 or 7 seem to more adequately capture
 the distributions. I’ll choose 7 bins.
@@ -330,7 +679,7 @@ ggplot(gr.bins) +
   labs(x="Slow to fast", y="Proportion of total taxa")
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 ``` r
 ggplot(gr.bins) +
@@ -340,7 +689,7 @@ ggplot(gr.bins) +
   labs(x="Slow to fast", y="Frequency")
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-27-2.png)<!-- -->
 
 ``` r
 ggplot(gr.bins) +
@@ -351,7 +700,7 @@ ggplot(gr.bins) +
   labs(x="Slow to fast", y="Proportion of total taxa")
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-10-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-27-3.png)<!-- -->
 
 ``` r
 ggplot(gr.bins) +
@@ -362,7 +711,7 @@ ggplot(gr.bins) +
   labs(x="Slow to fast", y="Frequency")
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-10-4.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-27-4.png)<!-- -->
 
 **Statistics**
 
@@ -485,7 +834,7 @@ inner_join(gr.C3.avgk, gr.S17.avgk, by="ASV") %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 # Cropped C-amended vs water
@@ -497,7 +846,7 @@ inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV") %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
 
 ``` r
 # Succesional C-amended vs water
@@ -509,7 +858,7 @@ inner_join(gr.S17y.avgk, gr.S17n.avgk, by="ASV") %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-30-3.png)<!-- -->
 
 Doesn’t look promising.
 
@@ -526,13 +875,13 @@ gr.C3S17.avgk.lm = lm(C3.avgk ~ S17.avgk, data=gr.C3S17.avgk)
 hist(gr.C3S17.avgk.lm$residuals) # evaluate assumption of normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
 plot(predict(gr.C3S17.avgk.lm), resid(gr.C3S17.avgk.lm)) # evaluate assumption of homoskedasticity
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->
 
 ``` r
 # P value
@@ -550,13 +899,13 @@ gr.C3yn.avgk.lm = lm(C3y.avgk ~ C3n.avgk, data=gr.C3yn.avgk)
 hist(gr.C3yn.avgk.lm$residuals) # evaluate assumption of normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 ``` r
 plot(predict(gr.C3yn.avgk.lm), resid(gr.C3yn.avgk.lm)) # evaluate assumption of homoskedasticity
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-32-2.png)<!-- -->
 
 ``` r
 # P value
@@ -574,13 +923,13 @@ gr.S17yn.avgk.lm = lm(S17y.avgk ~ S17n.avgk, data=gr.S17yn.avgk)
 hist(gr.S17yn.avgk.lm$residuals) # evaluate assumption of normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ``` r
 plot(predict(gr.S17yn.avgk.lm), resid(gr.S17yn.avgk.lm)) # evaluate assumption of homoskedasticity
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
 
 ``` r
 # P value
@@ -623,7 +972,7 @@ gr.estavg %>%
   geom_vline(xintercept=-2.4, linetype=2)
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
 
 ``` r
 gr.estavg %>% 
@@ -643,7 +992,7 @@ gr.estavg %>%
   geom_vline(xintercept=-1.9, linetype=2)
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
 
 Label ASVs based on avg growth rate threshold:
 
@@ -696,15 +1045,15 @@ field.group %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
 
 **Statistics**
 
-Linear-mixed effects model
+Linear mixed effects model
 
   - Block as random effect
-  - Repeated measures because slow and fast are measured from same plot
-    for each replicaterom same sample).
+  - Repeated measures for slow and fast groups, which were each measured
+    from the same sample
 
 <!-- end list -->
 
@@ -714,13 +1063,13 @@ field.group.ind.C3.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate), 
 plot(resid(field.group.ind.C3.lmer)) # check normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
 
 ``` r
 plot(predict(field.group.ind.C3.lmer), resid(field.group.ind.C3.lmer)) # check variances
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-39-2.png)<!-- -->
 
 ``` r
 anova(field.group.ind.C3.lmer) # results
@@ -739,13 +1088,13 @@ field.group.ind.S17.lmer = lmer(log(norm_abund) ~ group + Block + (1|Replicate),
 plot(resid(field.group.ind.S17.lmer)) # check normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-39-3.png)<!-- -->
 
 ``` r
 plot(predict(field.group.ind.S17.lmer), resid(field.group.ind.S17.lmer)) # check variances
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-22-4.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-39-4.png)<!-- -->
 
 ``` r
 anova(field.group.ind.S17.lmer) # results
@@ -776,7 +1125,7 @@ field.group.sum %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
 
 ``` r
 field.group.sum %>% 
@@ -788,17 +1137,17 @@ field.group.sum %>%
   theme_test()
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-23-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-40-2.png)<!-- -->
 
 Strong block effect in cropped soil.
 
 **Statistics**
 
-Linear-mixed effects model.
+Linear mixed effects model
 
   - Block as random effect
-  - Repeated measures because slow and fast are measured from same plot
-    for each replicaterom same sample).
+  - Repeated measures for slow and fast groups, which were each measured
+    from the same sample
 
 <!-- end list -->
 
@@ -808,13 +1157,13 @@ field.group.sum.C3.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate),
 plot(resid(field.group.sum.C3.lmer)) # check normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
 
 ``` r
 plot(predict(field.group.sum.C3.lmer), resid(field.group.sum.C3.lmer)) # check variances
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-41-2.png)<!-- -->
 
 ``` r
 anova(field.group.sum.C3.lmer) # results
@@ -833,13 +1182,13 @@ field.group.sum.S17.lmer = lmer(log(total_abund) ~ group + Block + (1|Replicate)
 plot(resid(field.group.sum.S17.lmer)) # check normality
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-24-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-41-3.png)<!-- -->
 
 ``` r
 plot(predict(field.group.sum.S17.lmer), resid(field.group.sum.S17.lmer)) # check variances
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-24-4.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-41-4.png)<!-- -->
 
 ``` r
 anova(field.group.sum.S17.lmer) # results
@@ -856,7 +1205,7 @@ in the “slow” group. No such evidence in successional soil.
 
 # Figures
 
-Distribution of growth rates by treatment.
+### Distribution of growth rates
 
 ``` r
 p1 = gr.estavg %>%
@@ -866,23 +1215,26 @@ p1 = gr.estavg %>%
   geom_density(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +
   scale_fill_manual(values=c(NA, "gray")) +
-  labs(y="Kernel density", x=expression("Specific growth rate (ln normalized reads day"^{-1}*")")) +
+  labs(y="Kernel density", x="Specific growth rate") +
   theme_test() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         strip.background = element_blank(),
-        legend.position = c(.2,.9),
+        legend.position = c(.25,.93),
         legend.text = element_text(size=8),
+        legend.key.width=unit(0.5, "cm"),
+        legend.key.height=unit(0.5, "cm"),
         legend.title = element_blank(),
+        legend.background = element_blank(),
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(margin = unit(c(0.5, 0, 0, 0), "mm"), size=10),
-        axis.title.y = element_text(margin = unit(c(0, 0.5, 0, 0), "mm"), size=10),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
         axis.text = element_text(size = 8))
 p1
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
 
 ``` r
 p2 = gr.bins %>%
@@ -900,17 +1252,185 @@ p2 = gr.bins %>%
         strip.background = element_blank(),
         legend.position = "none",
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(margin = unit(c(0.5, 0, 0, 0), "mm"), size=10),
-        axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm"), size=10),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
         axis.text = element_text(size = 8))
 p2
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-42-2.png)<!-- -->
 
 ``` r
-habitatdist.plot = plot_grid(p1, p2, align="hv", labels=c("a", "b"), label_size=10)
+habitatdist.plot = plot_grid(p1, NULL, p2, nrow=1, align="h", rel_widths=c(1,0.04,1), labels=c("a", NA, "b"), label_size=10)
 habitatdist.plot
 ```
 
-![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-25-3.png)<!-- -->
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-42-3.png)<!-- -->
+
+``` r
+ggsave(plot=habitatdist.plot, file="figures/fig_habitatdist.pdf", device=pdf, width=140, height=90, units="mm")
+```
+
+### Shift in growth rate
+
+``` r
+p3 = inner_join(gr.C3y.avgk, gr.C3n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3y.avgk), y=log(C3n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, C-amended", y="Cropped, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p3
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
+
+``` r
+p4 = inner_join(gr.S17y.avgk, gr.S17n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(S17y.avgk), y=log(S17n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Successional, C-amended", y="Succesional, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p4
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
+
+``` r
+p5 = inner_join(gr.C3y.avgk, gr.S17y.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3y.avgk), y=log(S17y.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, C-amended", y="Succesional, C-amended") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p5
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->
+
+``` r
+p6 = inner_join(gr.C3n.avgk, gr.S17n.avgk, by="ASV") %>% 
+  ggplot(aes(x=log(C3n.avgk), y=log(S17n.avgk))) +
+  geom_point(shape=1) +
+  #geom_smooth(method="lm", color="black", linetype=2) +
+  labs(x="Cropped, water", y="Succesional, water") +
+  scale_x_continuous(limits=c(-3,0)) +
+  scale_y_continuous(limits=c(-3,0)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(margin = unit(c(1, 0, 0, 0), "mm"), size=10),
+        axis.title.y = element_text(margin = unit(c(0, 1.5, 0, 0), "mm"), size=10),
+        axis.text = element_text(size = 8))
+p6
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-44-4.png)<!-- -->
+
+``` r
+shift.plot = plot_grid(p3, p4, p5, p6)
+shift.plot
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-44-5.png)<!-- -->
+
+``` r
+ggsave(shift.plot, file="figures/suppfig_shiftgr.pdf", device=pdf, width=140, height=140, units="mm")
+```
+
+### Start and end of growth
+
+Note sure if will include.
+
+``` r
+p7 = gr.est.avg %>%
+  mutate(Soil = recode_factor(Soil, C3="Cropped", S17="Successional"),
+         Amendment = recode_factor(Amendment, Y="C-amended", N="Water")) %>%
+  ggplot(aes(x=Soil, y=avg_start)) +
+  geom_boxplot(aes(fill=Amendment)) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  scale_y_continuous(limits=c(0,4)) +
+  labs(title="Start of growth", y="Day") +
+  theme(legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.position = c(0.15, 0.8),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        title = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p7
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+
+``` r
+p8 = gr.est.avg %>%
+  mutate(Soil = recode_factor(Soil, C3="Cropped", S17="Successional"),
+         Amendment = recode_factor(Amendment, Y="C-amended", N="Water")) %>%
+  ggplot(aes(x=Soil, y=avg_end)) +
+  geom_boxplot(aes(fill=Amendment)) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  scale_y_continuous(limits=c(0,10)) +
+  labs(title="End of growth", y="Day") +
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        title = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 8))
+p8
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->
+
+``` r
+startend.plots = plot_grid(p7, p8, nrow=2, labels=c("a", "b"), label_size=10)
+startend.plots
+```
+
+![](05_dunlopgr_habitat_files/figure-gfm/unnamed-chunk-46-3.png)<!-- -->
+
+``` r
+ggsave(startend.plots, file="figures/fig_startend.pdf", device=pdf, width=140, height=90, units="mm")
+```
