@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - data exploration and summary statistics"
+title: "Dunlop growth rates - data clean up and summary statistics"
 author: "Cassandra Wattenburger"
 date: "11/10/2020"
 output: github_document
@@ -74,7 +74,7 @@ field = field %>%
   left_join(tax, by="ASV") # add taxonomy
 ```
 
-Number of ASVs/phyla in dataset
+Number of ASVs/phyla in dataset:
 
 ```{r}
 # Extract from phyloseq
@@ -105,7 +105,6 @@ tax.rm0 = tax[tax$ASV %in% asvs,]
 phyla = unique(tax.rm0$Phylum)
 ```
 
-
 Estimated in-situ growth rates:
 
 ```{r}
@@ -117,11 +116,49 @@ gr.est = gr.est %>%
   select(Soil, Amendment, Replicate, label, Slope, k, g, Start, End, Length, ASV, Domain, Phylum, Class, Order, Family, Genus) # rename/reorder
 ```
 
+Fix start/end values in growth rate data:
+
+Currently these represent the rows of the dataframe where the growth rate estimate started and ended, NOT the day of incubation.
+
+```{r}
+# Remove 0s from normalized ucosms data
+## Ensures that row number aligns with correct day information, because we removed 0s for growth rate estimation (see script 03)
+ucosm.rm0 = filter(ucosms, norm_abund > 0)
+
+# Gather start and end of growth data for each ASV in each treatment
+gr.est.new = data.frame()
+for (s in unique(gr.est$Soil)) {
+  for (a in unique(gr.est[gr.est$Soil==s,]$Amendment)) {
+    for (r in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a,]$Replicate)) {
+      for (i in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a & gr.est$Replicate==r,]$ASV)) {
+        gr.sub = filter(gr.est, Soil==s & Amendment==a & Replicate==r & ASV==i)
+        start = gr.sub$Start # time point NOT day
+        end = gr.sub$End # time point NOT day
+        ucosm.sub = filter(ucosm.rm0, Soil==s & Amendment==a & Replicate==r & ASV==i) %>%
+          arrange(Day) # need to order by day so start and end select correct day value
+        start.day = ucosm.sub[start,]$Day # actual start day
+        end.day = ucosm.sub[end,]$Day # actual end day
+        
+        # Rebuild gr.est dataframe
+        newrow = data.frame("Soil"=s, "Amendment"=a, "Replicate"=r,
+                            "ASV"=i, "Domain"=gr.sub$Domain, "Phylum"=gr.sub$Phylum,
+                            "Class"=gr.sub$Class, "Order"=gr.sub$Order, "Family"=gr.sub$Family,
+                            "Genus"=gr.sub$Genus,
+                            "k"=gr.sub$k, "g"=gr.sub$g, "start_day"=start.day, "end_day"=end.day)
+        gr.est.new = est.new = rbind(gr.est.new, newrow)
+      }
+    }
+  }
+}
+
+```
+
+
 ```{r, eval=FALSE}
 # Save cleaned datasets for use in future scripts
 saveRDS(ucosms, file="rdata.files/ucosm.norm.cleaned.rds")
 saveRDS(field, file="rdata.files/field.norm.cleaned.rds")
-saveRDS(gr.est, file="rdata.files/gr.final.cleaned.rds")
+saveRDS(gr.est.new, file="rdata.files/gr.final.cleaned.rds")
 ```
 
 
@@ -236,122 +273,5 @@ gr.est %>% group_by(Phylum) %>% count(Phylum) %>% arrange(-n)
 ```
 
 Top 5 most abundant phyla in all data categories are Proteobacteria, Actinobacteria, Acidobacteria, Verrucomicrobia, and Planctomycetes in that order.
-
-
-# Biogeochemical data analysis
-
-Analyze SOM and pH data collected from in-field samples.
-
-
-### SOM
-
-```{r}
-# Import data
-som = read_csv("biogeochem_data/growthrate_insitu_som.csv")
-som = som %>% 
-  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
-  mutate(som = (Preignition - Postignition) / (Preignition - Crucible) * 100, # calculate % SOM
-         Soil = parse_factor(Soil),
-         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
-
-som %>% 
-  ggplot(aes(x=Soil, y=som)) +
-  geom_boxplot() +
-  labs(y="Soil organic matter (%)") +
-  theme_test()
-
-som %>% 
-  ggplot(aes(x=Soil, y=som)) +
-  geom_boxplot() +
-  facet_wrap(~Block) +
-  labs(y="Soil organic matter (%)") +
-  theme_test()
-```
-
-Strong block effect.
-
-**Statistics**
-
-Linear regression
-* Soil and Block as fixed effects with interaction term
-
-```{r}
-som.lm = lm(som ~ Soil* Block, data=som)
-
-hist(resid(som.lm))
-plot(resid(som.lm), predict(som.lm))
-
-som.lm2 = lm(log(som) ~ Soil* Block, data=som)
-
-hist(resid(som.lm2))
-plot(resid(som.lm2), predict(som.lm2))
-```
-
-Neither of the residuals look like they fit the assumptions of the linear model... I'll do a welch's t-tests instead, since it looks like unequal variances seem to be the issue. I can't add interaction term, so we'll do a separate test for each block to account for the interaction.
-
-Welch's t-tests
-
-```{r}
-t.test(som ~ Soil, data=som[som$Block==1,], var.equal=FALSE) # block 1 only
-t.test(som ~ Soil, data=som[som$Block==2,], var.equal=FALSE) # block 2 only
-```
-
-SOM is signficant between soils in block 2 but not block 1. Likely due to block 2 being downslope of block 1.
-
-
-### pH
-
-```{r}
-# Import data
-ph = read_csv("biogeochem_data/growthrate_insitu_ph.csv")
-ph = ph %>% 
-  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
-  mutate(Soil = parse_factor(Soil),
-         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
-
-ph %>% 
-  ggplot(aes(x=Soil, y=pH)) +
-  geom_boxplot() +
-  labs(x="") +
-  theme_test()
-
-ph %>% 
-  ggplot(aes(x=Soil, y=pH)) +
-  geom_boxplot() +
-  facet_wrap(~Block) +
-  labs(x="") +
-  theme_test()
-```
-
-Also looks like there is a strong block effect here.
-
-
-**Statistics**
-
-Linear regression
-* Soil and Block as fixed effects with interaction term
-
-```{r}
-ph.lm = lm(pH ~ Soil*Block, data=ph)
-
-hist(resid(ph.lm)) # check normality
-plot(resid(ph.lm), predict(ph.lm)) # check variances
-
-summary(ph.lm)
-```
-
-There is a significant soil, block, and interaction between block and soil for pH.
-
-
-### Make table of results
-
-```{r}
-# Merge SOM and pH data
-som.ph = full_join(som, ph) %>%
-  group_by(Soil) %>%
-  summarize(som.avg = mean(som, na.rm=TRUE), som.sd = sd(som, na.rm=TRUE),
-            ph.avg = mean(pH, na.rm=TRUE), ph.sd = sd(pH, na.rm=TRUE))
-som.ph
-```
 
 

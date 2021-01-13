@@ -28,7 +28,124 @@ sessionInfo()
 rm(list=ls())
 ```
 
-Import estimated growth rates:
+
+# Biogeochemical data analyses
+
+Analyze SOM and pH data collected from in-field samples.
+
+
+### SOM
+
+```{r}
+# Import data
+som = read_csv("biogeochem_data/growthrate_insitu_som.csv")
+som = som %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(som = (Preignition - Postignition) / (Preignition - Crucible) * 100, # calculate % SOM
+         Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+som %>% 
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  labs(y="Soil organic matter (%)") +
+  theme_test()
+
+som %>% 
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(y="Soil organic matter (%)") +
+  theme_test()
+```
+
+Strong block effect.
+
+**Statistics**
+
+Linear regression
+* Soil and Block as fixed effects with interaction term
+
+```{r}
+som.lm = lm(som ~ Soil* Block, data=som)
+
+hist(resid(som.lm))
+plot(resid(som.lm), predict(som.lm))
+
+som.lm2 = lm(log(som) ~ Soil* Block, data=som)
+
+hist(resid(som.lm2))
+plot(resid(som.lm2), predict(som.lm2))
+```
+
+Neither of the residuals look like they fit the assumptions of the linear model... I'll do a welch's t-tests instead, since it looks like unequal variances seem to be the issue. I can't add interaction term, so we'll do a separate test for each block to account for the interaction.
+
+Welch's t-tests
+
+```{r}
+t.test(som ~ Soil, data=som[som$Block==1,], var.equal=FALSE) # block 1 only
+t.test(som ~ Soil, data=som[som$Block==2,], var.equal=FALSE) # block 2 only
+```
+
+SOM is signficant between soils in block 2 but not block 1. Likely due to block 2 being downslope of block 1.
+
+
+### pH
+
+```{r}
+# Import data
+ph = read_csv("biogeochem_data/growthrate_insitu_ph.csv")
+ph = ph %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  labs(x="") +
+  theme_test()
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(x="") +
+  theme_test()
+```
+
+Also looks like there is a strong block effect here.
+
+
+**Statistics**
+
+Linear regression
+* Soil and Block as fixed effects with interaction term
+
+```{r}
+ph.lm = lm(pH ~ Soil*Block, data=ph)
+
+hist(resid(ph.lm)) # check normality
+plot(resid(ph.lm), predict(ph.lm)) # check variances
+
+summary(ph.lm)
+```
+
+There is a significant soil, block, and interaction between block and soil for pH.
+
+
+### Make table of results
+
+```{r}
+# Merge SOM and pH data
+som.ph = full_join(som, ph) %>%
+  group_by(Soil) %>%
+  summarize(som.avg = mean(som, na.rm=TRUE), som.sd = sd(som, na.rm=TRUE),
+            ph.avg = mean(pH, na.rm=TRUE), ph.sd = sd(pH, na.rm=TRUE))
+som.ph
+```
+
+Import estimated growth rates data:
 
 ```{r}
 gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
@@ -36,14 +153,16 @@ gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
 
 # Growth properties
 
-Average across ASVs to get community level data. ASVs within same community are not independent of one-another, which would screw up statistics. Unfortunately, singleton ASV estimates prevents me frrom using a mixed-linear effects model with ASV as a random effect, which would be ideal, so we must average instead.
-
 ```{r}
+# Calculate length of growth based on start and end
+gr.est = mutate(gr.est, length_days = end_day - start_day)
+
+# Average across ASVs for each replicate
 gr.est.avg = gr.est %>%
-  group_by(Soil, Amendment, Replicate) %>% # average across ASVs
-  summarize(avg_start = mean(Start),
-            avg_end = mean(End),
-            avg_length = mean(Length),
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(avg_start = mean(start_day),
+            avg_end = mean(end_day),
+            avg_length = mean(length_days),
             avg_k = mean(k))
 ```
 
@@ -64,41 +183,42 @@ Try ANOVA.
 
 ```{r}
 strt.aov = aov(avg_start ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
-hist(resid(strt.aov))
+hist(resid(strt.aov)) # check normality
+plot(predict(strt.aov), resid(strt.aov)) # check residuals
 ```
 
-Model residuals are not normal. Try log transform.
+Everything looks good.
 
 ```{r}
-strt.aov2 = aov(log(avg_start) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
-hist(resid(strt.aov2))
-plot(predict(strt.aov2), resid(strt.aov2))
-summary(strt.aov2)
+summary(strt.aov)
 ```
 
-Start of growth is affected by soil and depends on the amendment.
+Start of growth is affected by soil and amendment.
 
 Post hoc: 
 
-Only interested in certain contrasts, ie doesn't make sense to compare cropped water to successional C-amended.
+Only interested in certain contrasts, ie doesn't make sense to compare cropped water-amended to successional C-amended.
 
-Using Welch's t-tests (fewer assumptions) with Benjamini-Hochberg correction.
+Using Student's t-tests with Benjamini-Hochberg correction.
 
 ```{r}
 # Contrasts
-start.wtest1 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
-start.wtest2 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
-start.wtest3 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
-start.wtest4 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
+start.ttest1 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = TRUE)
+start.ttest2 = t.test(log(avg_start) ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = TRUE)
+start.ttest3 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = TRUE)
+start.ttest4 = t.test(log(avg_start) ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = TRUE)
 
 # Adjust p-values
-start.pvals = c(start.wtest1$p.value, start.wtest2$p.value, start.wtest3$p.value, start.wtest4$p.value)
+start.pvals = c(start.ttest1$p.value, start.ttest2$p.value, start.ttest3$p.value, start.ttest4$p.value)
 start.adjpvals = p.adjust(start.pvals, method="BH", n=length(start.pvals))
 
 # Results
 start.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = start.adjpvals)
 start.results
 ```
+
+No significance.
+
 
 ### End of growth window
 
@@ -114,36 +234,24 @@ gr.est.avg %>%
 
 ```{r}
 end.aov = aov(avg_end ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
-hist(resid(end.aov))
+hist(resid(end.aov)) # check normality
+```
+
+Try log transform
+
+```{r}
+end.aov2 = aov(log(avg_end) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
+hist(resid(end.aov2)) # check normality
+```
+
+Not better, stick with original data.
+
+```{r}
 plot(predict(end.aov), resid(end.aov))
 summary(end.aov)
 ```
 
-End of growth is affected by soil and depends on the amendment.
-
-Post hoc: 
-
-Only interested in certain contrasts, ie doesn't make sense to compare cropped water to successional C-amended.
-
-Using Welch's t-tests (fewer assumptions) with Benjamini-Hochberg correction.
-
-```{r}
-# Contrasts
-end.wtest1 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="C3",], var.equal = FALSE)
-end.wtest2 = t.test(avg_end ~ Amendment, data=gr.est.avg[gr.est.avg$Soil=="S17",], var.equal = FALSE)
-end.wtest3 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="Y",], var.equal = FALSE)
-end.wtest4 = t.test(avg_end ~ Soil, data=gr.est.avg[gr.est.avg$Amendment=="N",], var.equal = FALSE)
-
-# Adjust p-values
-end.pvals = c(end.wtest1$p.value, end.wtest2$p.value, end.wtest3$p.value, end.wtest4$p.value)
-end.adjpvals = p.adjust(end.pvals, method="BH", n=length(end.pvals))
-
-# Results
-end.results = data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), pvals = end.adjpvals)
-end.results
-```
-
-No significance.
+End of growth is not affected by soil or amendment.
 
 
 ### Length of growth window
@@ -159,20 +267,14 @@ gr.est.avg %>%
 **Statistics**
 
 ```{r}
-length.lm = lm(avg_length ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
-hist(resid(length.lm))
+length.aov = aov(avg_length ~ Soil + Amendment + Soil*Amendment, data=gr.est.avg)
+hist(resid(length.aov)) # check normality
+plot(predict(length.aov), resid(length.aov)) # check residuals
+summary(length.aov)
 ```
 
-Linear model fit is not normal. Try log transform.
+Length of growth period not significant.
 
-```{r}
-length.lm2 = lm(log(avg_length) ~ Soil + Amendment + Soil:Amendment, data=gr.est.avg)
-hist(resid(length.lm2))
-plot(predict(length.lm2), resid(length.lm2))
-summary(length.lm2)
-```
-
-Length of growth in not significant.
 
 ### Specific growth rates
 
@@ -203,22 +305,18 @@ summary(k.aov2)
 
 No significance found.
 
+Generation time summary:
+
+```{r}
+gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
+```
+
 ### Create table of results:
 
 ```{r}
 gr.est %>%
   group_by(Soil, Amendment) %>%
-  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(Start), sd_start = sd(Start), avg_end = mean(End), sd_end = sd(End), avg_len = mean(Length), sd_len = sd(Length))
-```
-
-
-### End of growth
-
-
-Generation time:
-
-```{r}
-gr.est %>% summarize(min_g=min(g), max_g=max(g), mean_g=mean(g))
+  summarize(avg_k = mean(k), sd_k = sd(k), avg_start = mean(start_day), sd_start = sd(start_day), avg_end = mean(end_day), sd_end = sd(end_day), avg_len = mean(length_days), sd_len = sd(length_days))
 ```
 
 
@@ -234,10 +332,13 @@ gr.S17y.asv = gr.est %>% filter(Soil=="S17", Amendment=="Y") %>% distinct(ASV)
 gr.S17n.asv = gr.est %>% filter(Soil=="S17", Amendment=="N") %>% distinct(ASV)
 
 # Overlap
-inner_join(gr.C3.asv, gr.S17.asv) %>% nrow()
-inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow()
-inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow()
+inner_join(gr.C3.asv, gr.S17.asv) %>% nrow() # overall
+inner_join(gr.C3y.asv, gr.S17y.asv) %>% nrow() # water-amended 
+inner_join(gr.C3n.asv, gr.S17n.asv) %>% nrow() # c-amended
+inner_join(gr.C3y.asv, gr.C3n.asv) %>% nrow() # cropped
+inner_join(gr.S17y.asv, gr.S17n.asv) %>% nrow() # successional
 ```
+
 
 # Growth rate distributions
 
