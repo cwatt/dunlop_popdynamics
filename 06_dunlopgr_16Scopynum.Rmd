@@ -57,7 +57,17 @@ tax = read_tsv("output/growthrate.taxonomy.final.tsv") %>% select(ASV=OTU, every
 # Merge PAPRICA results with growth rate estimates and taxonomy
 paprica.gr = inner_join(paprica, grest, by="ASV")
 paprica.gr = inner_join(paprica.gr, tax, by="ASV")
+```
 
+```{r, eval=FALSE}
+# Save merged paprica data
+saveRDS(paprica, file="rdata.files/paprica.est.rds")
+```
+
+
+Summarize
+
+```{r}
 # Average growth rates across replicates
 paprica.gr.avgall = paprica.gr %>% # overall
   group_by(ASV, Phylum, Class, Order, Family, Genus) %>%

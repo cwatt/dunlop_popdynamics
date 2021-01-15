@@ -26,8 +26,8 @@ field_comparison/
 # Files
 *.csv
 *.tsv
-exploration*
-#Other
+
+# Other
 .RData
 .Rhistory
 growthrate2018.Rproj
