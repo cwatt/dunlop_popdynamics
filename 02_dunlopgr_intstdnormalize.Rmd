@@ -307,9 +307,9 @@ intstd = totalspikesum %>%
 
 # Plot relationship with DNA conc.
 p1 = intstd %>%
-  ggplot(aes(x=DNA_conc, y=spike_perc)) +
+  ggplot(aes(x=DNA_conc, y=log(spike_perc))) +
   geom_point(size=1, shape=1) +
-  labs(x="DNA concentration (ng/\u03BCL)", y="Internal standard (% of reads)") +
+  labs(x="DNA concentration (ng/\u03BCL)", y="Internal standard (log, % of reads)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
@@ -319,7 +319,7 @@ p1 = intstd %>%
         axis.text = element_text(size = 8))
 p1
 
-# 
+# Box plot
 p2 = intstd %>%
   ggplot(aes(x=DNA_conc, y=spike_perc)) +
   geom_boxplot() +
@@ -333,12 +333,12 @@ p2 = intstd %>%
         axis.ticks=element_blank())
 p2
 
-dnaspike.plot = plot_grid(p1, p2, align="h", axis="b", rel_widths=c(1, 0.1), labels=c("a","b"), label_size=10)
-dnaspike.plot
+#dnaspike.plot = plot_grid(p1, p2, align="h", axis="b", rel_widths=c(1, 0.1), labels=c("a","b"), label_size=10)
+#dnaspike.plot
 ```
 
 ```{r, eval = FALSE}
 library(Cairo)
-ggsave(plot = dnaspike.plot, file = "figures/fig_dnavsintstd.pdf", device=cairo_pdf, width = 90, height = 90, unit="mm")
+ggsave(plot = p1, file = "figures/fig_dnavsintstd.pdf", device=cairo_pdf, width = 90, height = 90, unit="mm")
 ```
 

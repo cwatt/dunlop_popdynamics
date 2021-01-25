@@ -347,7 +347,7 @@ Average across replicates: makes for cleaner presentation.
 ```{r}
 gr.estavg = gr.est %>% 
   group_by(Soil, Amendment, ASV, Domain, Phylum, Class, Order, Family, Genus) %>% 
-  summarize(avgk = mean(k), avgStart = mean(Start), avgEnd = mean(End), avgLength = mean(Length))
+  summarize(avgk = mean(k), avgStart = mean(start_day), avgEnd = mean(end_day), avgLength = mean(length_days))
 ```
 
 Kernel density graphs
@@ -755,6 +755,77 @@ gr.estavg.group = gr.estavg.group[,c(1,3:ncol(gr.estavg.group))]
 saveRDS(gr.estavg.group, file="rdata.files/gr.groups.rds")
 ```
 
+
+### "Fast" vs "slow in unamended soil
+
+Is there  a difference in the proportion of these groups in the cropped and successional water-amended soil?
+
+Label individual replicates
+
+```{r}
+# Label taxa in replicates based on thresholds chosen from distributions
+gr.est.group = gr.est %>% 
+  filter(Amendment=="N") %>% # water only treatment
+  mutate(group = ifelse(Soil=="C3" & log(k) < -2.4, "slow", ifelse(Soil=="S17" & log(k) < -1.9, "slow", "fast")))
+
+# Number of taxa in each group per rep
+gr.est.group.count = gr.est.group %>%
+  group_by(Soil, Amendment, Replicate, group) %>%
+  summarize(n = n())
+
+# Proportion fast vs slow in each rep
+gr.est.group.prop = gr.est.group.count %>%
+  pivot_wider(names_from="group", values_from="n") %>%
+  mutate(prop_fastslow = slow/(fast+slow))
+```
+
+**Visualize**
+
+```{r}
+gr.est.group.count %>%
+  ggplot(aes(x=group, y=n, color=Replicate)) +
+  geom_point() +
+  facet_wrap(~Soil) +
+  theme_test()
+
+gr.est.group.prop %>%
+  ggplot(aes(x=Soil, y=prop_fastslow)) +
+  geom_point() +
+  theme_test()
+```
+
+**Statistics**
+
+Compare number of taxa in "fast" vs "slow" group in each soil.
+
+Linear mixed-effects model with replicate fitted as random to account for repeated measures from replicates (slow and fast).
+
+```{r}
+group.count.C3.lmer = lmer(log(n) ~ group + (1|Replicate), data=gr.est.group.count[gr.est.group.count$Soil=="C3",])
+hist(residuals(group.count.C3.lmer))
+plot(residuals(group.count.C3.lmer), predict(group.count.C3.lmer))
+summary(group.count.C3.lmer)
+
+group.count.S173.lmer = lmer(log(n) ~ group + (1|Replicate), data=gr.est.group.count[gr.est.group.count$Soil=="S17",])
+hist(residuals(group.count.S173.lmer))
+plot(residuals(group.count.S173.lmer), predict(group.count.S173.lmer))
+summary(group.count.S173.lmer)
+```
+
+Test proportion of fast to slow taxa in cropped and successional soil (another way to test)
+
+Using simple linear regression
+
+```{r}
+group.prop.lm = lm(log(prop_fastslow) ~ Soil, data=gr.est.group.prop)
+hist(residuals(group.prop.lm))
+plot(residuals(group.prop.lm), predict(group.prop.lm))
+summary(group.prop.lm)
+```
+
+Not significant. Likely not enough power.
+
+
 ### Abundances of groups in field communities
 
 Do these taxa exist in the in-field community data? If so, what are they're abundances? I.e. did the soil shape the growth dynamics we observed in the microcosms?
@@ -773,6 +844,7 @@ field.group = field %>%
   filter(!norm_abund==0) %>% # remove 0 values, ie ASV not present
   mutate(group = parse_factor(group, levels=c("slow", "fast"))) # more intuitive order for groups
 ```
+
 
 #### Individual ASV normalized abundances in each group:
 

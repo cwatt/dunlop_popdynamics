@@ -231,6 +231,8 @@ spearman_permute = function(x, y) {
 }
 
 # Tests
+n16S.all.spearperm = spearman_permute(paprica.gr.avgtrt$n16S, paprica.gr.avgtrt$avgk)
+
 n16S.C3y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$avgk)
 
 n16S.C3n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
@@ -240,14 +242,14 @@ n16S.S17y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=
 n16S.S17n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
 
 # Multiple test correction
-n16S.spearperm.pvals = c(n16S.C3y.spearperm[1], n16S.C3n.spearperm[1], n16S.S17y.spearperm[1], n16S.S17n.spearperm[1])
+n16S.spearperm.pvals = c(n16S.all.spearperm[1], n16S.C3y.spearperm[1], n16S.C3n.spearperm[1], n16S.S17y.spearperm[1], n16S.S17n.spearperm[1])
 n16S.spearperm.padj = p.adjust(n16S.spearperm.pvals, method="hochberg", n=length(n16S.spearperm.pvals))
 
 # Estimates
-n16S.spearperm.rhos = c(n16S.C3y.spearperm[2], n16S.C3n.spearperm[2], n16S.S17y.spearperm[2], n16S.S17n.spearperm[2])
+n16S.spearperm.rhos = c(n16S.all.spearperm[2], n16S.C3y.spearperm[2], n16S.C3n.spearperm[2], n16S.S17y.spearperm[2], n16S.S17n.spearperm[2])
 
 # Results table
-n16S.spearperm.results = data.frame(Soil = c(rep("C3", 2), rep("S17", 2)), Amendment=c("Y","N","Y","N"), p.adj=n16S.spearperm.padj, rho = n16S.spearperm.rhos)
+n16S.spearperm.results = data.frame(Soil = c("overall", rep("C3", 2), rep("S17", 2)), Amendment=c("overall","Y","N","Y","N"), p.adj=n16S.spearperm.padj, rho = n16S.spearperm.rhos)
 n16S.spearperm.results
 ```
 
