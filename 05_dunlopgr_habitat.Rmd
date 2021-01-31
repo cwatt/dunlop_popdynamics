@@ -758,7 +758,7 @@ saveRDS(gr.estavg.group, file="rdata.files/gr.groups.rds")
 
 ### "Fast" vs "slow in unamended soil
 
-Is there  a difference in the proportion of these groups in the cropped and successional water-amended soil?
+Is there  a difference in the number of taxa in these groups in the cropped and successional water-amended soil?
 
 Label individual replicates
 
@@ -783,6 +783,7 @@ gr.est.group.prop = gr.est.group.count %>%
 
 ```{r}
 gr.est.group.count %>%
+  mutate(Replicate = as_factor(Replicate)) %>%
   ggplot(aes(x=group, y=n, color=Replicate)) +
   geom_point() +
   facet_wrap(~Soil) +
@@ -801,16 +802,29 @@ Compare number of taxa in "fast" vs "slow" group in each soil.
 Linear mixed-effects model with replicate fitted as random to account for repeated measures from replicates (slow and fast).
 
 ```{r}
-group.count.C3.lmer = lmer(log(n) ~ group + (1|Replicate), data=gr.est.group.count[gr.est.group.count$Soil=="C3",])
-hist(residuals(group.count.C3.lmer))
-plot(residuals(group.count.C3.lmer), predict(group.count.C3.lmer))
-summary(group.count.C3.lmer)
-
-group.count.S173.lmer = lmer(log(n) ~ group + (1|Replicate), data=gr.est.group.count[gr.est.group.count$Soil=="S17",])
-hist(residuals(group.count.S173.lmer))
-plot(residuals(group.count.S173.lmer), predict(group.count.S173.lmer))
-summary(group.count.S173.lmer)
+group.count.lmer = lmer(log(n) ~ group*Soil + (1|Replicate), data=gr.est.group.count)
+hist(residuals(group.count.lmer))
+plot(residuals(group.count.lmer), predict(group.count.lmer))
 ```
+
+The variance looks bad. Try non-parametric test.
+
+Try paired Welch's t tests instead.
+
+```{r}
+group.count.wtest = t.test(gr.est.group.count[gr.est.group.count$Soil=="C3" & gr.est.group.count$group=="fast",]$n,
+                           gr.est.group.count[gr.est.group.count$Soil=="C3" & gr.est.group.count$group=="slow",]$n,
+                           paired=TRUE, var.equal=FALSE)
+group.count.wtest
+
+group.count.wtest = t.test(gr.est.group.count[gr.est.group.count$Soil=="S17" & gr.est.group.count$group=="fast",]$n,
+                           gr.est.group.count[gr.est.group.count$Soil=="S17" & gr.est.group.count$group=="slow",]$n,
+                           paired=TRUE, var.equal=FALSE)
+group.count.wtest
+```
+
+Not significant. Likely low power and high variability.
+
 
 Test proportion of fast to slow taxa in cropped and successional soil (another way to test)
 
@@ -895,12 +909,12 @@ Strong block effect in cropped soil.
 ```{r}
 p1 = gr.estavg %>%
   mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-added")) %>%
+         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
   ggplot(aes(x=log(avgk), fill=Soil)) +
   geom_density(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +
   scale_fill_manual(values=c(NA, "gray")) +
-  labs(y="Kernel density", x="Specific growth rate") +
+  labs(y="Kernel density", x=expression("Specific growth rate (ln, day"^{-1}*")")) +
   theme_test() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -918,9 +932,10 @@ p1 = gr.estavg %>%
         axis.text = element_text(size = 8))
 p1
 
+
 p2 = gr.bins %>%
   mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-added")) %>%
+         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
   ggplot(aes(x=bin, y=frequency, fill=Soil)) +
   geom_boxplot(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +
@@ -945,6 +960,60 @@ habitatdist.plot
 ```{r, eval=FALSE}
 ggsave(plot=habitatdist.plot, file="figures/fig_habitatdist.pdf", device=pdf, width=140, height=90, units="mm")
 ```
+
+# For poster
+
+```{r, eval=FALSE}
+p1.poster = gr.estavg %>%
+  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
+  ggplot(aes(x=log(avgk), fill=Soil)) +
+  geom_density(alpha=0.5) +
+  facet_wrap(~Amendment, ncol=1) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  labs(y="", x="") +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        strip.text.x = element_text(size = 10),
+        legend.position = c(.2,.93),
+        legend.text = element_text(size=10),
+        legend.key.width=unit(0.5, "cm"),
+        legend.key.height=unit(0.5, "cm"),
+        legend.title = element_blank(),
+        legend.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 10))
+p1.poster
+
+
+p2.poster = gr.bins %>%
+  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
+  ggplot(aes(x=bin, y=frequency, fill=Soil)) +
+  geom_boxplot(alpha=0.5) +
+  facet_wrap(~Amendment, ncol=1) +
+  scale_fill_manual(values=c(NA, "gray")) +
+  labs(x="", y="") +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        strip.text.x = element_text(size = 10),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 10))
+p2.poster
+
+habitatdist.poster = plot_grid(p1.poster, NULL, p2.poster, nrow=1, align="h", rel_widths=c(1,0.04,1), labels=c("a", NA, "b"), label_size=10)
+habitatdist.poster
+
+ggsave(plot=habitatdist.poster, file="figures/fig_habitatdist_poster.pdf", device=pdf, width=8.8, height=4.4, units="in")
+```
+
 
 ### Shift in growth rate
 

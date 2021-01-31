@@ -418,6 +418,29 @@ I'll make small aesthetic tweaks to this outside of ggplot2.
 ggsave(plot=copynum.plot, file="figures/fig_copynum.pdf", device=pdf, width=140, height=100, unit="mm")
 ```
 
+```{r}
+# Poster
+p1.poster = paprica.gr.avgtrt %>%
+  mutate(Soil = fct_relevel(Soil, "S17", "C3"), 
+         Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
+         Amendment = recode_factor(Amendment, Y="C-added", N="Water")) %>%
+  ggplot(aes(x=log(avgk), y=n16S)) +
+  geom_jitter(shape=1, alpha=0.5, height=0.2) +
+  labs(y="", x=expression("")) +
+  theme_test() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        title = element_text(size=10),
+        axis.text = element_text(size=8),
+        axis.title.y = element_text(margin = unit(c(0, 1, 0, 0), "mm"), size=10))
+p1.poster
+
+ggsave(plot=p1.poster, file="figures/fig_copynum_poster.pdf", device=pdf, width=4.4, height=2.2, unit="in")
+```
+
+
 
 ### Group abudances, corrected for copy number
 

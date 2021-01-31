@@ -132,19 +132,19 @@ for (s in unique(gr.est$Soil)) {
     for (r in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a,]$Replicate)) {
       for (i in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a & gr.est$Replicate==r,]$ASV)) {
         gr.sub = filter(gr.est, Soil==s & Amendment==a & Replicate==r & ASV==i)
-        start = gr.sub$Start # time point NOT day
-        end = gr.sub$End # time point NOT day
+        start.tp = gr.sub$Start # time point NOT day
+        end.tp = gr.sub$End # time point NOT day
         ucosm.sub = filter(ucosm.rm0, Soil==s & Amendment==a & Replicate==r & ASV==i) %>%
           arrange(Day) # need to order by day so start and end select correct day value
-        start.day = ucosm.sub[start,]$Day # actual start day
-        end.day = ucosm.sub[end,]$Day # actual end day
+        start.day = ucosm.sub[start.tp,]$Day # actual start day
+        end.day = ucosm.sub[end.tp,]$Day # actual end day
         
         # Rebuild gr.est dataframe
         newrow = data.frame("Soil"=s, "Amendment"=a, "Replicate"=r,
                             "ASV"=i, "Domain"=gr.sub$Domain, "Phylum"=gr.sub$Phylum,
                             "Class"=gr.sub$Class, "Order"=gr.sub$Order, "Family"=gr.sub$Family,
                             "Genus"=gr.sub$Genus,
-                            "k"=gr.sub$k, "g"=gr.sub$g, "start_day"=start.day, "end_day"=end.day)
+                            "k"=gr.sub$k, "g"=gr.sub$g, "start_tp"=start.tp, "end_tp"=end.tp, "start_day"=start.day, "end_day"=end.day)
         gr.est.new = est.new = rbind(gr.est.new, newrow)
       }
     }

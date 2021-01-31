@@ -1,0 +1,100 @@
+---
+title: "Dunlop growth rates - 16S copy number vs start of growth"
+author: "Cassandra Wattenburger"
+date: "1/28/2021"
+output: markdown_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+Goal of script: investigate relationship between 16S copy number and lag.
+
+Hypothesis: Taxa with higher 16S copy number will have earlier start days.
+
+This may depend on C-availability and growth status prior to amendment. It is possible that low copy number bacteria growing steadily prior to the experiment have enough ribosomal protein to support rapid and immediate growth after amendment.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(lmerTest)
+library(emmeans)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import and prep data
+
+Import growth rate and start data
+
+```{r}
+# Estimated growth rates
+gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
+
+# Import PAPRICA output
+papEdge = read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.edge_data.csv")
+papSeqs = read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.combined_16S.bacteria.tax.clean.unique.align.csv")
+```
+
+Reformat
+
+```{r}
+# Merge and remove unnecessary columns
+papEdge2 = papEdge %>% select(edge_num = X1, nedge, genome_size, n16S)
+papSeqs2 = papSeqs %>% select(edge_num, ASV=name, distal_length, pendant_length)
+paprica = merge(papEdge2, papSeqs2, by="edge_num") %>% select(ASV, edge_num, nedge, distal_length, pendant_length, genome_size, n16S)
+paprica
+
+# Import taxonomic info
+tax = read_tsv("output/growthrate.taxonomy.final.tsv") %>% select(ASV=OTU, everything())
+
+# Merge PAPRICA results with growth rate estimates and taxonomy
+paprica.gr = inner_join(paprica, gr.est, by="ASV")
+paprica.gr = inner_join(paprica.gr, tax, by="ASV")
+
+# Summarize ASVs
+paprica.gr.asv = paprica.gr %>% 
+  group_by(ASV, Soil, Amendment) %>% 
+  summarize(start_avg = mean(start_day), n16S_avg=mean(n16S))
+```
+
+# Visualize
+
+```{r}
+# Overall
+paprica.gr.asv %>%
+  ggplot(aes(x=start_avg, y=n16S_avg)) +
+  geom_point() +
+  theme_test() 
+
+# By treatment
+paprica.gr.asv %>%
+  ggplot(aes(x=start_avg, y=n16S_avg)) +
+  geom_point() +
+  facet_wrap(Soil~Amendment) +
+  theme_test() 
+  
+```
+
+Taxa with a wide range of 16S copy number seem to start growing immediately, whereas a few taxa with low 16S copy number grew much later. I wonder if these taxa were "busts" in "boom and bust" lifestyles? It's surprising that low copy number taxa don't appear to start growing later, but cluster around early growth. This may be an artefact of the sampling schema, with less time points later in the incubation. Maybe slow taxa were already typically growing in the soils, so had enough ribosomal load to take advantage of the added resources?
+
+This would be a good idea to probe in the SFA experiment, where the playing ground is "even" because all taxa have to prepare for growth equally in the new environment. Pre-existing growth conditions and ribosomal loads would be less influential.
+
+# Statistics
+
+This relationship looks non-linear. I think a exponential decay model would work well.
+
+```{r}
+# Self starting asymptotic model
+# expression is Asym+(R0-Asym)*exp(-exp(lrc)*input)
+fit = nls(n16S_avg ~ SSasymp(start_avg, Asym, R0, lrc), data = paprica.gr.asv)
+summary(fit)
+```
+
