@@ -83,11 +83,11 @@ paprica.gr.asv %>%
   
 ```
 
-Taxa with a wide range of 16S copy number seem to start growing immediately, whereas a few taxa with low 16S copy number grew much later. I wonder if these taxa were "busts" in "boom and bust" lifestyles? It's surprising that low copy number taxa don't appear to start growing later, but cluster around early growth. This may be an artefact of the sampling schema, with less time points later in the incubation. Maybe slow taxa were already typically growing in the soils, so had enough ribosomal load to take advantage of the added resources?
+Taxa with a wide range of 16S copy number seem to start growing immediately, whereas a few taxa with low 16S copy number started growing much later. It is possible that the low copy number taxa were already in steady growth prior to the start of the experiment, whereas high copy number taxa are more response to the resource influx at the start.
 
 This would be a good idea to probe in the SFA experiment, where the playing ground is "even" because all taxa have to prepare for growth equally in the new environment. Pre-existing growth conditions and ribosomal loads would be less influential.
 
-# Statistics
+**Fit model**
 
 This relationship looks non-linear. I think a exponential decay model would work well.
 
@@ -97,4 +97,45 @@ This relationship looks non-linear. I think a exponential decay model would work
 fit = nls(n16S_avg ~ SSasymp(start_avg, Asym, R0, lrc), data = paprica.gr.asv)
 summary(fit)
 ```
+
+Visualize
+
+```{r}
+# Predict values based on model
+paprica.gr.asv$predict_nls = predict(fit)
+
+# Plot with nonlinear model
+paprica.gr.asv %>%
+  ggplot(aes(x=start_avg, y=n16S_avg)) +
+  geom_point() +
+  geom_line(aes(y=predict_nls)) +
+  theme_test() 
+```
+
+No. I should have known that wouldn't fit.
+
+Maybe try fitting power law? It looks more like that case anyway.
+
+```{r}
+power.nls = nls(n16S_avg ~ k*start_avg^(-n),
+                start = list(k = 2, n = 0.01),
+                data=paprica.gr.asv)
+```
+
+
+
+```{r}
+# Fit power law
+library(igraph)
+pl.fit = fit_power_law(paprica.gr.asv$start_avg)
+# how to visualize/evaluate?
+```
+
+Spearman rank correlation
+
+```{r}
+spear.test = cor.test(paprica.gr.asv$start_avg, paprica.gr.asv$n16S_avg, method="spearman")
+spear.test
+```
+
 

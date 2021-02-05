@@ -46,31 +46,31 @@ sessionInfo()
 ```{r}
 # Import spike-in normalized data with individual taxa
 load("rdata.files/gr_microcosm.norm.tax.RData")
-ucosm.norm=microcosm.norm.tax
+ucosm.norm <- microcosm.norm.tax
 
 # Rename columns
-colnames(ucosm.norm)[1:7] = c("ASV","SampleID","Amendment","Soil","TP","Day","abund")
+colnames(ucosm.norm)[1:7] <- c("ASV","SampleID","Amendment","Soil","TP","Day","abund")
 
 # Replicate info
-rep = read.csv("replicate.metadata.csv")
+rep <- read.csv("replicate.metadata.csv")
 
 # Remove Aquifex sequences (internal standard)
-aqui=filter(ucosm.norm, ucosm.norm$Genus=="Aquifex")
-ucosm.norm = ucosm.norm[!ucosm.norm$Genus %in% "Aquifex",]
-asvs=as.character(unique(ucosm.norm$ASV))
+aqui <- filter(ucosm.norm, ucosm.norm$Genus=="Aquifex")
+ucosm.norm <- ucosm.norm[!ucosm.norm$Genus %in% "Aquifex",]
+asvs <- as.character(unique(ucosm.norm$ASV))
 
 # Better sample labeling
-ucosm.norm$Sample=gsub("sa", "", ucosm.norm$SampleID)
-ucosm.norm$Sample=as.integer(ucosm.norm$Sample)
-ucosm.norm = ucosm.norm[,-2] 
+ucosm.norm$Sample <- gsub("sa", "", ucosm.norm$SampleID)
+ucosm.norm$Sample <- as.integer(ucosm.norm$Sample)
+ucosm.norm <- ucosm.norm[,-2] 
 
 # Add replicate info
-ucosm.norm=merge(ucosm.norm, rep, by="Sample", all.x=TRUE)
-ucosm.norm$Rep=as.factor(ucosm.norm$Rep)
-colnames(ucosm.norm)[14] = "Replicate"
+ucosm.norm <- merge(ucosm.norm, rep, by="Sample", all.x=TRUE)
+ucosm.norm$Rep <- as.factor(ucosm.norm$Rep)
+colnames(ucosm.norm)[14] <- "Replicate"
 
 # Create variable with metadata for subsetting later
-ucosm.norm = mutate(ucosm.norm, Label=paste0(Soil, Amendment, Replicate, ASV)) # unique identifier
+ucosm.norm <- mutate(ucosm.norm, Label=paste0(Soil, Amendment, Replicate, ASV)) # unique identifier
 ```
 
 ### Remove 0s, filter sparse taxa (< 3 tps), log transform
@@ -88,22 +88,22 @@ I can't fit a linear model to less than 3 data points, so we'll remove time seri
 
 ```{r}
 # Remove 0s
-ucosm.zero = filter(ucosm.norm, abund > 0)
+ucosm.zero <- filter(ucosm.norm, abund > 0)
 
 # Remove time series with < 3 tps remaining (can't fit a line)
-filter.df = data.frame()
+filter.df <- data.frame()
 for (l in unique(as.character(ucosm.zero$Label))) {
-  datasub = ucosm.zero[ucosm.zero$Label==l,]
-  len = nrow(datasub)
-  thisrow = data.frame(l, len)
-  filter.df = rbind(filter.df, thisrow)
+  datasub <- ucosm.zero[ucosm.zero$Label==l,]
+  len <- nrow(datasub)
+  thisrow <- data.frame(l, len)
+  filter.df <- rbind(filter.df, thisrow)
 }
-filter.df = filter(filter.df, len > 2)
-filter.labels = filter.df$l
-ucosm.filter = filter(ucosm.zero, Label %in% filter.labels)
+filter.df <- filter(filter.df, len > 2)
+filter.labels <- filter.df$l
+ucosm.filter <- filter(ucosm.zero, Label %in% filter.labels)
 
 # Natural log transform the data
-ucosm.log = mutate(ucosm.filter, abund.log = log(abund))
+ucosm.log <- mutate(ucosm.filter, abund.log = log(abund))
 ```
 
 
@@ -115,49 +115,49 @@ Employs a "sliding window" that first tries to fit points 1-3, then 1-4, then 1-
 
 ```{r}
 # Save function
-savefit=function(start, end, df, output) { # Start point, end point, time series data, output dataframe
+savefit <- function(start, end, df, output) { # Start point, end point, time series data, output dataframe
   # Save estimate info
-  est = NULL; coeff = NULL; residuals = NULL; pval = NULL; length = NULL; thisrow = data.frame() # clear previous
-  est = lm(abund.log ~ Day, data=datasub[start:end,])
-  coeff = est$coefficients[2]
-  residuals = sum(abs(resid(est)))
-  pval = summary(est)$coefficients[2,4]
-  length = end - start + 1
-  thisrow = data.frame(label, soil, amend, asv, rep, start, end, length, coeff, pval, residuals, row.names = NULL)
-  output = rbind(output, thisrow)
+  est <- NULL; coeff <- NULL; residuals <- NULL; pval <- NULL; length <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(abund.log ~ Day, data=datasub[start:end,])
+  coeff <- est$coefficients[2]
+  residuals <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  length <- end - start + 1
+  thisrow <- data.frame(label, soil, amend, asv, rep, start, end, length, coeff, pval, residuals, row.names <- NULL)
+  output <- rbind(output, thisrow)
   return(output)
 }
 
 # Fit linear estimate to the data with sliding window
-gr.est = data.frame()
+gr.est <- data.frame()
 for (label in as.character(unique(ucosm.log$Label))) {
   # Subset one time series
   #print(paste("Subset new time series:", label))
-  datasub = data.frame()
-  datasub = ucosm.log[ucosm.log$Label==label,] # subset growth curve
-  stop = FALSE
+  datasub <- data.frame()
+  datasub <- ucosm.log[ucosm.log$Label==label,] # subset growth curve
+  stop <- FALSE
   # Save time series info
-  soil = NULL; amend = NULL; rep = NULL; asv = NULL
-  soil = as.character(unique(datasub$Soil))
-  amend = as.character(unique(datasub$Amendment))
-  rep = as.numeric(unique(datasub$Replicate))
-  asv = as.character(unique(datasub$ASV))
+  soil <- NULL; amend = NULL; rep = NULL; asv = NULL
+  soil <- as.character(unique(datasub$Soil))
+  amend <- as.character(unique(datasub$Amendment))
+  rep <- as.numeric(unique(datasub$Replicate))
+  asv <- as.character(unique(datasub$ASV))
   
   # Sliding window
   for (b in 1:(nrow(datasub)-2)) { # start of window
     #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
-    start = b
-    stop = FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
     #print(paste("Start:", b))
     for (e in (b+2):nrow(datasub)) { # end of window
       if (stop == TRUE) {break} # stop extending the window if a solution is found
       #print(paste("End:", e))
    
       # Fit linear model to window
-      test.lm = NULL; test.p = NULL; test.coeff = NULL
-      test.lm = lm(abund.log ~ Day, data=datasub[b:e,])
-      test.p = summary(test.lm)$coefficients[2,4]
-      test.coeff = test.lm$coefficients[2]
+      test.lm <- NULL; test.p <- NULL; test.coeff <- NULL
+      test.lm <- lm(abund.log ~ Day, data=datasub[b:e,])
+      test.p <- summary(test.lm)$coefficients[2,4]
+      test.coeff <- test.lm$coefficients[2]
       #print(paste("Testing window. Start =", b, "End =", e, "Results: test.p =", test.p, "test.coeff =", test.coeff))
 
       # Extend the window
@@ -166,13 +166,13 @@ for (label in as.character(unique(ucosm.log$Label))) {
         for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
           if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
           #print(paste("Extending window. Start =", b, "End =", x))
-          testprev.lm = NULL; testprev.p = NULL; testprev.coeff = NULL; testnew.lm = NULL; testnew.p = NULL; testnew.coeff = NULL
-          testprev.lm = lm(abund.log ~ Day, data=datasub[b:(x-1),])
-          testprev.p = summary(testprev.lm)$coefficients[2,4]
-          testprev.coeff = testprev.lm$coefficients[2]
-          testnew.lm = lm(abund.log ~ Day, data=datasub[b:x,])
-          testnew.p = summary(testnew.lm)$coefficients[2,4]
-          testnew.coeff = testnew.lm$coefficients[2]
+          testprev.lm <- NULL; testprev.p <- NULL; testprev.coeff <- NULL; testnew.lm <- NULL; testnew.p <- NULL; testnew.coeff <- NULL
+          testprev.lm <- lm(abund.log ~ Day, data=datasub[b:(x-1),])
+          testprev.p <- summary(testprev.lm)$coefficients[2,4]
+          testprev.coeff <- testprev.lm$coefficients[2]
+          testnew.lm <- lm(abund.log ~ Day, data=datasub[b:x,])
+          testnew.p <- summary(testnew.lm)$coefficients[2,4]
+          testnew.coeff <- testnew.lm$coefficients[2]
           
           # Continue extending the window
           if (testnew.p <= testprev.p & testnew.coeff > 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
@@ -183,19 +183,19 @@ for (label in as.character(unique(ucosm.log$Label))) {
           # No improvement
           else if (testnew.p > testprev.p & testprev.coeff > 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
             #print(paste("TRUE: testnew.p > testprev.p & testprev.coeff > 0 & x < 15... testnew.p =", testnew.p, "testprev.p =", testprev.p, "testprev.coeff =", testprev.coeff, "EndX =", x))
-            end = x-1
-            gr.est = savefit(start, end, datasub, gr.est)
+            end <- x-1
+            gr.est <- savefit(start, end, datasub, gr.est)
             #print(paste("Saved previous result. Start:", start, "End:", e))
-            stop = TRUE
+            stop <- TRUE
           }
           
           # No more data pts to fit
           else if (testnew.p <= testprev.p & testnew.coeff > 0 & x == nrow(datasub)) { # improved but no more data
             #print(paste("TRUE: testnew.p <= testprev.p & testnew.coeff > 0 & x == 15... testnew.p =", testnew.p, "testprev.p =", testprev.p, "testnew.coeff =", testnew.coeff, "EndX =", x))
-            end = x
-            gr.est = savefit(start, end, datasub, gr.est)
+            end <- x
+            gr.est <- savefit(start, end, datasub, gr.est)
             #print(paste("Saved current result. Start:", start, "End:", e))
-            stop = TRUE
+            stop <- TRUE
           } 
         }
       }
@@ -203,15 +203,15 @@ for (label in as.character(unique(ucosm.log$Label))) {
       # No more data pts to fit
       else if (test.p <= 0.05 & test.coeff > 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
         #print(paste("TRUE: test.p <= 0.05 & test.coeff > 0 & e==15...", "test.p =", test.p, "test.coeff =", test.coeff, "EndE =", e))
-        end = e
-        gr.est = savefit(start, end, datasub, gr.est)
+        end <- e
+        gr.est <- savefit(start, end, datasub, gr.est)
         #print(paste("Saved current result. Start:", start, "End:", e))
-        stop = TRUE
+        stop <- TRUE
       }
     }
   }
 }
-colnames(gr.est) = c("label","Soil","Amendment","ASV","Replicate","Start","End","Length","Slope","Pvalue", "Residuals")
+colnames(gr.est) <- c("label","Soil","Amendment","ASV","Replicate","Start","End","Length","Slope","Pvalue", "Residuals")
 ```
 
 
@@ -221,7 +221,7 @@ I can't find any guidance on how to determine whether or not a fit is "perfect" 
 
 ```{r}
 # Remove "perfect" fits as precaution
-gr.noperf = filter(gr.est, Residuals >= 0.0001)
+gr.noperf <- filter(gr.est, Residuals >= 0.0001)
 nrow(gr.est)
 nrow(gr.noperf)
 ```
@@ -233,12 +233,12 @@ nrow(gr.noperf)
 
 ```{r}
 # Best p-value for each curve
-gr.best = data.frame()
+gr.best <- data.frame()
 for (l in as.character(unique(gr.noperf$label))) {
-  datasub = gr.noperf[gr.noperf$label==l,]
-  pmin = min(datasub$Pvalue)
+  datasub <- gr.noperf[gr.noperf$label==l,]
+  pmin <- min(datasub$Pvalue)
   hold = datasub[datasub$Pvalue==pmin,]
-  gr.best = rbind(gr.best, hold)
+  gr.best <- rbind(gr.best, hold)
 }
 nrow(gr.noperf)
 nrow(gr.best)
@@ -257,21 +257,21 @@ Information about real dataset to use for simulating random data:
 
 ```{r, results="show"}
 # Minimum and maximum values to base simulated data on
-low = min(ucosm.log$abund.log)
-hi = max(ucosm.log$abund.log)
+low <- min(ucosm.log$abund.log)
+hi <- max(ucosm.log$abund.log)
 
 # How many points do curves generally have? drop outs are common due to 0s
-length.df = data.frame()
+length.df <- data.frame()
 for (l in as.character(unique(ucosm.log$Label))) {
-  datasub = ucosm.log[ucosm.log$Label==l,]
-  num = nrow(datasub)
-  day = mean(datasub$Day)
-  thisrow = data.frame(l, num, day)
-  length.df = rbind(length.df, thisrow)
+  datasub <- ucosm.log[ucosm.log$Label==l,]
+  num <- nrow(datasub)
+  day <- mean(datasub$Day)
+  thisrow <- data.frame(l, num, day)
+  length.df <- rbind(length.df, thisrow)
 }
 
-num.avg = mean(length.df$num)
-day.avg = mean(length.df$day)
+num.avg <- mean(length.df$num)
+day.avg <- mean(length.df$day)
 
 ggplot(length.df, aes(x=NA, y=num)) +
   geom_boxplot() +
@@ -291,22 +291,22 @@ Simulate random data points, 1000 times:
 ```{r}
 # Simulate time series
 set.seed(101)
-tps = c(0, 0.333, 0.667, 1, 1.5, 2, 3, 5, 7, 9, 13, 17, 21, 28, 50)
-sim.data = data.frame()
+tps <- c(0, 0.333, 0.667, 1, 1.5, 2, 3, 5, 7, 9, 13, 17, 21, 28, 50)
+sim.data <- data.frame()
 for (i in 1:1000) { # number of randomly generated growth curves
-  thisrow = data.frame()
-  randabund = NULL
-  hold = NULL
-  randpts = ceiling(runif(1, min=2, max=15)) # randomly choose number of pts between 3 and 15
-  randabund = runif(randpts, min = low, max = hi) # randomly generate abundance values within range
-  randdays = sort(sample(tps, size=randpts, replace=FALSE)) # randomly assign days from list
-  hold = cbind(rep(i, randpts),randdays, randabund)
+  thisrow <- data.frame()
+  randabund <- NULL
+  hold <- NULL
+  randpts <- ceiling(runif(1, min=2, max=15)) # randomly choose number of pts between 3 and 15
+  randabund <- runif(randpts, min = low, max = hi) # randomly generate abundance values within range
+  randdays <- sort(sample(tps, size=randpts, replace=FALSE)) # randomly assign days from list
+  hold <- cbind(rep(i, randpts),randdays, randabund)
   sim.data= rbind(sim.data, hold)
 }
-colnames(sim.data)[1] = "sim"
+colnames(sim.data)[1] <- "sim"
 
-sim.melt = melt(sim.data, id.vars=c("sim"))
-sim.summary = ddply(sim.melt[sim.melt$variable=="randdays",], c("sim"), summarize, len=length(value), avg=mean(value))
+sim.melt <- melt(sim.data, id.vars=c("sim"))
+sim.summary <- ddply(sim.melt[sim.melt$variable=="randdays",], c("sim"), summarize, len=length(value), avg=mean(value))
 
 ggplot(sim.summary, aes(x=NA, y=len)) +
   geom_boxplot() +
@@ -365,49 +365,49 @@ Small modifications in for loop to accomodate simulated data (noted in chunk).
 
 ```{r}
 # Save function
-savefit.sim = function(start, end, df, output) { # Start point, end point, time series data, output dataframe
+savefit.sim <- function(start, end, df, output) { # Start point, end point, time series data, output dataframe
   # Save estimate info
-  est = NULL; coeff = NULL; residuals = NULL; pval = NULL; length = NULL; thisrow = data.frame() # clear previous
-  est = lm(randabund ~ randdays, data=datasub[start:end,]) # variables altered to match simulated data columns
-  coeff = est$coefficients[2]
-  residuals = sum(abs(resid(est)))
-  pval = summary(est)$coefficients[2,4]
-  length = end - start + 1
-  thisrow = data.frame(sim, start, end, length, coeff, pval, residuals, row.names = NULL) # altered line, don't need treatment metadata
-  output = rbind(output, thisrow)
+  est <- NULL; coeff <- NULL; residuals <- NULL; pval <- NULL; length <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(randabund ~ randdays, data=datasub[start:end,]) # variables altered to match simulated data columns
+  coeff <- est$coefficients[2]
+  residuals <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  length <- end - start + 1
+  thisrow <- data.frame(sim, start, end, length, coeff, pval, residuals, row.names <- NULL) # altered line, don't need treatment metadata
+  output <- rbind(output, thisrow)
   return(output)
 }
 
 # Fit linear estimate to the data with sliding window
-sim.est = data.frame()
+sim.est <- data.frame()
 for (sim in as.character(unique(sim.data$sim))) { # variables altered
   # Subset one time series
   #print(paste("Subset new time series:", sim))
-  datasub = data.frame()
-  datasub = sim.data[sim.data$sim==sim,] # subset growth curve # variables altered
-  stop = FALSE
+  datasub <- data.frame()
+  datasub <- sim.data[sim.data$sim==sim,] # subset growth curve # variables altered
+  stop <- FALSE
   # Save time series ##not needed##
-  #soil = NULL; amend = NULL; rep = NULL; asv = NULL
-  #soil = as.character(unique(datasub$Soil))
-  #amend = as.character(unique(datasub$Amendment))
-  #rep = as.numeric(unique(datasub$Replicate))
-  #asv = as.character(unique(datasub$ASV))
+  #soil <- NULL; amend <- NULL; rep <- NULL; asv <- NULL
+  #soil <- as.character(unique(datasub$Soil))
+  #amend <- as.character(unique(datasub$Amendment))
+  #rep <- as.numeric(unique(datasub$Replicate))
+  #asv <- as.character(unique(datasub$ASV))
   
   # Sliding window
   for (b in 1:(nrow(datasub)-2)) { # start of window
     #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
-    start = b
-    stop = FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
     #print(paste("Start:", b))
     for (e in (b+2):nrow(datasub)) { # end of window
       if (stop == TRUE) {break} # stop extending the window if a solution is found
       #print(paste("End:", e))
    
       # Fit linear model to window
-      test.lm = NULL; test.p = NULL; test.coeff = NULL
-      test.lm = lm(randabund ~ randdays, data=datasub[b:e,]) # variables altered
-      test.p = summary(test.lm)$coefficients[2,4]
-      test.coeff = test.lm$coefficients[2]
+      test.lm <- NULL; test.p <- NULL; test.coeff <- NULL
+      test.lm <- lm(randabund ~ randdays, data=datasub[b:e,]) # variables altered
+      test.p <- summary(test.lm)$coefficients[2,4]
+      test.coeff <- test.lm$coefficients[2]
       #print(paste("Testing window. Start =", b, "End =", e, "Results: test.p =", test.p, "test.coeff =", test.coeff))
 
       # Extend the window
@@ -416,13 +416,13 @@ for (sim in as.character(unique(sim.data$sim))) { # variables altered
         for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
           if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
           #print(paste("Extending window. Start =", b, "End =", x))
-          testprev.lm = NULL; testprev.p = NULL; testprev.coeff = NULL; testnew.lm = NULL; testnew.p = NULL; testnew.coeff = NULL
-          testprev.lm = lm(randabund ~ randdays, data=datasub[b:(x-1),]) # variables altered
-          testprev.p = summary(testprev.lm)$coefficients[2,4]
-          testprev.coeff = testprev.lm$coefficients[2]
-          testnew.lm = lm(randabund ~ randdays, data=datasub[b:x,]) # variables altered
-          testnew.p = summary(testnew.lm)$coefficients[2,4]
-          testnew.coeff = testnew.lm$coefficients[2]
+          testprev.lm <- NULL; testprev.p <- NULL; testprev.coeff <- NULL; testnew.lm <- NULL; testnew.p <- NULL; testnew.coeff <- NULL
+          testprev.lm <- lm(randabund ~ randdays, data=datasub[b:(x-1),]) # variables altered
+          testprev.p <- summary(testprev.lm)$coefficients[2,4]
+          testprev.coeff <- testprev.lm$coefficients[2]
+          testnew.lm <- lm(randabund ~ randdays, data=datasub[b:x,]) # variables altered
+          testnew.p <- summary(testnew.lm)$coefficients[2,4]
+          testnew.coeff <- testnew.lm$coefficients[2]
           
           # Continue extending the window
           if (testnew.p <= testprev.p & testnew.coeff > 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
@@ -433,19 +433,19 @@ for (sim in as.character(unique(sim.data$sim))) { # variables altered
           # No improvement
           else if (testnew.p > testprev.p & testprev.coeff > 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
             #print(paste("TRUE: testnew.p > testprev.p & testprev.coeff > 0 & x < 15... testnew.p =", testnew.p, "testprev.p =", testprev.p, "testprev.coeff =", testprev.coeff, "EndX =", x))
-            end = x-1
-            sim.est = savefit(start, end, datasub, sim.est)
+            end <- x-1
+            sim.est <- savefit(start, end, datasub, sim.est)
             #print(paste("Saved previous result. Start:", start, "End:", e))
-            stop = TRUE
+            stop <- TRUE
           }
           
           # No more data pts to fit
           else if (testnew.p <= testprev.p & testnew.coeff > 0 & x == nrow(datasub)) { # improved but no more data
             #print(paste("TRUE: testnew.p <= testprev.p & testnew.coeff > 0 & x == 15... testnew.p =", testnew.p, "testprev.p =", testprev.p, "testnew.coeff =", testnew.coeff, "EndX =", x))
-            end = x
-            sim.est = savefit(start, end, datasub, sim.est)
+            end <- x
+            sim.est <- savefit(start, end, datasub, sim.est)
             #print(paste("Saved current result. Start:", start, "End:", e))
-            stop = TRUE
+            stop <- TRUE
           } 
         }
       }
@@ -453,16 +453,15 @@ for (sim in as.character(unique(sim.data$sim))) { # variables altered
       # No more data pts to fit
       else if (test.p <= 0.05 & test.coeff > 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
         #print(paste("TRUE: test.p <= 0.05 & test.coeff > 0 & e==15...", "test.p =", test.p, "test.coeff =", test.coeff, "EndE =", e))
-        end = e
-        sim.est = savefit.sim(start, end, datasub, sim.est)
+        end <- e
+        sim.est <- savefit.sim(start, end, datasub, sim.est)
         #print(paste("Saved current result. Start:", start, "End:", e))
-        stop = TRUE
+        stop <- TRUE
       }
     }
   }
 }
 ```
-
 
 Filter essentially perfect fits and choose best estimate.
 
@@ -470,15 +469,15 @@ Same method as in growthrate_growthestimation_rm0.Rmd
 
 ```{r}
 # Remove essentially perfect fits
-sim.noperf = filter(sim.est, residuals >= 0.0001)
+sim.noperf <- filter(sim.est, residuals >= 0.0001)
 
 # Choose best window (lowest p-value)
-sim.best = data.frame()
+sim.best <- data.frame()
 for (i in as.character(unique(sim.noperf$sim))) {
-  datasub = sim.noperf[sim.noperf$sim==i,]
-  pmin = min(datasub$pval)
-  hold = datasub[datasub$pval==pmin,]
-  sim.best = rbind(sim.best, hold)
+  datasub <- sim.noperf[sim.noperf$sim==i,]
+  pmin <- min(datasub$pval)
+  hold <- datasub[datasub$pval==pmin,]
+  sim.best <- rbind(sim.best, hold)
 }
 ```
 
@@ -486,14 +485,14 @@ False positive rates:
 
 ```{r}
 # False positives
-a = nrow(sim.best[sim.best$pval <= 0.05,])
-b = nrow(sim.best[sim.best$pval <= 0.025,])
-c = nrow(sim.best[sim.best$pval <= 0.01,])
-d = nrow(sim.best[sim.best$pval <= 0.005,])
-e = nrow(sim.best[sim.best$pval <= 0.001,])
-f = nrow(sim.best[sim.best$pval <= 0.0005,])
+a <- nrow(sim.best[sim.best$pval <= 0.05,])
+b <- nrow(sim.best[sim.best$pval <= 0.025,])
+c <- nrow(sim.best[sim.best$pval <= 0.01,])
+d <- nrow(sim.best[sim.best$pval <= 0.005,])
+e <- nrow(sim.best[sim.best$pval <= 0.001,])
+f <- nrow(sim.best[sim.best$pval <= 0.0005,])
 
-false.df = data.frame(c(0.05, 0.025, 0.01, 0.005, 0.001, 0.0005), c(a,b,c,d,e,f))
+false.df <- data.frame(c(0.05, 0.025, 0.01, 0.005, 0.001, 0.0005), c(a,b,c,d,e,f))
 colnames(false.df)=c("pvalue","false")
 
 ggplot(false.df, aes(x=pvalue, y=false)) +
@@ -535,19 +534,19 @@ Filter p-values based on cut-offs determined (10%, 5%, 2.5%, 1%):
 
 ```{r, restuls="show"}
 # ~10% false positives
-gr.falsepos10 = subset(gr.best, Pvalue <= 0.013)
+gr.falsepos10 <- subset(gr.best, Pvalue <= 0.013)
 nrow(gr.falsepos10 )
 
 # ~5% false positives
-gr.falsepos5 = subset(gr.best, Pvalue <= 0.0069)
+gr.falsepos5 <- subset(gr.best, Pvalue <= 0.0069)
 nrow(gr.falsepos5)
 
 # 2.5%
-gr.falsepos2.5 = subset(gr.best, Pvalue <= 0.0027)
+gr.falsepos2.5 <- subset(gr.best, Pvalue <= 0.0027)
 nrow(gr.falsepos2.5)
 
 # 1%
-gr.falsepos1 = subset(gr.best, Pvalue <= 0.0009)
+gr.falsepos1 <- subset(gr.best, Pvalue <= 0.0009)
 nrow(gr.falsepos1)
 ```
 
@@ -557,29 +556,29 @@ nrow(gr.falsepos1)
 
 ```{r}
 # Select replicated time series
-rep10.list = list()
+rep10.list <- list()
 for (s in as.character(unique(gr.falsepos10$Soil))) {
   for (c in as.character(unique(gr.falsepos10[gr.falsepos10$Soil==s,]$Amendment))) {
     for (a in as.character(unique(gr.falsepos10[gr.falsepos10$Soil==s & gr.falsepos10$Amendment==c,]$ASV))) {
-        timeseries = as.character(gr.falsepos10[gr.falsepos10$Soil==s & gr.falsepos10$Amendment==c & gr.falsepos10$ASV==a,]$label)
+        timeseries <- as.character(gr.falsepos10[gr.falsepos10$Soil==s & gr.falsepos10$Amendment==c & gr.falsepos10$ASV==a,]$label)
         if (length(timeseries) > 1) {
-          rep10.list = append(rep10.list, timeseries)
+          rep10.list <- append(rep10.list, timeseries)
         }
     }
   }
 }
-gr.rep10 = filter(gr.falsepos10, label %in% rep10.list)
+gr.rep10 <- filter(gr.falsepos10, label %in% rep10.list)
 ```
 
 ```{r, results="show"}
 # Randomly select 10 time series to check
 set.seed(310)
-gr.rep10 = mutate(gr.rep10, Treatment=paste0(Soil, Amendment, ASV))
-rand = sample(as.character(unique(gr.rep10$Treatment)), 10)
+gr.rep10 <- mutate(gr.rep10, Treatment=paste0(Soil, Amendment, ASV))
+rand <- sample(as.character(unique(gr.rep10$Treatment)), 10)
 
 # 1 
-reps101 = gr.rep10[gr.rep10$Treatment==rand[1],]
-reps101.df = ucosm.log[ucosm.log$ASV==as.character(unique(reps101$ASV)) & ucosm.log$Soil==as.character(unique(reps101$Soil)) & ucosm.log$Amendment==as.character(unique(reps101$Amendment)) & ucosm.log$Replicate %in% as.numeric(reps101$Replicate),]
+reps101 <- gr.rep10[gr.rep10$Treatment==rand[1],]
+reps101.df <- ucosm.log[ucosm.log$ASV==as.character(unique(reps101$ASV)) & ucosm.log$Soil==as.character(unique(reps101$Soil)) & ucosm.log$Amendment==as.character(unique(reps101$Amendment)) & ucosm.log$Replicate %in% as.numeric(reps101$Replicate),]
 
 ggplot(reps101.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -591,8 +590,8 @@ ggplot(reps101.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("1.", reps101$Soil, reps101$Amendment, reps101$ASV))
 
 # 2 
-reps102 = gr.rep10[gr.rep10$Treatment==rand[2],]
-reps102.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps102$ASV)) & ucosm.log$Soil==unique(as.character(reps102$Soil)) & ucosm.log$Amendment==unique(as.character(reps102$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps102$Replicate)),]
+reps102 <- gr.rep10[gr.rep10$Treatment==rand[2],]
+reps102.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps102$ASV)) & ucosm.log$Soil==unique(as.character(reps102$Soil)) & ucosm.log$Amendment==unique(as.character(reps102$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps102$Replicate)),]
 
 ggplot(reps102.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -603,8 +602,8 @@ ggplot(reps102.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("2.", reps102$Soil, reps102$Amendment, reps102$ASV))
 
 # 3
-reps103 = gr.rep10[gr.rep10$Treatment==rand[3],]
-reps103.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps103$ASV)) & ucosm.log$Soil==unique(as.character(reps103$Soil)) & ucosm.log$Amendment==unique(as.character(reps103$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps103$Replicate)),]
+reps103 <- gr.rep10[gr.rep10$Treatment==rand[3],]
+reps103.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps103$ASV)) & ucosm.log$Soil==unique(as.character(reps103$Soil)) & ucosm.log$Amendment==unique(as.character(reps103$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps103$Replicate)),]
 
 ggplot(reps103.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -616,8 +615,8 @@ ggplot(reps103.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("3.", reps103$Soil, reps103$Amendment, reps103$ASV))
 
 # 4
-reps104 = gr.rep10[gr.rep10$Treatment==rand[4],]
-reps104.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps104$ASV)) & ucosm.log$Soil==unique(as.character(reps104$Soil)) & ucosm.log$Amendment==unique(as.character(reps104$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps104$Replicate)),]
+reps104 <- gr.rep10[gr.rep10$Treatment==rand[4],]
+reps104.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps104$ASV)) & ucosm.log$Soil==unique(as.character(reps104$Soil)) & ucosm.log$Amendment==unique(as.character(reps104$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps104$Replicate)),]
 
 ggplot(reps104.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -629,8 +628,8 @@ ggplot(reps104.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("4.", reps104$Soil, reps104$Amendment, reps104$ASV))
 
 # 5
-reps105 = gr.rep10[gr.rep10$Treatment==rand[10],]
-reps105.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps105$ASV)) & ucosm.log$Soil==unique(as.character(reps105$Soil)) & ucosm.log$Amendment==unique(as.character(reps105$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps105$Replicate)),]
+reps105 <- gr.rep10[gr.rep10$Treatment==rand[10],]
+reps105.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps105$ASV)) & ucosm.log$Soil==unique(as.character(reps105$Soil)) & ucosm.log$Amendment==unique(as.character(reps105$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps105$Replicate)),]
 
 ggplot(reps105.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -645,29 +644,29 @@ ggplot(reps105.df, aes(x=Day, y=abund.log, shape=Replicate)) +
 
 ```{r}
 # Select replicated time series
-rep5.list = list()
+rep5.list <- list()
 for (s in as.character(unique(gr.falsepos5$Soil))) {
   for (c in as.character(unique(gr.falsepos5[gr.falsepos5$Soil==s,]$Amendment))) {
     for (a in as.character(unique(gr.falsepos5[gr.falsepos5$Soil==s & gr.falsepos5$Amendment==c,]$ASV))) {
-        timeseries = as.character(gr.falsepos5[gr.falsepos5$Soil==s & gr.falsepos5$Amendment==c & gr.falsepos5$ASV==a,]$label)
+        timeseries <- as.character(gr.falsepos5[gr.falsepos5$Soil==s & gr.falsepos5$Amendment==c & gr.falsepos5$ASV==a,]$label)
         if (length(timeseries) > 1) {
-          rep5.list = append(rep5.list, timeseries)
+          rep5.list <- append(rep5.list, timeseries)
         }
     }
   }
 }
-gr.rep5 = filter(gr.falsepos5, label %in% rep5.list)
+gr.rep5 <- filter(gr.falsepos5, label %in% rep5.list)
 ```
 
 ```{r, results="show"}
 # Randomly select 10 time series to check
 set.seed(310)
-gr.rep5 = mutate(gr.rep5, Treatment=paste0(Soil, Amendment, ASV))
-rand = sample(as.character(unique(gr.rep5$Treatment)), 10)
+gr.rep5 <- mutate(gr.rep5, Treatment=paste0(Soil, Amendment, ASV))
+rand <- sample(as.character(unique(gr.rep5$Treatment)), 10)
 
 # 1 
-reps51 = gr.rep5[gr.rep5$Treatment==rand[1],]
-reps51.df = ucosm.log[ucosm.log$ASV==as.character(unique(reps51$ASV)) & ucosm.log$Soil==as.character(unique(reps51$Soil)) & ucosm.log$Amendment==as.character(unique(reps51$Amendment)) & ucosm.log$Replicate %in% as.numeric(reps51$Replicate),]
+reps51 <- gr.rep5[gr.rep5$Treatment==rand[1],]
+reps51.df <- ucosm.log[ucosm.log$ASV==as.character(unique(reps51$ASV)) & ucosm.log$Soil==as.character(unique(reps51$Soil)) & ucosm.log$Amendment==as.character(unique(reps51$Amendment)) & ucosm.log$Replicate %in% as.numeric(reps51$Replicate),]
 
 ggplot(reps51.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -678,8 +677,8 @@ ggplot(reps51.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   theme_test()
 
 # 2 
-reps52 = gr.rep5[gr.rep5$Treatment==rand[2],]
-reps52.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps52$ASV)) & ucosm.log$Soil==unique(as.character(reps52$Soil)) & ucosm.log$Amendment==unique(as.character(reps52$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps52$Replicate)),]
+reps52 <- gr.rep5[gr.rep5$Treatment==rand[2],]
+reps52.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps52$ASV)) & ucosm.log$Soil==unique(as.character(reps52$Soil)) & ucosm.log$Amendment==unique(as.character(reps52$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps52$Replicate)),]
 
 ggplot(reps52.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -690,8 +689,8 @@ ggplot(reps52.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("2.", reps52$Soil, reps52$Amendment, reps52$ASV))
 
 # 3
-reps53 = gr.rep5[gr.rep5$Treatment==rand[3],]
-reps53.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps53$ASV)) & ucosm.log$Soil==unique(as.character(reps53$Soil)) & ucosm.log$Amendment==unique(as.character(reps53$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps53$Replicate)),]
+reps53 <- gr.rep5[gr.rep5$Treatment==rand[3],]
+reps53.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps53$ASV)) & ucosm.log$Soil==unique(as.character(reps53$Soil)) & ucosm.log$Amendment==unique(as.character(reps53$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps53$Replicate)),]
 
 ggplot(reps53.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -702,8 +701,8 @@ ggplot(reps53.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("3.", reps53$Soil, reps53$Amendment, reps53$ASV))
 
 # 4
-reps54 = gr.rep5[gr.rep5$Treatment==rand[4],]
-reps54.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps54$ASV)) & ucosm.log$Soil==unique(as.character(reps54$Soil)) & ucosm.log$Amendment==unique(as.character(reps54$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps54$Replicate)),]
+reps54 <- gr.rep5[gr.rep5$Treatment==rand[4],]
+reps54.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps54$ASV)) & ucosm.log$Soil==unique(as.character(reps54$Soil)) & ucosm.log$Amendment==unique(as.character(reps54$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps54$Replicate)),]
 
 ggplot(reps54.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -714,8 +713,8 @@ ggplot(reps54.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   labs(title=paste("4.", reps54$Soil, reps54$Amendment, reps54$ASV))
 
 # 5
-reps55 = gr.rep5[gr.rep5$Treatment==rand[10],]
-reps55.df = ucosm.log[ucosm.log$ASV==unique(as.character(reps55$ASV)) & ucosm.log$Soil==unique(as.character(reps55$Soil)) & ucosm.log$Amendment==unique(as.character(reps55$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps55$Replicate)),]
+reps55 <- gr.rep5[gr.rep5$Treatment==rand[10],]
+reps55.df <- ucosm.log[ucosm.log$ASV==unique(as.character(reps55$ASV)) & ucosm.log$Soil==unique(as.character(reps55$Soil)) & ucosm.log$Amendment==unique(as.character(reps55$Amendment)) & ucosm.log$Replicate %in% as.numeric(unique(reps55$Replicate)),]
 
 ggplot(reps55.df, aes(x=Day, y=abund.log, shape=Replicate)) +
   geom_point() +
@@ -747,7 +746,7 @@ I found this guide helpful: http://miller-lab.net/MillerLab/protocols/general-ba
 
 ```{r}
 # Generate abundances over time interval based on estimated slope
-k.df = data.frame()
+k.df <- data.frame()
 B=1 # Start with one bacteria
 for (s in as.character(unique(gr.falsepos5$Soil))) {
   for (c in as.character(unique(gr.falsepos5[gr.falsepos5$Soil==s,]$Amendment))) {
@@ -778,24 +777,24 @@ Where g is generation or doubling time and k is specific growth rate (per day).
 
 ```{r}
 # Calculate doubling time based on k
-g.df=data.frame()
+g.df <- data.frame()
 for (s in as.character(unique(k.df$Soil))) {
   for (c in as.character(unique(k.df[k.df$Soil==s,]$Amendment))) {
     for (r in as.character(unique(k.df[k.df$Soil==s & k.df$Amendment==c,]$Replicate))) {
       for (a in as.character(unique(k.df[k.df$Soil==s & k.df$Amend==c & k.df$Replicate==r,]$ASV))) {
-        data=data.frame()
-        g=NULL
-        k=NULL
+        data <- data.frame()
+        g <- NULL
+        k <- NULL
         datadf=k.df[k.df$Soil==s & k.df$Amendment==c & k.df$Replicate==r & k.df$ASV==a,]
-        k=datadf$k
-        g=log(2)/k
-        thisrow=cbind(datadf, g)
-        g.df=rbind(g.df, thisrow)
+        k <- datadf$k
+        g <- log(2)/k
+        thisrow <- cbind(datadf, g)
+        g.df <- rbind(g.df, thisrow)
       }
     }
   }
 }
-gr.final = g.df
+gr.final <- g.df
 ```
 
 ```{r, eval = FALSE}
@@ -808,8 +807,8 @@ This will be used to subset sequences for PAPRICA.
 
 ```{r, eval = FALSE}
 library(tidyverse)
-gr.final = readRDS(gr.final, file="rdata.files/gr_gr.final_rm0.rds")
-gr.asvs = gr.final %>% select(ASV) %>% unique()
+gr.final <- readRDS(gr.final, file="rdata.files/gr_gr.final_rm0.rds")
+gr.asvs <- gr.final %>% select(ASV) %>% unique()
 write.txt(gr.asvs, )
 ```
 
@@ -821,10 +820,10 @@ Choosing example "growth curves" to represent diversity of taxonomies and growth
 # Import data (from script 04)
 
 # Microcosm data
-ucosm = readRDS(file="rdata.files/ucosm.norm.cleaned.rds")
+ucosm <- readRDS(file="rdata.files/ucosm.norm.cleaned.rds")
 
 # Growth rate estimations
-gr.est = readRDS(file="rdata.files/gr.final.cleaned.rds")
+gr.est <- readRDS(file="rdata.files/gr.final.cleaned.rds")
 ```
 
 
@@ -833,7 +832,7 @@ library(tidyverse)
 library(cowplot)
 
 # Clean up data frame
-ucosm.clean = ucosm %>%
+ucosm.clean <- ucosm %>%
   select(Soil, Amendment, Replicate, Day, ASV, Domain, Phylum, Class, Order, Class, Family, Genus, norm_abund) %>%
   filter(norm_abund > 0) %>% # remove 0s
   arrange(Day) # order by day
@@ -841,12 +840,12 @@ ucosm.clean = ucosm %>%
 
 ```{r}
 # Example 1: Burkholderia
-p1.estimate = gr.est %>%
+p1.estimate <- gr.est %>%
   filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
-p1.data = ucosm.clean %>%
+p1.data <- ucosm.clean %>%
   filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
 
-p1 = ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
+p1 <- ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p1.data[p1.estimate$start_tp:p1.estimate$end_tp,], color="black", fill="gray", linetype=2, alpha=0.5) +
@@ -863,12 +862,12 @@ p1 = ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
 p1
 
 # Example 2: Streptomyces
-p2.estimate = gr.est %>%
+p2.estimate <- gr.est %>%
   filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
-p2.data = ucosm.clean %>%
+p2.data <- ucosm.clean %>%
   filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
 
-p2 = ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
+p2 <- ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p2.data[p2.estimate$start_tp:p2.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
@@ -885,12 +884,12 @@ p2 = ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
 p2
 
 # Example 3: Acidobacteria
-p3.estimate = gr.est %>%
+p3.estimate <- gr.est %>%
   filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
-p3.data = ucosm.clean %>%
+p3.data <- ucosm.clean %>%
   filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
 
-p3 = ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
+p3 <- ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p3.data[p3.estimate$start_tp:p3.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
@@ -907,12 +906,12 @@ p3 = ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
 p3
 
 # Example 4: Planctomyces
-p4.estimate = gr.est %>%
+p4.estimate <- gr.est %>%
   filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
-p4.data = ucosm.clean %>%
+p4.data <- ucosm.clean %>%
   filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
 
-p4 = ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
+p4 <- ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p4.data[p4.estimate$start_tp:p4.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
@@ -928,7 +927,7 @@ p4 = ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
         axis.text = element_text(size = 8))
 p4
 
-example.curves = plot_grid(p1, p2, p3, p4)
+example.curves <- plot_grid(p1, p2, p3, p4)
 example.curves
 ```
 
@@ -938,9 +937,12 @@ Cowplot doesn't have a built-in method for adding axis titles that span graphs, 
 ggsave(plot = example.curves, file = "figures/fig_examplegrowth.pdf", device=pdf, width=180, height=95, unit="mm")
 ```
 
-# Delete below later
 
-```{r}
+
+
+
+
+```{r, eval=FALSE, echo=FALSE}
 # for poster
 
 # Example 1: Burkholderia
@@ -953,7 +955,7 @@ p1 = ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p1.data[p1.estimate$start_tp:p1.estimate$end_tp,], color="black", fill="gray", linetype=2, alpha=0.7, size=0.6) +
-  labs(title=paste(unique(p1.data$Phylum), ", \n", unique(p1.data$Genus), sep=""), y="Normalized abundance (ln)") +
+  labs(title=paste(unique(p1.data$Phylum), ", ", "Paraburkholderia", sep=""), y="Normalized abundance (ln)") + # substituted genus for shortened "paraburkholderia"
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
@@ -1033,9 +1035,8 @@ p4
 
 example.curves = plot_grid(p1, p2, p3, p4)
 example.curves
-```
 
-```{r}
+# Save plots
 ggsave(plot = example.curves, file = "figures/fig_examplegrowth_poster.pdf", device=pdf, width=4.7, height=2.2, unit="in")
 ```
 

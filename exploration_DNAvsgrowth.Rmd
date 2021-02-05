@@ -24,9 +24,9 @@ Here, we are considering the successional and cropped soils as proxies for high 
 ```{r}
 library(tidyverse)
 
-sessionInfo()
-
 rm(list=ls())
+
+sessionInfo()
 ```
 
 # Assess biomass between soils
@@ -41,12 +41,13 @@ ucosm = readRDS("rdata.files/ucosm.norm.cleaned.rds")
 field = readRDS("rdata.files/field.norm.cleaned.rds")
 
 # DNA data
-dna = read_csv("growthrate_dnaext.csv")
+dna = read_csv("growthrate_dnaext.csv") %>%
+  mutate(SampleID = as.character(SampleID))
 
 # Combine
-ucosm.field.dna = bind_rows(field, ucosm) %>%
-  inner_join(dna, by = c("Sample"="SampleID")) %>% # combine ucosm and field samples
-  rename(dna_conc = Conc., dna_kit = Box) %>% # add dna data
+ucosm.field.dna = bind_rows(field, ucosm) %>% # combine ucosm and field samples
+  inner_join(dna, by = c("Sample"="SampleID")) %>% # add dna data
+  rename(dna_conc = Conc., dna_kit = Box) %>% # rename columns
   mutate(Type = if_else(Sample %in% 1:80, "Field", "Microcosm")) # Name based on experiment type
 
 # Estimated growth rates
@@ -61,7 +62,8 @@ ucosm.field.dna %>%
   distinct(Sample, Soil, Amendment, Block, Type, dna_conc) %>%
   filter(Type=="Field") %>%
   ggplot(aes(x=Soil, y=dna_conc)) +
-  geom_boxplot() +
+  geom_point() +
+  labs(title="Field") +
   facet_wrap(~Block) +
   theme_test()
 
@@ -70,8 +72,8 @@ ucosm.field.dna %>%
   distinct(Sample, Soil, Amendment, Day, Type, dna_conc) %>%
   filter(Type=="Microcosm", Amendment=="N", Day==0) %>% # unamended, day 0 samples only
   ggplot(aes(x=Soil, y=dna_conc)) +
-  geom_boxplot() +
   geom_point() +
+  labs(title="Ucosms") +
   theme_test()
 ```
 
@@ -104,13 +106,11 @@ hist(resid(field.block1.lm2))
 plot(predict(field.block1.lm2), resid(field.block1.lm2))
 ```
 
-Improved, but hetereskedasticity is worse. I think it's ok for interpretation though.
+Improved, but hetereskedasticity is worse. I think it's ok for interpretation though, since this is a simple model with no interactions etc.
 
 ```{r}
 summary(field.block1.lm2)
 ```
-
-Significant.
 
 **Microcosm soil**
 
@@ -142,7 +142,8 @@ plot(predict(ucosm.n0.lm2), resid(ucosm.n0.lm2))
 summary(ucosm.n0.lm2)
 ```
 
-Not significant. The higher-level of processing and incubation period before the start of the experiment may have equalized the microbial communities compared to in field conditions. Despite this, I'm still going to look into possible correlations with growth rates because legacy effects from field soil may still be present. Sam also used highly-processed soil in his microcosms.
+The higher-level of processing and incubation period before the start of the experiment may have equalized the microbial community biomass compared to in-field conditions. Despite this, I'm still going to look into possible correlations with growth rates because legacy effects from the field may still be present. Sam also used highly-processed soil in his microcosms.
+
 
 # Growth rates and biomass
 
@@ -201,11 +202,10 @@ plot(resid(propgrow.lm), predict(propgrow.lm))
 summary(propgrow.lm)
 ```
 
-**Slow vs fast groups**
+
+**Proportion of slow taxa**
 
 ```{r}
-# Need sample numbers added to dataframe
-
 # Import group labels
 gr.groups = readRDS("rdata.files/gr.groups.rds")
 
@@ -220,21 +220,21 @@ gr.label.succ = gr.est %>%
 
 gr.label = bind_rows(gr.label.crop, gr.label.succ)
   
-gr.label.slowfast = gr.label %>%
+gr.label.slow = gr.label %>%
   group_by(Soil, Replicate, group) %>% 
   summarize(group_count = length(ASV)) %>%
   pivot_wider(names_from=group, values_from=group_count) %>%
-  mutate(prop_slowfast = slow/fast)
+  mutate(prop_slow = slow/(slow+fast))
 
 # Add sample metadata
 meta = select(ucosm, Sample, Day, Amendment, Soil, Replicate) %>%
   filter(Day==0, Amendment=="N") %>%
   distinct()
 
-gr.label.slowfast = inner_join(gr.label.slowfast, meta, by=c("Soil", "Replicate"))
+gr.label.slow = inner_join(gr.label.slow, meta, by=c("Soil", "Replicate"))
 
 # Add DNA conc. data
-gr.label.slowfast = inner_join(gr.label.slowfast, dna, by=c("Sample"="SampleID")) %>%
+gr.label.slow = inner_join(gr.label.slow, dna, by=c("Sample"="SampleID")) %>%
   rename(dna_conc = Conc., dna_kit = Box)
 ```
 
@@ -242,15 +242,40 @@ Visualize
 
 ```{r}
 # By soil
-gr.label.slowfast %>%
-  ggplot(aes(x=Soil, y=prop_slowfast, color=Soil)) +
+gr.label.slow %>%
+  ggplot(aes(x=Soil, y=prop_slow, color=Soil)) +
   geom_point() +
   theme_test()
 
 # vs. DNA conc.
-gr.label.slowfast %>%
-  ggplot(aes(x=dna_conc, y=prop_slowfast, color=Soil)) +
-  geom_point() +
+gr.label.slow %>%
+  ggplot(aes(x=dna_conc, y=prop_slow)) +
+  geom_point(aes(color=Soil)) +
+  geom_smooth(method="lm") +
   theme_test()
 
+```
+
+Statistics
+
+* Simple linear regression
+* proportion of slow taxa in cropped vs successional soil
+
+```{r}
+slow.lm = lm(prop_slow ~ Soil, gr.label.slow)
+hist(resid(slow.lm)
+```
+
+Not normal, try log transform.
+
+```{r}
+slow.lm2 = lm(log(prop_slow) ~ Soil, gr.label.slow)
+hist(resid(slow.lm2))
+```
+
+No, use Kruskal Wallis test (does not assume normality)
+
+```{r}
+slow.kruskal = kruskal.test(prop_slow ~ Soil, data=gr.label.slow)
+slow.kruskal
 ```

@@ -112,6 +112,7 @@ abundchange1.trt %>%
 # Shows differences in individual species
 abundchange1.asv %>%
   ggplot(aes(x=Soil, y=log(change_abund), color=Amendment)) +
+  geom_boxplot() +
   geom_jitter() +
   labs(title = "Individual ASVs") +
   theme_test()
@@ -153,9 +154,18 @@ hist(residuals(abundchange1.asv.lmer)) # normality
 plot(residuals(abundchange1.asv.lmer), predict(abundchange1.asv.lmer)) # variances
 ```
 
-Strong skew in variances. Going to consult statistician and get back to this analysis.
+Strong skew in variances. This can be OK as long as we don't build interaction terms into the model.
 
+```{r}
+# Fit model without interactions
+abundchange1.asv.lmer2 = lmer(log(change_abund) ~ Soil+Amendment + (1|ASV), data=abundchange1.asv)
 
+# Check model assumptions
+hist(residuals(abundchange1.asv.lmer2)) # normality
+plot(residuals(abundchange1.asv.lmer2), predict(abundchange1.asv.lmer)) # variances
+```
+
+Want to consult statistician.
 
 
 # "Slow" vs "fast" change in abundance

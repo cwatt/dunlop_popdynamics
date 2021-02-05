@@ -776,7 +776,7 @@ gr.est.group.count = gr.est.group %>%
 # Proportion fast vs slow in each rep
 gr.est.group.prop = gr.est.group.count %>%
   pivot_wider(names_from="group", values_from="n") %>%
-  mutate(prop_fastslow = slow/(fast+slow))
+  mutate(prop_fastslow = fast/(fast+slow))
 ```
 
 **Visualize**
@@ -794,6 +794,24 @@ gr.est.group.prop %>%
   geom_point() +
   theme_test()
 ```
+
+```{r, eval=FALSE}
+# Make a nice graph for poster
+poster = gr.est.group.prop %>%
+  mutate(Soil = fct_recode(Soil, Cropped="C3", Successional="S17")) %>%
+  ggplot(aes(x=Soil, y=prop_fastslow)) +
+  geom_point() +
+  scale_y_continuous(limits=c(0,1)) +
+  labs(title = "", y="", x="") +
+  theme_test() +
+  theme(title = element_text(size=6),
+        axis.title = element_text(size=6),
+        axis.text = element_text(size = 6))
+poster
+
+ggsave(poster, file="figures/fig_propfastslow_poster.pdf", device="pdf", width=2.2, height=2.7, units="in")
+```
+
 
 **Statistics**
 
@@ -964,9 +982,9 @@ ggsave(plot=habitatdist.plot, file="figures/fig_habitatdist.pdf", device=pdf, wi
 # For poster
 
 ```{r, eval=FALSE}
-p1.poster = gr.estavg %>%
+p.poster = gr.estavg %>%
   mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
+         Amendment = recode_factor(Amendment, N="Water-amended", Y="C-amended")) %>%
   ggplot(aes(x=log(avgk), fill=Soil)) +
   geom_density(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +
@@ -977,8 +995,8 @@ p1.poster = gr.estavg %>%
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         strip.background = element_blank(),
-        strip.text.x = element_text(size = 10),
-        legend.position = c(.2,.93),
+        strip.text.x = element_blank(),
+        legend.position = c(.2,.83),
         legend.text = element_text(size=10),
         legend.key.width=unit(0.5, "cm"),
         legend.key.height=unit(0.5, "cm"),
@@ -986,32 +1004,9 @@ p1.poster = gr.estavg %>%
         legend.background = element_blank(),
         axis.line = element_line(colour = "black"),
         axis.text = element_text(size = 10))
-p1.poster
+p.poster
 
-
-p2.poster = gr.bins %>%
-  mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
-  ggplot(aes(x=bin, y=frequency, fill=Soil)) +
-  geom_boxplot(alpha=0.5) +
-  facet_wrap(~Amendment, ncol=1) +
-  scale_fill_manual(values=c(NA, "gray")) +
-  labs(x="", y="") +
-  theme_test() +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        strip.background = element_blank(),
-        strip.text.x = element_text(size = 10),
-        legend.position = "none",
-        axis.line = element_line(colour = "black"),
-        axis.text = element_text(size = 10))
-p2.poster
-
-habitatdist.poster = plot_grid(p1.poster, NULL, p2.poster, nrow=1, align="h", rel_widths=c(1,0.04,1), labels=c("a", NA, "b"), label_size=10)
-habitatdist.poster
-
-ggsave(plot=habitatdist.poster, file="figures/fig_habitatdist_poster.pdf", device=pdf, width=8.8, height=4.4, units="in")
+ggsave(plot=p.poster, file="figures/fig_habitatdist_poster.pdf", device=pdf, width=4.4, height=4.4, units="in")
 ```
 
 
