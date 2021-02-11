@@ -454,7 +454,7 @@ for (s in c("C3", "S17")) {
 }
 ```
 
-It looks like 5 bins is too few, 6 or 7 seem to more adequately capture the distributions. I'll choose 7 bins.
+It looks like 5 bins is definitely too few. I'll choose 8 bins because they best capture the distribution shape/bimodal nature of water amended data.
 
 There need to be the same number and width of bins in each dataset.
 
@@ -469,7 +469,7 @@ print(paste("Range:", max(log(gr.estavg$avgk))-min(log(gr.estavg$avgk))))
 Calculate bin width based on range:
 
 ```{r, results="show"}
-width = (max(log(gr.estavg$avgk))-min(log(gr.estavg$avgk)))/7
+width = (max(log(gr.estavg$avgk))-min(log(gr.estavg$avgk)))/8
 print(paste("Bin width:", width))
 
 kmin=min(log(gr.estavg$avgk))
@@ -479,12 +479,13 @@ print(paste("Bin 3 boundaries:", kmin+width*2, "to",  kmin+width*3))
 print(paste("Bin 4 boundaries:", kmin+width*3, "to",  kmin+width*4))
 print(paste("Bin 5 boundaries:", kmin+width*4, "to",  kmin+width*5))
 print(paste("Bin 6 boundaries:", kmin+width*5, "to",  kmin+width*6))
-print(paste("Bin 7 boundaries:", kmin+width*6, "and greater"))
+print(paste("Bin 7 boundaries:", kmin+width*6, kmin+width*7))
+print(paste("Bin 8 boundaries:", kmin+width*7, "and greater"))
 ```
 
 ```{r}
 # Bin data based on boundaries chosen and log k
-gr.est.bins = gr.est %>% mutate(bin = ifelse(log(k) < kmin+width, 1, ifelse(log(k) < kmin+width*2, 2, ifelse(log(k) < kmin+width*3, 3, ifelse(log(k) < kmin+width*4, 4, ifelse(log(k) < kmin+width*5, 5, ifelse(log(k) < kmin+width*6, 6, 7)))))))
+gr.est.bins = gr.est %>% mutate(bin = ifelse(log(k) < kmin+width, 1, ifelse(log(k) < kmin+width*2, 2, ifelse(log(k) < kmin+width*3, 3, ifelse(log(k) < kmin+width*4, 4, ifelse(log(k) < kmin+width*5, 5, ifelse(log(k) < kmin+width*6, 6, ifelse(log(k) < kmin+width*7, 7, 8))))))))
 
 # Calculate bin information (proportion, frequency)
 gr.bins = data.frame()
@@ -697,57 +698,43 @@ Assumptions look fine, but the successional overlap data is just sparse. Anyways
 
 # Explore bimodal distributions - slow and fast groups?
 
-The growth rate distribution graphs show distinct bimodal distributions in the water treatment. This seems to indicate differing populations, which I want to explore further.
+The growth rate distribution graphs show distinct bimodal distributions in the water control treatment. This seems to indicate differing populations, which I want to explore further.
 
 Split data into "fast" and "slow" groups based on the bimodal distributions.
 
 **Split by the bimodal distributions in unamended soils:**
 
-Choose thresholds for each soil:
+Following this advice: https://stackoverflow.com/questions/25264461/find-local-minimum-in-bimodal-distribution-with-r
 
-```{r, results="show"}
-gr.estavg %>% 
-  filter(Soil=="C3") %>%
-  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
-  geom_density(alpha=0.5) +
-  theme_test() +
-  theme(#legend.position="none",
-        title=element_text(size=12),
-        axis.text=element_text(size=12),
-        axis.title=element_text(size=12)) +
-  scale_color_manual(values=c("#E78E43", "#423EC5")) +
-  scale_fill_manual(values=c("#E78E43", "#423EC5")) +
-  labs(title="Cropped", x="ln speciifc growth rate", y="Density") +
-  scale_y_continuous(limits=c(0,1)) +
-  scale_x_continuous(limits=c(-5,0)) +
-  geom_vline(xintercept=-2.4, linetype=2)
-
-gr.estavg %>% 
-  filter(Soil=="S17") %>%
-  ggplot(aes(x=log(avgk), color=Amendment, fill=Amendment)) +
-  geom_density(alpha=0.5) +
-  theme_test() +
-  theme(#legend.position="none",
-        title=element_text(size=12),
-        axis.text=element_text(size=12),
-        axis.title=element_text(size=12)) +
-  scale_color_manual(values=c("#E78E43", "#423EC5")) +
-  scale_fill_manual(values=c("#E78E43", "#423EC5")) +
-  labs(title="Successional", x="ln speciifc growth rate", y="Density") +
-  scale_y_continuous(limits=c(0,1)) +
-  scale_x_continuous(limits=c(-5,0)) +
-  geom_vline(xintercept=-1.9, linetype=2)
-```
-
-Label ASVs based on avg growth rate threshold:
+Find local minima by finding where dx/dy = 0 for each treatment distribution.
 
 ```{r}
-# Water only
-gr.estavg.group = gr.estavg %>% 
-  filter(Amendment=="N") %>% 
-  mutate(group = ifelse(Soil=="C3" & log(avgk) < -2.4, "slow", ifelse(Soil=="S17" & log(avgk) < -1.9, "slow", "fast")))
+# Find local minima
+thresholds <- data.frame()
+for (s in c("C3", "S17")) {
+  df <- filter(gr.estavg, Soil==s, Amendment=="N")
+  d <- density(log(df$avgk))
+  o <- optimize(approxfun(d$x,d$y),interval=c(-3,-1))$minimum # find where dx/dy = 0 within given interval
+  print(ggplot(df, aes(x=log(avgk))) +
+    geom_density() +
+    geom_vline(xintercept=o) +
+    labs(title=paste(s, "N,", "Threshold:", o)) +
+    theme_test())
+  this.row <- data.frame(Soil=s, Amendment="N", threshold=o)
+  thresholds <- bind_rows(thresholds, this.row)
+}
+```
 
-gr.estavg.group = gr.estavg.group[,c(1,3:ncol(gr.estavg.group))]
+Label ASVs based on threshold:
+
+```{r}
+# Labeling based on thresholds
+gr.estavg.group <- gr.estavg %>% 
+  filter(Amendment=="N") %>% # water control data only
+  mutate(group = ifelse(Soil=="C3" & log(avgk) < thresholds[thresholds$Soil=="C3",]$threshold, "slow", 
+                        ifelse(Soil=="S17" & log(avgk) < thresholds[thresholds$Soil=="S17",]$threshold, "slow", "fast"))) # use thresholds defined above to categorize data based on growth rates
+
+#gr.estavg.group <- gr.estavg.group[,c(1,3:ncol(gr.estavg.group))]
 ```
 
 ```{r, eval=FALSE}
@@ -756,7 +743,7 @@ saveRDS(gr.estavg.group, file="rdata.files/gr.groups.rds")
 ```
 
 
-### "Fast" vs "slow in unamended soil
+### "Fast" vs "slow in unamended soils
 
 Is there  a difference in the number of taxa in these groups in the cropped and successional water-amended soil?
 
@@ -766,7 +753,8 @@ Label individual replicates
 # Label taxa in replicates based on thresholds chosen from distributions
 gr.est.group = gr.est %>% 
   filter(Amendment=="N") %>% # water only treatment
-  mutate(group = ifelse(Soil=="C3" & log(k) < -2.4, "slow", ifelse(Soil=="S17" & log(k) < -1.9, "slow", "fast")))
+  mutate(group = ifelse(Soil=="C3" & log(k) < thresholds[thresholds$Soil=="C3",]$threshold, "slow", 
+                        ifelse(Soil=="S17" & log(k) < thresholds[thresholds$Soil=="S17",]$threshold, "slow", "fast")))
 
 # Number of taxa in each group per rep
 gr.est.group.count = gr.est.group %>%
@@ -815,12 +803,12 @@ ggsave(poster, file="figures/fig_propfastslow_poster.pdf", device="pdf", width=2
 
 **Statistics**
 
-Compare number of taxa in "fast" vs "slow" group in each soil.
+Compare **frequency** of taxa in "fast" vs "slow" group in each soil.
 
 Linear mixed-effects model with replicate fitted as random to account for repeated measures from replicates (slow and fast).
 
 ```{r}
-group.count.lmer = lmer(log(n) ~ group*Soil + (1|Replicate), data=gr.est.group.count)
+group.count.lmer = lmer(log(n) ~ group*Soil + (1|Replicate), data=gr.est.group.count) # this should be 1|sample not replicate
 hist(residuals(group.count.lmer))
 plot(residuals(group.count.lmer), predict(group.count.lmer))
 ```
@@ -844,15 +832,21 @@ group.count.wtest
 Not significant. Likely low power and high variability.
 
 
-Test proportion of fast to slow taxa in cropped and successional soil (another way to test)
+Test **proportion** of fast to slow taxa in cropped and successional soil (another way to test)
 
-Using simple linear regression
 
 ```{r}
+# linear regression
 group.prop.lm = lm(log(prop_fastslow) ~ Soil, data=gr.est.group.prop)
 hist(residuals(group.prop.lm))
 plot(residuals(group.prop.lm), predict(group.prop.lm))
 summary(group.prop.lm)
+
+# t-test (because people complain when I use a linear regression instead of a t-test...)
+group.prop.ttest = t.test(gr.est.group.prop[gr.est.group.prop$Soil=="C3",]$prop_fastslow,
+                          gr.est.group.prop[gr.est.group.prop$Soil=="S17",]$prop_fastslow,
+                          data = gr.est.group.prop)
+group.prop.ttest
 ```
 
 Not significant. Likely not enough power.
@@ -901,14 +895,6 @@ field.group.sum = field.group %>%
 
 # Visualize
 field.group.sum %>% 
-  ggplot(aes(x=group, y=log(total_abund), color=as.factor(Block))) +
-  geom_boxplot() +
-  geom_jitter(alpha=0.2) +
-  facet_wrap(~Soil) +
-  labs(title="Total, aggregated abundance", x="", y="natural log internal-standard normalized abundance", color="Block") +
-  theme_test()
-
-field.group.sum %>% 
   ggplot(aes(x=group, y=log(total_abund))) +
   geom_boxplot() +
   geom_jitter(alpha=0.2) +
@@ -917,8 +903,7 @@ field.group.sum %>%
   theme_test()
 ```
 
-Strong block effect in cropped soil.
-
+Will evaluate this further with 16S copy number corrected data, since you'd imagine fast taxa might be more likely to ahve more copies and bias the results.
 
 # Figures
 
@@ -927,7 +912,7 @@ Strong block effect in cropped soil.
 ```{r}
 p1 = gr.estavg %>%
   mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
+         Amendment = recode_factor(Amendment, N="Water control", Y="C-amended")) %>%
   ggplot(aes(x=log(avgk), fill=Soil)) +
   geom_density(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +
@@ -953,7 +938,7 @@ p1
 
 p2 = gr.bins %>%
   mutate(Soil = recode_factor(Soil, S17="Successional", C3="Cropped"),
-         Amendment = recode_factor(Amendment, N="Water", Y="C-amended")) %>%
+         Amendment = recode_factor(Amendment, N="Water control", Y="C-amended")) %>%
   ggplot(aes(x=bin, y=frequency, fill=Soil)) +
   geom_boxplot(alpha=0.5) +
   facet_wrap(~Amendment, ncol=1) +

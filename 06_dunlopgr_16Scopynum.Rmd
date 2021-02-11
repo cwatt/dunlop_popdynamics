@@ -171,22 +171,22 @@ Visualize:
 
 ```{r}
 # Visualize
-paprica.gr.avgall %>% ggplot(aes(x=avgk, y=n16S)) +
+paprica.gr.avgall %>% ggplot(aes(x=log(avgk), y=n16S)) +
   geom_point(aes(color=Phylum)) +
-  geom_smooth(method="lm") +
+  #geom_smooth(method="lm") +
   labs(x="avg specific growth rate", y="estimated 16S copies") +
   theme_test()
 
-paprica.gr.avgsoil %>% ggplot(aes(x=avgk, y=n16S)) +
+paprica.gr.avgsoil %>% ggplot(aes(x=log(avgk), y=n16S)) +
   geom_point(aes(color=Phylum)) +
-  geom_smooth(method="lm") +
+  #geom_smooth(method="lm") +
   facet_wrap(~Soil) +
   labs(x="avg specific growth rate", y="estimated 16S copies") +
   theme_test()
 
-paprica.gr.avgtrt %>% ggplot(aes(x=avgk, y=n16S)) +
+paprica.gr.avgtrt %>% ggplot(aes(x=log(avgk), y=n16S)) +
   geom_point(aes(color=Phylum)) +
-  geom_smooth(method="lm") +
+  #geom_smooth(method="lm") +
   facet_wrap(Soil~Amendment) +
   labs(x="avg specific growth rate", y="estimated 16S copies") +
   theme_test()
@@ -233,13 +233,17 @@ spearman_permute = function(x, y) {
 # Tests
 n16S.all.spearperm = spearman_permute(paprica.gr.avgtrt$n16S, paprica.gr.avgtrt$avgk)
 
-n16S.C3y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$avgk)
+n16S.C3y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, 
+                                      log(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="Y",]$avgk))
 
-n16S.C3n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
+n16S.C3n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$n16S, 
+                                      log(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="C3" & paprica.gr.avgtrt$Amendment=="N",]$avgk))
 
-n16S.S17y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$avgk)
+n16S.S17y.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$n16S, 
+                                       log(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="Y",]$avgk))
 
-n16S.S17n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$n16S, paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$avgk)
+n16S.S17n.spearperm = spearman_permute(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$n16S, 
+                                       log(paprica.gr.avgtrt[paprica.gr.avgtrt$Soil=="S17" & paprica.gr.avgtrt$Amendment=="N",]$avgk))
 
 # Multiple test correction
 n16S.spearperm.pvals = c(n16S.all.spearperm[1], n16S.C3y.spearperm[1], n16S.C3n.spearperm[1], n16S.S17y.spearperm[1], n16S.S17n.spearperm[1])

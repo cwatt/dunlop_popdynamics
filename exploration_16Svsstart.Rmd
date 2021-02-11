@@ -94,7 +94,7 @@ This relationship looks non-linear. I think a exponential decay model would work
 ```{r}
 # Self starting asymptotic model
 # expression is Asym+(R0-Asym)*exp(-exp(lrc)*input)
-fit = nls(n16S_avg ~ SSasymp(start_avg, Asym, R0, lrc), data = paprica.gr.asv)
+fit <- nls(n16S_avg ~ SSasymp(start_avg, Asym, R0, lrc), data = paprica.gr.asv)
 summary(fit)
 ```
 
@@ -108,34 +108,13 @@ paprica.gr.asv$predict_nls = predict(fit)
 paprica.gr.asv %>%
   ggplot(aes(x=start_avg, y=n16S_avg)) +
   geom_point() +
-  geom_line(aes(y=predict_nls)) +
+  #geom_line(aes(y=predict_nls)) +
+  #geom_smooth(method="lm") +
   theme_test() 
 ```
 
-No. I should have known that wouldn't fit.
+This isn't going to fit.
 
-Maybe try fitting power law? It looks more like that case anyway.
-
-```{r}
-power.nls = nls(n16S_avg ~ k*start_avg^(-n),
-                start = list(k = 2, n = 0.01),
-                data=paprica.gr.asv)
-```
-
-
-
-```{r}
-# Fit power law
-library(igraph)
-pl.fit = fit_power_law(paprica.gr.asv$start_avg)
-# how to visualize/evaluate?
-```
-
-Spearman rank correlation
-
-```{r}
-spear.test = cor.test(paprica.gr.asv$start_avg, paprica.gr.asv$n16S_avg, method="spearman")
-spear.test
-```
-
+02/10/21
+After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biolgical explanation from there.
 

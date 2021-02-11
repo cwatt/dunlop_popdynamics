@@ -1,0 +1,91 @@
+---
+title: "Exploration - DNA over time"
+author: "Cassandra Wattenburger"
+date: "2/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Does DNA yeild change over time?
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import data
+
+```{r}
+# Metadata
+meta.exp <- read_tsv("growthrate_metadata.tsv")
+meta.rep <- read_csv("replicate.metadata.csv") %>%
+  rename(SampleID=Sample)
+meta.tp <- read_csv("growthrate_timepoint_metadata.csv")
+meta <- inner_join(meta.exp, meta.rep) %>%
+  inner_join(meta.tp)
+
+# DNA
+dna  <- read_csv("growthrate_dnaext.csv")
+
+# Merge and isolate ucosm data
+dna.meta  <- meta %>%
+  inner_join(dna, by="SampleID") %>%
+  filter(SampleID > 80) %>% # samples 81 onward are from microcosm experiment
+  select(everything(), -primer_number, -BarcodeSequence, -Block, -TimePoint, -Other, Amendment=Cammend, Replicate=Rep, dna_conc=Conc.) # clean up
+```
+
+# Visualize
+
+```{r}
+dna.meta %>%
+  group_by(Soil, Amendment, Days) %>%
+  summarize(dna_conc_avg = mean(dna_conc)) %>% # average DNA yield across replicates
+  mutate(Soil = fct_recode(Soil, Cropped="C3", Successional="S17"),
+         Amendment = fct_recode(Amendment, Water="N", Camended="Y")) %>% # rename factor levels for graphing
+  ggplot(aes(x=Days, y=dna_conc_avg, color=Soil)) +
+  geom_point() +
+  geom_smooth(method="lm", alpha=0.2, linetype=2) +
+  facet_wrap(~Amendment) +
+  theme_test()
+```
+
+# Statistics
+
+Linear regression
+
+```{r}
+# Check assumptions of linear regressions
+lm.results <- data.frame()
+for (s in c("C3","S17")) {
+  for (a in c("N","Y")) {
+    this.data = dna.meta %>%
+      group_by(Soil, Amendment, Days) %>% 
+      summarize(dna_conc_avg = mean(dna_conc)) %>% # average DNA yield across replicates
+      filter(Soil==s & Amendment==a)
+    this.lm  <- lm(dna_conc_avg ~ Days, data=this.data)
+    hist(residuals(this.lm), main = paste(s, a))
+    plot(residuals(this.lm), predict(this.lm), main = paste(s, a))
+    this.lm2 <- lm(log(dna_conc_avg) ~Days, data=this.data) # try log transform too
+    hist(residuals(this.lm2), main = paste("log", s, a))
+    plot(residuals(this.lm2), predict(this.lm), main = paste("log", s, a))
+    # Extract model results (non-log transformed)
+    this.row <- data.frame("Soil"=s, "Amendment"=a, "slope_est"=summary(this.lm)$coefficients[2,1], "slope_p"=summary(this.lm)$coefficients[2,4])
+    lm.results <- bind_rows(lm.results, this.row)
+    }
+}
+
+```
+
+Non-log transformed data is better for assumptions of regression.
+
+Interestingly, there is a signficant decrease in DNA yield over time only in the carbon amended treatments.
+
+
