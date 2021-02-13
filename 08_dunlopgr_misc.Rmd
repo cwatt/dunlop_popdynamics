@@ -42,7 +42,9 @@ gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
 
 ```{r}
 # Import DNA conc. info
-dna = read_csv("growthrate_dnaconc.csv") %>% select("Sample" = SampleID, "dna_conc" = Conc.)
+dna = read_csv("growthrate_dnaext.csv") %>% 
+  select("Sample" = SampleID, "dna_conc" = Conc.) %>%
+  mutate(Sample = as.character(Sample))
 ucosm.dna = inner_join(ucosm, dna, by="Sample")
 
 ucosm.dna %>% 
@@ -54,6 +56,7 @@ ucosm.dna %>%
   facet_wrap(~Amendment) +
   geom_point() +
   geom_line() +
+  geom_smooth(method="lm", linetype=2) +
   labs(y="DNA concentration (ng/μL)") +
   theme_test() +
   theme(strip.background = element_blank(),
@@ -61,6 +64,34 @@ ucosm.dna %>%
 ```
 
 There appears to be a decrease in DNA concentration over time, particularly in the C-added soil. Not what I expected. Perhaps priming effec of some sort?
+
+**Statistics**
+
+Linear regressions
+
+```{r}
+# Check assumptions of linear regressions
+lm.results <- data.frame()
+for (s in c("C3","S17")) {
+  for (a in c("N","Y")) {
+    this.data = ucosm.dna %>%
+      group_by(Soil, Amendment, Day) %>% 
+      summarize(dna_conc_avg = mean(dna_conc)) %>% # average DNA yield across replicates
+      filter(Soil==s & Amendment==a)
+    this.lm  <- lm(dna_conc_avg ~ Day, data=this.data)
+    hist(residuals(this.lm), main = paste(s, a))
+    plot(residuals(this.lm), predict(this.lm), main = paste(s, a))
+    this.lm2 <- lm(log(dna_conc_avg) ~ Day, data=this.data) # try log transform too
+    hist(residuals(this.lm2), main = paste("log", s, a))
+    plot(residuals(this.lm2), predict(this.lm), main = paste("log", s, a))
+    # Extract model results (non-log transformed)
+    this.row <- data.frame("Soil"=s, "Amendment"=a, "slope_est"=summary(this.lm)$coefficients[2,1], "slope_pvalue"=summary(this.lm)$coefficients[2,4])
+    lm.results <- bind_rows(lm.results, this.row)
+    }
+}
+lm.results
+```
+
 
 # Beta diversity
 
@@ -118,34 +149,66 @@ Ordinate:
 ```{r}
 physeq.day0 = subset_samples(physeq, Day %in% c(NA, 0))
 day0.ord = ordinate(physeq.day0, method="NMDS", distance="bray")
-plot_ordination(physeq.day0, day0.ord, color="Type", shape="Soil") +
+plot_ordination(physeq.day0, day0.ord, color="Type") +
+  facet_wrap(~Soil) +
   theme_test()
 ```
-
-**Statistics**
-
-```{r}
-
-```
-
-### All data
 
 I'd just like to get a feel for how the communities differed between treatments and over time.
 
 Compare between treatments:
 
 ```{r}
+# Bray curtis
 physeq.ord = ordinate(physeq, method="NMDS", distance="bray")
 
 # Compare soils
 plot_ordination(physeq, physeq.ord, color="Soil") +
   facet_grid(~Amendment) +
+  labs(title="Bray Curtis") +
   theme_test() +
   theme(strip.background = element_blank(),
         legend.title = element_blank())
 
 plot_ordination(physeq, physeq.ord, color="Amendment") +
   facet_grid(~Soil) +
+  labs(title="Bray Curtis") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+# Weighted unifrac
+physeq.ord.wunifrac = ordinate(physeq, method="NMDS", distance="wunifrac")
+
+# Compare soils
+plot_ordination(physeq, physeq.ord.wunifrac, color="Soil") +
+  facet_grid(~Amendment) +
+  labs(title="Weighted Unifrac") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+plot_ordination(physeq, physeq.ord.wunifrac, color="Amendment") +
+  facet_grid(~Soil) +
+  labs(title="Weighted Unifrac") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+# Unifrac
+physeq.ord.unifrac = ordinate(physeq, method="NMDS", distance="unifrac")
+
+# Compare soils
+plot_ordination(physeq, physeq.ord.unifrac, color="Soil") +
+  facet_grid(~Amendment) +
+  labs(title="Unifrac") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+plot_ordination(physeq, physeq.ord.unifrac, color="Amendment") +
+  facet_grid(~Soil) +
+  labs(title="Unifrac") +
   theme_test() +
   theme(strip.background = element_blank(),
         legend.title = element_blank())
@@ -155,11 +218,26 @@ Over time:
 
 ```{r}
 # Over time
-plot_ordination(physeq, physeq.ord, color="Soil") +
-  facet_grid(Amendment~Day) +
+plot_ordination(physeq, physeq.ord, color="Amendment") +
+  facet_grid(Soil~Day) +
+  labs(title="Bray Curtis") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+plot_ordination(physeq, physeq.ord.wunifrac, color="Amendment") +
+  facet_grid(Soil~Day) +
+  labs(title="Weighted Unifrac") +
+  theme_test() +
+  theme(strip.background = element_blank(),
+        legend.title = element_blank())
+
+plot_ordination(physeq, physeq.ord.unifrac, color="Amendment") +
+  facet_grid(Soil~Day) +
+  labs(title="Unifrac") +
   theme_test() +
   theme(strip.background = element_blank(),
         legend.title = element_blank())
 ```
 
-The communities do seem to separate over time, succesional moves further up, cropped moves further down. Moreso, in C-amended vs water treatments, maybe?
+

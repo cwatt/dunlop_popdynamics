@@ -44,7 +44,7 @@ gr.est = readRDS("rdata.files/gr.final.cleaned.rds")
 
 **Reformat**
 
-Isolate start and end data
+Isolate start and end of growth window data
 
 ```{r}
 # Isolate ASVs with estimated growth rates
@@ -54,7 +54,7 @@ ucosms.gr = semi_join(ucosms, gr.est, by="ASV")
 ucosms.gr = filter(ucosms.gr, norm_abund > 0)
 
 # Isolate start and end of growth data for each ASV in each treatment
-abundchange = data.frame()
+gr.abund = data.frame()
 for (s in unique(gr.est$Soil)) {
   for (a in unique(gr.est[gr.est$Soil==s,]$Amendment)) {
     for (r in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a,]$Replicate)) {
@@ -68,7 +68,7 @@ for (s in unique(gr.est$Soil)) {
         end.abund = ucosms.sub[ucosms.sub$Day==end,]$norm_abund # abundance at end of growth window
         newrow = data.frame("Soil"=s, "Amendment"=a, "Replicate"=r, "ASV"=i,
                        "start_abund"=start.abund, "end_abund"=end.abund, "k"=gr.sub$k)
-        abundchange = rbind(abundchange, newrow)
+        gr.abund = rbind(gr.abund, newrow)
       }
     }
   }
@@ -80,16 +80,16 @@ Calculate change in abundance
 
 ```{r}
 # Change in abundance
-abundchange = mutate(abundchange, change_abund = end_abund-start_abund)
+gr.abund = mutate(gr.abund, change_abund = end_abund-start_abund)
 
 # Average across replicates to get an average abundance change for each ASV
-abundchange.asv = abundchange %>%
+gr.abund.asv = gr.abund %>%
   group_by(Soil, Amendment, ASV) %>%
-  summarize(change_abund = mean(change_abund),
+  summarize(start_abund = mean(start_abund), end_abund = mean(end_abund), change_abund = mean(change_abund),
             k = mean(k))
 
 # Average across ASVs for an estimate of abundance change in whole community
-abundchange.trt = abundchange %>%
+gr.abund.trt = gr.abund %>%
   group_by(Soil, Amendment, Replicate) %>%
   summarize(change_abund = mean(change_abund))
 ```
@@ -99,7 +99,7 @@ abundchange.trt = abundchange %>%
 ```{r}
 # Treatments
 # Basically shows overall community trends
-abundchange.trt %>%
+gr.abund.trt %>%
   ggplot(aes(x=Soil, y=change_abund, color=Amendment)) +
   geom_point() +
   labs(title="Whole community") +
@@ -107,7 +107,7 @@ abundchange.trt %>%
 
 # Individual ASVs
 # Shows differences in individual species
-abundchange.asv %>%
+gr.abund.asv %>%
   ggplot(aes(x=Soil, y=log(change_abund), color=Amendment)) +
   geom_boxplot() +
   geom_jitter(alpha=0.5) +
@@ -123,15 +123,15 @@ Two factor ANOVA for whole community change in abundance.
 
 ```{r}
 # Fit ANOVA to data that has been summarized over ASVs
-abundchange.trt.aov = aov(change_abund ~ Soil + Amendment, data = abundchange.trt)
-hist(residuals(abundchange.trt.aov))
-plot(predict(abundchange.trt.aov), residuals(abundchange.trt.aov))
+gr.abund.trt.aov = aov(change_abund ~ Soil + Amendment, data = gr.abund.trt)
+hist(residuals(gr.abund.trt.aov))
+plot(predict(gr.abund.trt.aov), residuals(gr.abund.trt.aov))
 ```
 
 Assumptions aren't violated. Check results.
 
 ```{r}
-summary(abundchange.trt.aov)
+summary(gr.abund.trt.aov)
 ```
 
 Amendment has significant impact on change in abundance during growth.
@@ -144,37 +144,38 @@ Linear mixed-effects model for individual ASV data
 
 ```{r}
 # Fit model
-abundchange.asv.lmer = lmer(log(change_abund) ~ Soil + Amendment + (1|ASV), data=abundchange.asv)
+gr.abund.asv.lmer = lmer(log(change_abund) ~ Soil + Amendment + (1|ASV), data=gr.abund.asv)
 
 # Check model assumptions
-hist(residuals(abundchange.asv.lmer)) # check normality
-plot(predict(abundchange.asv.lmer), residuals(abundchange.asv.lmer)) # check variances
+hist(residuals(gr.abund.asv.lmer)) # check normality
+plot(predict(gr.abund.asv.lmer), residuals(gr.abund.asv.lmer)) # check variances
 ```
+
+Normality looks fine, residuals plot is odd but verticle spread looks consistent throughout.
 
 ```{r}
-summary(abundchange.asv.lmer)
+# look at results
+summary(gr.abund.asv.lmer)
 ```
 
-# "Slow" vs "fast" change in abundance
-
-### Correlation between growth rate and change in abundance
+# Correlation between growth rate and change in abundance
 
 Do slow or fast growing taxa differ in how much their abundance changes?
 
 Hypothesis: fast growing taxa increased in abundance more than slow growing taxa.
 
-Visualize correlation:
+**Visualize**
 
 ```{r}
 # Correlation
-abundchange.asv %>%
+gr.abund.asv %>%
   ggplot(aes(x=log(k), y=log(change_abund))) +
   geom_point() +
   geom_smooth(method="lm") +
   theme_test()
 
 # Correlation by soil and treatment
-abundchange.asv %>%
+gr.abund.asv %>%
   ggplot(aes(x=log(k), y=log(change_abund))) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
@@ -188,14 +189,14 @@ Pearson correlations between growth rate and change in abundance with multiple t
 
 ```{r}
 # All data
-overall.pcor = cor.test(log(abundchange.asv$k), log(abundchange.asv$change_abund),
+overall.pcor = cor.test(log(gr.abund.asv$k), log(gr.abund.asv$change_abund),
                         method="pearson")
 
 # Treatments
 grabund.pcor = data.frame()
 for (s in c("C3", "S17")) {
   for (a in c("Y", "N")) {
-    data.sub = filter(abundchange.asv, Soil==s & Amendment==a)
+    data.sub = filter(gr.abund.asv, Soil==s & Amendment==a)
     pcor = cor.test(log(data.sub$k), log(data.sub$change_abund), method="pearson")
     newrow = data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
     grabund.pcor = bind_rows(grabund.pcor, newrow)
@@ -217,6 +218,70 @@ grabund.pcor = grabund.pcor %>%
 grabund.pcor
 ```
 
+# Starting abundance vs change in abundance
+
+Do lower abundance taxa have the most to gain, or are high abundance taxa poised to take advantage of resources?
+
+**Visualize**
+
+```{r}
+gr.abund.asv %>% 
+  ggplot(aes(x=log(start_abund), y=log(change_abund))) + # log transform change abundance because taxa that start high will naturally change in abundance more due to exponential growth
+  geom_point() + 
+  geom_smooth(method="lm") +
+  theme_test()
+
+gr.abund.asv %>% 
+  ggplot(aes(x=log(start_abund), y=log(change_abund))) + # log transform change abundance because taxa that start high will naturally change in abundance more due to exponential growth
+  geom_point() + 
+  facet_wrap(Soil~Amendment) +
+  geom_smooth(method="lm") +
+  theme_test()
+
+```
+
+Does this need to be normalized in some way to account for exponential growth, or did log transform take care of that?
+
+Seems like taxa with high biomass to start may have more successful during growth. Possibly because they were more likely to access C? Relationship does look slightly stronger in C-amended treatment.
+
+**Statistics**
+
+Pearson correlation
+
+```{r}
+# All data
+startchange.all.pcor = cor.test(log(gr.abund.asv$start_abund), log(gr.abund.asv$change_abund),
+                        method="pearson")
+
+# Treatments
+startchange.pcor = data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data.sub = filter(gr.abund.asv, Soil==s & Amendment==a)
+    pcor = cor.test(log(data.sub$start_abund), log(data.sub$change_abund), method="pearson")
+    newrow = data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    startchange.pcor = bind_rows(startchange.pcor, newrow)
+  }
+}
+
+# Multiple test correction
+padj = p.adjust(c(startchange.pcor$pvalue, startchange.all.pcor$p.value), method="holm", n=5)
+
+# Make summary table
+startchange.pcor = startchange.pcor %>%
+  bind_rows(data.frame("Soil"="both", "Amendment"="both", # add overall result
+                       "estimate"=startchange.all.pcor$estimate, 
+                       "pvalue"=startchange.all.pcor$p.value)) %>%
+  bind_cols(padj) %>% # add adjusted p-values
+  rename(padj=5) %>%
+  select(everything(), -pvalue) # get rid of unadjusted pvalues
+
+# Results
+startchange.pcor
+```
+
+
+
 # Relationship between 16S copy number and change in abundance
 
 Hypothesis: 16S rRNA copy number is related to growth in-situ.
@@ -229,7 +294,7 @@ Import 16S copy number estimate data:
 copynum = readRDS(file="rdata.files/paprica.est.rds")
 
 # Merge with abundance change data
-abundchange.copynum.asv = abundchange.asv %>%
+gr.abund.copynum.asv = gr.abund.asv %>%
   full_join(copynum, by="ASV")
 ```
 
@@ -237,14 +302,14 @@ Visualize:
 
 ```{r}
 # all data
-abundchange.copynum.asv %>%
+gr.abund.copynum.asv %>%
   ggplot(aes(x=log(change_abund), y=log(n16S))) +
   geom_point() +
   geom_smooth(method="lm") +
   theme_test()
 
 # by treatment
-abundchange.copynum.asv %>%
+gr.abund.copynum.asv %>%
   ggplot(aes(x=log(change_abund), y=log(n16S))) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
@@ -258,36 +323,50 @@ Try pearson correlation to evaluate relationship between 16S copy number and gro
 
 ```{r}
 # All data
-abundchange.copynum.asv.pcor = cor.test(log(abundchange.copynum.asv$n16S),
-                                         log(abundchange.copynum.asv$change_abund),
+gr.abund.copynum.asv.pcor = cor.test(log(gr.abund.copynum.asv$n16S),
+                                         log(gr.abund.copynum.asv$change_abund),
                                          method="pearson")
 
 # Treatments
-abundchange.copynum.asv.trt.pcors = data.frame()
+gr.abund.copynum.asv.trt.pcors = data.frame()
 for (s in c("C3", "S17")) {
   for (a in c("Y", "N")) {
-    data.sub = filter(abundchange.copynum.asv, Soil==s & Amendment==a)
+    data.sub = filter(gr.abund.copynum.asv, Soil==s & Amendment==a)
     pcor = cor.test(log(data.sub$n16S), log(data.sub$change_abund), method="pearson")
     newrow = data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
-    abundchange.copynum.asv.trt.pcors = bind_rows(abundchange.copynum.asv.trt.pcors, newrow)
+    gr.abund.copynum.asv.trt.pcors = bind_rows(gr.abund.copynum.asv.trt.pcors, newrow)
   }
 }
 
 # Multiple test correction
-padj = p.adjust(c(abundchange.copynum.asv.trt.pcors$pvalue,
-                  abundchange.copynum.asv.pcor$p.value), method="holm", n=5)
+padj = p.adjust(c(gr.abund.copynum.asv.trt.pcors$pvalue,
+                  gr.abund.copynum.asv.pcor$p.value), method="holm", n=5)
 
 # Make summary table
-abundchange.copynum.asv.trt.pcors = abundchange.copynum.asv.trt.pcors %>%
+gr.abund.copynum.asv.trt.pcors = gr.abund.copynum.asv.trt.pcors %>%
   bind_rows(data.frame("Soil"="both", "Amendment"="both", # add overall result
-                       "estimate"=abundchange.copynum.asv.pcor$estimate, 
-                       "pvalue"=abundchange.copynum.asv.pcor$p.value)) %>%
+                       "estimate"=gr.abund.copynum.asv.pcor$estimate, 
+                       "pvalue"=gr.abund.copynum.asv.pcor$p.value)) %>%
   bind_cols(padj) %>% # add adjusted p-values
   rename(padj=5) # rename fifth column with adjusted pvalues
 
 # Results
-abundchange.copynum.asv.trt.pcors
+gr.abund.copynum.asv.trt.pcors
 ```
 
-Only significant in aggregated data and C3Y.
+Only significant in aggregated data and C3Y. No meaningful conclusions here.
 
+# Start abundance vs growth rate
+
+Are slow growers more rare?
+
+```{r}
+gr.abund.asv %>% 
+  ggplot(aes(y=log(start_abund), x=log(k))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+No clear relationship.

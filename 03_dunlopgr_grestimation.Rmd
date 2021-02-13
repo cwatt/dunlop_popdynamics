@@ -45,7 +45,7 @@ sessionInfo()
 
 ```{r}
 # Import spike-in normalized data with individual taxa
-load("rdata.files/gr_microcosm.norm.tax.RData")
+load("rdata.files/gr_ucosm.norm.tax.rds")
 ucosm.norm <- microcosm.norm.tax
 
 # Rename columns

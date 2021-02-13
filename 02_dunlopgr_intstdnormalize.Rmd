@@ -14,9 +14,11 @@ knitr::opts_chunk$set(warning = FALSE)
 
 **Goal of this script:** Normalize rarefied data by internal standard read count.
 
-# Import libraries
+**Import libraries**
 
 ```{r}
+rm(list=ls())
+
 library("phyloseq")
 library("ape")
 library("vegan")
@@ -29,9 +31,10 @@ sessionInfo()
 ```
 
 
-# Import rarefied data
+**Import rarefied data**
 
 ```{r}
+# Phyloseq objects created in 01_dunlopgr_rarefy.Rmd
 load("rdata.files/gr_physeq.rarefy.RData")
 
 # Pull data out of phyloseq
@@ -41,7 +44,7 @@ meta <- data.frame(sample_data(physeq.rarefy))
 ```
 
 
-# Identify internal standard ASV
+**Identify internal standard ASV**
 
 ```{r}
 # Find identifiers associated with spike-in genus Aquifex
@@ -61,7 +64,8 @@ spikesum <- as.data.frame(spikesum)
 
 DADA2 seems to have split the internal standard into ~6 ASVs, but the read count abundance of the other 5 is minimal to none. Not sure what causes this behavior, but may be due to sequencing errors.
 
-# Calculate proportion of internal standard per sample
+
+**Calculate proportion of internal standard per sample**
 
 ```{r}
 # Calculate proportion of spike-in in each sample
@@ -79,85 +83,8 @@ rownames(totalspikesum) <- totalspikesum[,1]
 totalspikesum <- totalspikesum[,-c(1,12)]
 ```
 
-```{r}
-# Add dna conc. metadata
-dnaconc <- read.csv("growthrate_dnaext.csv")
-totalspikesum <- merge(totalspikesum, dnaconc, by=1)
-```
 
-Spike percentage visualizations:
-
-```{r}
-ggplot(totalspikesum, aes(x=SampleID, y=percent)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  facet_wrap(~Experiment, scales="free") +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Sample Number", y="Int. std %") +
-  theme_test()
-
-ggplot(totalspikesum[totalspikesum$Experiment=="Microcosm",], aes(x=SampleID, y=percent)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Sample Number", y="Int. std %") +
-  theme_test() +
-  theme(title=element_text(size=12),
-      axis.text=element_text(size=12),
-      axis.title=element_text(size=12)) +
-  scale_y_continuous(limits=c(0,10)) +
-  theme_test()
-
-ggplot(totalspikesum, aes(x=Conc., y=percent)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  geom_smooth(method="lm", weight=0.5) +
-  facet_wrap(~Experiment, scales="free") +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Sample DNA conc. (ng/uL)", y="Int. std %") +
-  theme_test()
-
-ggplot(totalspikesum[totalspikesum$Experiment=="Microcosm",], aes(x=Conc., y=percent)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  geom_smooth(method="lm", weight=0.5) +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Sample DNA conc. (ng/uL)", y="Int. std %") +
-  theme_test() +
-  theme(title=element_text(size=12),
-      axis.text=element_text(size=12),
-      axis.title=element_text(size=12)) +
-  scale_y_continuous(limits=c(0,10)) +
-  theme_test()
-
-ggplot(totalspikesum, aes(x=Conc., y=percent)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  geom_smooth(method="lm", weight=0.5) +
-  geom_text(aes(label=Box), size=3) +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Sample DNA conc. (ng/uL)", y="Int. std %") +
-  theme_test()
-
-ggplot(totalspikesum, aes(x=TimePoint, y=Conc.)) +
-  geom_point(aes(color=Cammend, shape=Soil)) +
-  geom_smooth(method="lm", weight=0.5) +
-  #geom_text(aes(label=TimePoint), size=3) +
-  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
-  labs(x="Time point)", y="DNA conc. (ng/uL)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  theme_test()
-```
-
-Strange gap in the samples. What's that about?
-
-Is there a an effect of kit box used on DNA concentration?
-
-```{r}
-totalspikesum$Box <- as.factor(totalspikesum$Box)
-kruskal.test(Conc. ~ Box, data=totalspikesum)
-# p-value = 4.362e-07
-
-totalspikesum$Box <- as.factor(totalspikesum$Experiment)
-kruskal.test(Conc. ~ Experiment, data=totalspikesum)
-```
-
-Unfortunately, I didn't randomize my DNA extractions, so this is confounded by samples processed in one kit being more similar to one another in other ways ie plot location, point in time series, treatment.
+**Add aggregated spike abundance back into data**
 
 ```{r}
 # Add aggregated spike info back into count table
@@ -170,9 +97,85 @@ count.trans.spike <- count.trans.spike[,-1]
 count.trans.spike <- count.trans.spike[,-33015]
 ```
 
+
+**Assess relationship between % spike and DNA yield**
+
+Should have negative relationship. The same amount of spike in more or less DNA should lead to a smaller or larger proportion of spike in the sample.
+
+```{r}
+# Add dna conc. metadata
+dnaconc <- read.csv("growthrate_dnaext.csv")
+totalspikesum <- merge(totalspikesum, dnaconc, by=1)
+```
+
+Spike percentage visualizations:
+
+```{r}
+# % standard in both experiments
+ggplot(totalspikesum, aes(x=SampleID, y=percent)) +
+  geom_point(aes(color=Cammend, shape=Soil)) +
+  facet_wrap(~Experiment, scales="free") +
+  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
+  theme_test()
+
+# % standard in ucosms only
+ggplot(totalspikesum[totalspikesum$Experiment=="Microcosm",], aes(x=SampleID, y=percent)) +
+  geom_point(aes(color=Cammend, shape=Soil)) +
+  labs(title="Microcosm samples") +
+  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
+  theme_test() +
+  theme(title=element_text(size=12),
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=12)) +
+  scale_y_continuous(limits=c(0,10))
+
+# % standard vs dna yield
+ggplot(totalspikesum, aes(x=Conc., y=log(percent))) +
+  geom_point(aes(color=Cammend, shape=Soil)) +
+  geom_smooth(method="lm", weight=0.5) +
+  facet_wrap(~Experiment, scales="free") +
+  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
+  theme_test()
+```
+
+Strange gap in the samples. What's that about?
+
+```{r}
+ggplot(totalspikesum, aes(x=TimePoint, y=Conc.)) +
+  geom_point(aes(color=Cammend, shape=Soil)) +
+  geom_smooth(method="lm", weight=0.5) +
+  #geom_text(aes(label=TimePoint), size=3) +
+  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_test()
+
+ggplot(totalspikesum, aes(x=Box, y=Conc.)) +
+  geom_boxplot() +
+    geom_jitter() +
+  #geom_text(aes(label=TimePoint), size=3) +
+  scale_shape_manual(values=1:nlevels(totalspikesum$Soil)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_test()
+```
+
+Some boxes have higher concentration than others, but all have the weird gap.
+
 **Statistics**
 
-Summary: Min, max, average, standard deviation of percent internal standard:
+Is there a an effect of kit box used on DNA concentration?
+
+```{r}
+totalspikesum$Box <- as.character(totalspikesum$Box) # box number has no meaning other than as 
+kruskal.test(Conc. ~ Box, data=totalspikesum)
+# p-value = 4.362e-07
+
+totalspikesum$Box <- as.factor(totalspikesum$Experiment)
+kruskal.test(Conc. ~ Experiment, data=totalspikesum)
+```
+
+Unfortunately, I didn't randomize my DNA extractions, so this is confounded by samples processed in one kit being more similar to one another in other ways ie plot location, point in time series, treatment. It could even be who weighed out the soil that day.
+
+Descriptive stats: Min, max, average, standard deviation of percent internal standard:
 
 ```{r}
 t(data.frame(min = min(totalspikesum$percent),
@@ -189,14 +192,7 @@ Is there a correlation between spike-in percentage and DNA concentration?
 
 Hypothesis: negative correlation, more community DNA should result in a smaller proportion of the internal standard.
 
-Linear regression:
-
-```{r}
-dnaspike.lm = lm(Conc. ~ percent, totalspikesum)
-plot(resid(dnaspike.lm)) # check normality of model fit
-```
-
-Nope, use Spearman correlation instead (non-parametric).
+Spearman correlation (non-parametric), since variability looks greater at one end than the other.
 
 ```{r}
 dnaspike.spear = cor.test(totalspikesum$Conc., log(totalspikesum$percent), method="spearman")
@@ -234,7 +230,7 @@ dnaspike.spearperm
 Permuted spearman estimate agrees exactly with non-permuted.
 
 
-# Normalize ASV abundances by internal standard
+**Normalize ASV abundances by internal standard**
 
 Taxa reads / internal standard reads in the sample.
 
@@ -266,11 +262,6 @@ rownames(field.norm) <- field.norm[,2]
 field.norm = field.norm[,-c(1,3:5,8:11)]
 ```
 
-```{r, eval=FALSE}
-save(microcosm.norm, file="r.output/gr_microcosm.norm.RData")
-save(field.norm, file="r.output/gr_field.norm.RData")
-```
-
 ```{r}
 # Reformat
 microcosm.norm <- microcosm.norm[,-c(1,3:4,7:8,11)]
@@ -286,14 +277,12 @@ field.norm.tax <- merge(field.norm.melt, tax, by.x=4, by.y=7)
 ```
 
 ```{r, eval=FALSE}
-save(microcosm.norm.tax, file="r.output/gr_microcosm.norm.tax.RData")
-save(field.norm.tax, file="r.output/gr_field.norm.tax.RData")
+saveRDS(microcosm.norm.tax, file="rdata.files/gr_ucosm.norm.tax.rds")
+saveRDS(field.norm.tax, file="rdata.files/gr_field.norm.tax.rds")
 ```
 
 
 # Figures
-
-These will be edited in adobe illustrator for minor adjustments to aesthetics.
 
 ```{r}
 library(tidyverse)

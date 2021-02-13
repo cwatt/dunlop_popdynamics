@@ -1,0 +1,156 @@
+---
+title: "Dunlop growth rates - clean up data"
+author: "Cassandra Wattenburger"
+date: "2/12/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Put all the data into one place, in a standardized format for easier analysis.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(phyloseq)
+library(ape)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Normalized abundance data
+
+Separate dataframes
+
+* field data
+* microcosm data
+
+Microcosm samples
+
+```{r}
+# Import microcosm data
+ucosm <- readRDS("rdata.files/gr_ucosm.norm.tax.rds") %>%
+  as_tibble() %>%
+  select("Sample"=SampleID, Soil, "Amendment"=Cammend, "Day"=Days, "ASV"=variable, Domain, Phylum, Class, Order, Family, Genus, "norm_abund"=value)
+
+# Import replicate metadata
+reps <- read_csv("replicate.metadata.csv")
+
+# Add replicate information
+ucosm <- ucosm %>%
+  left_join(reps) %>%
+  add_column(Experiment = c(rep("Microcosm", nrow(ucosm)))) %>%
+  select(Experiment, Sample, Soil, Amendment, Day, "Replicate"=Rep, ASV, Domain, Phylum, Class, Order, Family, Genus, norm_abund)
+
+ucosm
+```
+
+Field samples
+
+```{r}
+field <- readRDS("rdata.files/gr_field.norm.tax.rds") %>%
+  as_tibble() %>%
+  rename("Sample"=SampleID) %>%
+  filter(Soil=="C3" | Soil=="S17") %>% # only relevant plots
+  left_join(reps) %>%
+  add_column(Experiment = c(rep("Field", nrow(.)))) %>%
+  select(Experiment, Sample, Soil, Block, "Replicate"=Rep, "ASV"=variable, Domain, Phylum, Class, Order, Family, Genus, "norm_abund"=value)
+
+field
+```
+
+```{r, eval=FALSE}
+# save
+saveRDS(ucosm, file="rdata.files/gr_ucosm.norm.clean.rds")
+saveRDS(field, file="rdata.files/gr_field.norm.clean.rds")
+```
+
+
+# Growth estimation data
+
+Will inclued
+
+* specific growth rate
+* generation time
+* window start and end day
+* window start and end abundance
+* 16S copy number estimated by PAPRICA
+* genome size estimated by PAPRICA
+
+**Import data**
+
+```{r}
+# Estimated growth rates/window
+gr.est <- readRDS("rdata.files/gr_gr.final_rm0.rds")
+
+# Clean up
+gr.est <- gr.est %>% 
+  select(Soil, Amendment, Replicate, ASV, k, g, "start_tp"=Start, "end_tp"=End) # rename/reorder 
+
+# Remove 0s (what was done to estimate growth rates)
+ucosm.rm0 <- filter(ucosm, norm_abund > 0)
+
+# Isolate start and end of growth data for each ASV in each treatment TROUBLESHOOT TROUBLESHOOT TROUBLESHOOT
+gr.est2 = data.frame()
+for (s in unique(gr.est$Soil)) {
+  for (a in unique(gr.est[gr.est$Soil==s,]$Amendment)) {
+    for (r in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a,]$Replicate)) {
+      for (i in unique(gr.est[gr.est$Soil==s & gr.est$Amendment==a & gr.est$Replicate==r,]$ASV)) {
+        gr.sub <- filter(gr.est, Soil==s & Amendment==a & Replicate==r & ASV==i)
+        start.tp <- gr.sub$start_tp 
+        end.tp <- gr.sub$end_tp 
+        ucosm.sub <- filter(ucosm.rm0, Soil==s & Amendment==a & Replicate==r & ASV==i) %>%
+          arrange(Day) # need to order by day so start and end select correct values
+        start.day <- ucosm.sub[start.tp,]$Day # start day
+        end.day <- ucosm.sub[end.tp,]$Day # end day
+        start.abund <- ucosm.sub[ucosm.sub$Day==start.day,]$norm_abund # abundance at start of growth window
+        end.abund <- ucosm.sub[ucosm.sub$Day==end.day,]$norm_abund # abundance at end of growth window
+        newrow <- data.frame("Soil"=s, "Amendment"=a, "Replicate"=r, "ASV"=i,
+                            "start_day"=start.day, "end_day"=end.day,
+                            "start_abund"=start.abund, "end_abund"=end.abund, 
+                            "k"=gr.sub$k, "g"=gr.sub$g)
+        gr.est2 <- rbind(gr.est2, newrow)
+      }
+    }
+  }
+}
+
+gr.est2 <- unique(gr.est2) # for some reason the loop above repeated some estimates????
+
+```
+
+PAPRICA data
+
+```{r}
+# Import PAPRICA output
+pap.edge <- read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.edge_data.csv") %>% 
+  select(edge_num = X1, nedge, genome_size, n16S)
+pap.seqs <- read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.combined_16S.bacteria.tax.clean.unique.align.csv") %>% 
+  select(edge_num, ASV=name, distal_length, pendant_length)
+
+# Merge
+paprica <- full_join(pap.edge, pap.seqs, by="edge_num") %>% 
+  select(ASV, edge_num, nedge, distal_length, pendant_length, genome_size, n16S)
+
+# Merge PAPRICA results with growth rate data
+gr.paprica <- full_join(gr.est2, paprica, by="ASV")
+
+# taxonomy data
+ucosm.tax <- select(ucosm, ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
+  unique()
+
+# add
+gr.paprica.tax <- left_join(gr.paprica, ucosm.tax, by="ASV")
+```
+
+```{r, eval=FALSE}
+saveRDS(gr.paprica.tax, file="rdata.files/gr_gr.paprica.clean.rds")
+```

@@ -62,7 +62,7 @@ paprica.gr = inner_join(paprica.gr, tax, by="ASV")
 # Summarize ASVs
 paprica.gr.asv = paprica.gr %>% 
   group_by(ASV, Soil, Amendment) %>% 
-  summarize(start_avg = mean(start_day), n16S_avg=mean(n16S))
+  summarize(k_avg = mean(k), start_avg = mean(start_day), n16S_avg=mean(n16S))
 ```
 
 # Visualize
@@ -117,4 +117,17 @@ This isn't going to fit.
 
 02/10/21
 After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biolgical explanation from there.
+
+# Start day vs growth rate
+
+```{r}
+paprica.gr.asv %>%
+  ggplot(aes(x=log(k_avg), y=log(start_avg))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+No clear relationships.
 
