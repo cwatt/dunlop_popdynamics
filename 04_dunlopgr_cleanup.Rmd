@@ -37,9 +37,13 @@ Microcosm samples
 
 ```{r}
 # Import microcosm data
-ucosm <- readRDS("rdata.files/gr_ucosm.norm.tax.rds") %>%
+load("rdata.files/gr_microcosm.norm.tax.RData")
+
+# Clean up
+ucosm <- microcosm.norm.tax %>%
   as_tibble() %>%
-  select("Sample"=SampleID, Soil, "Amendment"=Cammend, "Day"=Days, "ASV"=variable, Domain, Phylum, Class, Order, Family, Genus, "norm_abund"=value)
+  select("Sample"=SampleID, Soil, "Amendment"=Cammend, "Day"=Days, "ASV"=variable, Domain, Phylum, Class, Order, Family, Genus, "norm_abund"=value) %>%
+  mutate(Sample = str_remove(Sample, "sa"), Sample = as.numeric(Sample))
 
 # Import replicate metadata
 reps <- read_csv("replicate.metadata.csv")
@@ -56,12 +60,16 @@ ucosm
 Field samples
 
 ```{r}
-field <- readRDS("rdata.files/gr_field.norm.tax.rds") %>%
-  as_tibble() %>%
+# Import field data
+load("rdata.files/gr_field.norm.tax.RData")
+field <- field.norm.tax
+
+# Clean up
+field <- field %>%
   rename("Sample"=SampleID) %>%
   filter(Soil=="C3" | Soil=="S17") %>% # only relevant plots
-  left_join(reps) %>%
   add_column(Experiment = c(rep("Field", nrow(.)))) %>%
+  left_join(reps) %>% # replicate info
   select(Experiment, Sample, Soil, Block, "Replicate"=Rep, "ASV"=variable, Domain, Phylum, Class, Order, Family, Genus, "norm_abund"=value)
 
 field
@@ -122,12 +130,9 @@ for (s in unique(gr.est$Soil)) {
     }
   }
 }
-
-gr.est2 <- unique(gr.est2) # for some reason the loop above repeated some estimates????
-
 ```
 
-PAPRICA data
+PAPRICA estimates
 
 ```{r}
 # Import PAPRICA output
@@ -154,3 +159,126 @@ gr.paprica.tax <- left_join(gr.paprica, ucosm.tax, by="ASV")
 ```{r, eval=FALSE}
 saveRDS(gr.paprica.tax, file="rdata.files/gr_gr.paprica.clean.rds")
 ```
+
+
+**Evaluate distal lengths**
+
+From PAPRICA. The distal length is the phylogenetic distance from the edge where each ASV was placed on the reference tree to the furthest tip on the tree descending from that edge. We want this not to exceed 15% for the PAPRICA results to be reliable, based on results from Louca et al. 2018.
+
+Louca, S., Doebeli, M. & Parfrey, L. W. Correcting for 16S rRNA gene copy numbers in microbiome surveys remains an unsolved problem. Microbiome 6, 41 (2018).
+
+Numbers listed are mean, min, max, standard deviation.
+
+Summarize distal lengths by treatment:
+
+```{r}
+paprica.distal <- gr.paprica.tax %>%
+  na.omit() %>% # archaea were not estimated by PAPRICA, removes those taxa
+  select(Soil, Amendment, distal_length) %>%
+  group_by(Soil, Amendment) %>%
+  summarize(distal_avg = mean(distal_length),
+            distal_sd = sd(distal_length),
+            distal_min = min(distal_length),
+            distal_max = max(distal_length))
+```
+
+```{r}
+paprica.distal
+```
+
+These distances look good. There may be ASVs that are much more distantly related to the reference genomes than the average, but for the most part these numbers suggest that the ASVs are well-represented by the reference genomes. Additionally, this is the distance to the furthest neighbor, not the nearest, so these numbers are over-inflated to begin with.
+
+Interestingly, the C-amended treatments typically have lower average distal lengths than the water-amended treatments. Reference genomes had to be cultured and isolated to be sequenced and it makes sense that more "culturable" ASVs might grow in a soil treatment that was amended with a lot of simple sugars and nutrients.
+
+
+# Phyloseq objects with normalized abundances
+
+As opposed to counts.
+
+**Microcosms**
+
+```{r}
+# Microcosm data
+
+# Metadata
+ucosm.meta <- ucosm %>%
+  select(Experiment, Sample, Soil, Amendment, Day, Replicate) %>%
+  unique() %>%
+  mutate(rowname = Sample) %>%
+  column_to_rownames(var="rowname")
+
+# Taxonomy
+ucosm.tax <- ucosm %>%
+  select(ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
+  unique() %>%
+  column_to_rownames(var="ASV") %>%
+  as.matrix()
+
+# Count
+ucosm.count <- ucosm %>%
+  select(Sample, ASV, norm_abund) %>%
+  mutate(ASV = as.character(ASV)) %>%
+  pivot_wider(names_from = "ASV", values_from = "norm_abund") %>%
+  column_to_rownames(var="Sample") %>%
+  as.matrix() %>%
+  t()
+
+# Tree
+tree = read.tree("output/growthrate.tree.final.nwk")
+
+# Create phyloseq object
+ucosm.norm.physeq <- phyloseq(otu_table(ucosm.count, taxa_are_rows = TRUE),
+                              tax_table(ucosm.tax),
+                              sample_data(ucosm.meta, errorIfNULL = TRUE),
+                              tree)
+
+ucosm.norm.physeq
+```
+
+
+**Field**
+
+```{r}
+# Field data
+
+# Metadata
+field.meta <- field %>% 
+  select(Experiment, Sample, Soil, Block, Replicate) %>%
+  unique() %>%
+  mutate(rowname = Sample) %>%
+  column_to_rownames(var="rowname")
+
+# Taxonomy
+field.tax <- field %>%
+  select(ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
+  unique() %>%
+  remove_rownames() %>%
+  column_to_rownames(var="ASV") %>%
+  as.matrix()
+
+# Count
+field.count <- field %>%
+  select(Sample, ASV, norm_abund) %>%
+  mutate(norm_abund = as.numeric(norm_abund)) %>%
+  pivot_wider(names_from = "ASV", values_from = "norm_abund") %>%
+  column_to_rownames(var="Sample") %>%
+  as.matrix() %>%
+  t()
+
+# Create phyloseq object
+field.norm.physeq <- phyloseq(otu_table(field.count, taxa_are_rows = TRUE),
+                              tax_table(field.tax),
+                              sample_data(field.meta, errorIfNULL = TRUE),
+                              tree)
+
+field.norm.physeq
+```
+
+```{r, eval=FALSE}
+saveRDS(ucosm.norm.physeq, "rdata.files/gr_physeq.ucosm.norm.rds")
+saveRDS(field.norm.physeq, "rdata.files/gr_physeq.field.norm.rds")
+```
+
+
+
+

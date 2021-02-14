@@ -1,0 +1,258 @@
+---
+title: "Dunlop growth rates - correlations"
+author: "Cassandra Wattenburger"
+date: "2/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+**Goal of this script:** Investigate relationships between variables relevant to bacterial growth.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(cowplot)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import data
+
+```{r}
+growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+```
+
+
+```{r}
+# ASV averages
+growth.asv <- growth %>%
+  group_by(Soil, Amendment, ASV, Phylum, Class, Order, Family, Genus) %>%
+  summarize(start_day = mean(start_day),
+            end_day = mean(end_day),
+            start_abund = mean(start_abund),
+            end_abund = mean(end_abund),
+            k = mean(k),
+            g = mean(g),
+            n16S = mean(n16S),
+            genome_size = mean(genome_size))
+```
+
+
+# Specific growth rate vs. 16S copy number
+
+The 16S rRNA gene encodes the ribosomal RNA. Without ribosomes, growth isn't possible, and more copies of this gene has been correlated with faster maximal growth rates. Does this relationship hold in-situ?
+
+Hypothesis: Positive correlation between 16S copy number and growth rate
+
+**Visualize**
+
+```{r}
+# Visualize
+growth.asv %>% ggplot(aes(x=log(k), y=n16S)) +
+  geom_point() +
+  labs(title="All data") +
+  theme_test()
+
+growth.asv %>% ggplot(aes(x=log(k), y=n16S)) +
+  geom_point() +
+  facet_wrap(Soil~Amendment) +
+  labs(title="By treatment") +
+  theme_test()
+```
+
+Not exactly what I expected. It appears that low copy number taxa are also capable of fast growth, but not vice-versa. It's true that low copy number taxa have been observed growing rapidly, if enough ribosomes have been produced. Could it be possible that these low copy number taxa were already growing at the start of the incubation and didn't have to produce ribosomes in response to the wet-up?
+
+
+**Statistics:**
+
+Due to the odd shape, I'm going to use a non-parametric test.
+
+Spearman correlation with permutation, because the data inherently contains ties. 
+
+See: https://stats.stackexchange.com/questions/50015/spearman-correlation-in-the-presence-of-many-ties-how-to-spot-a-problem
+
+```{r}
+# Create permuted spearman correlation function
+spearman_permute = function(x, y) {
+  set.seed(1) # make sure it is reproducible
+  perm.estimates = c()
+  for (i in 1:1000) { # permute 1000 times
+    perm = sample(y) # randomize response variable
+    perm.test = suppressWarnings(cor.test(x, perm, method="spearman", alternative="greater")) # spearman correlation with permuted data
+    perm.estimates = append(perm.estimates, perm.test$estimate) # permuted estimates
+  }
+  actual.test = suppressWarnings(cor.test(x, y, method="spearman", alternative="greater")) # spearman correlation with actual data
+  actual.estimate = actual.test$estimate # actual data estimate (rho)
+  est.exceed = sum(abs(perm.estimates) > actual.estimate) # number of permutations that exceed the non-permuted data rho
+  est.equal = sum(abs(perm.estimates) == actual.estimate) # number of permutations that equal the non-permuted data rho
+  permuted.pval = (est.exceed + est.equal/2) / length(perm.estimates) # proportion of exceedances: the p-value
+  return(c(permuted.pval, actual.estimate)) # the p=value (expand out to include actual estimate)
+}
+
+# Tests
+n16Sk.all.spearperm <- spearman_permute(growth.asv$n16S, growth.asv$k)
+
+n16Sk.C3y.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="Y",]$n16S, 
+                                      log(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="Y",]$k))
+
+n16Sk.C3n.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="N",]$n16S, 
+                                      log(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="N",]$k))
+
+n16Sk.S17y.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="Y",]$n16S, 
+                                       log(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="Y",]$k))
+
+n16Sk.S17n.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="N",]$n16S, 
+                                       log(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="N",]$k))
+
+# Multiple test correction
+n16Sk.spearperm.pvals <- c(n16Sk.all.spearperm[1], n16Sk.C3y.spearperm[1], n16Sk.C3n.spearperm[1], n16Sk.S17y.spearperm[1], n16Sk.S17n.spearperm[1])
+n16Sk.spearperm.padj <- p.adjust(n16Sk.spearperm.pvals, method="hochberg", n=length(n16Sk.spearperm.pvals))
+
+# Estimates
+n16Sk.spearperm.rhos <- c(n16Sk.all.spearperm[2], n16Sk.C3y.spearperm[2], n16Sk.C3n.spearperm[2], n16Sk.S17y.spearperm[2], n16Sk.S17n.spearperm[2])
+
+# Results table
+n16Sk.spearperm.results <- data.frame(Soil = c("overall", rep("C3", 2), rep("S17", 2)), Amendment=c("overall","Y","N","Y","N"), 
+                                      p.adj=n16Sk.spearperm.padj, rho = n16Sk.spearperm.rhos)
+n16Sk.spearperm.results
+```
+
+There are week positive correlations for most treatments except cropped water.
+
+
+# n16S vs start of growth
+
+If low copy number taxa were already growing at the start of the experiment, there is a good chance the growth window started early as well. Let's investigate.
+
+Hypothesis: No relationship
+
+**Visualize**
+
+```{r}
+# Visualize
+growth.asv %>% ggplot(aes(x=start_day, y=n16S)) +
+  geom_point() +
+  labs(title="All data") +
+  theme_test()
+
+growth.asv %>% ggplot(aes(x=start_day, y=n16S)) +
+  geom_point() +
+  facet_wrap(Soil~Amendment) +
+  labs(title="By treatment") +
+  theme_test()
+```
+
+Indeed, most of the low copy number taxa have an early start day. Others seem to lag - perhaps not growing before start of experiment, but did when water/C was added?
+
+**Model**
+
+Might be able to fit an assymptotic model?
+
+```{r}
+# Self starting asymptotic model
+# expression is Asym+(R0-Asym)*exp(-exp(lrc)*input)
+n16sstrt.fit <- nls(n16S ~ SSasymp(start_day, Asym, R0, lrc), data = growth.asv)
+summary(n16sstrt.fit)
+```
+
+Visualize
+
+```{r}
+
+
+
+
+
+# BROKEN
+
+
+
+# Predict values based on model
+growth.asv$predict_nls <- predict(n16sstrt.fit)
+
+# Plot with nonlinear model
+growth.asv %>%
+  ggplot(aes(x=start_day, y=n16S)) +
+  geom_point() +
+  geom_line(aes(y=predict_nls)) +
+  theme_test() 
+```
+
+02/10/21
+After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biolgical explanation from there.
+
+
+# Change in abundance vs specific growth rate
+
+Hypotheses:
+
+1. Correlation will depend on soil habitat and C-amendment, fast and slow bacteria more successful in different niches
+2. Positive correlation in cropped/C-amended trts, negative correlation in successional/water control
+
+```{r}
+growth.asv %>%
+  mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
+  ggplot(aes(x=log(change_abund), y=log(k))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test() 
+```
+
+Seems to be strong positive correlation in water control, C-amended less so.
+
+**Statistics**
+
+Pearson correlations with multiple test correction.
+
+```{r}
+# Add change abundance data
+growth.asv <- growth.asv %>%
+  mutate(change_abund = end_abund - start_abund)
+
+# All data
+chabundk.all.pcor <- cor.test(log(growth.asv$k), log(growth.asv$change_abund),
+                        method="pearson")
+
+# Treatments
+chabundk.pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data.sub <- filter(growth.asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data.sub$k), log(data.sub$change_abund), method="pearson")
+    newrow <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    chabundk.pcor <- bind_rows(chabundk.pcor, newrow)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(c(chabundk.pcor$pvalue, chabundk.all.pcor$p.value), method="holm", n=5)
+
+# Make summary table
+chabundk.pcor <- chabundk.pcor %>%
+  bind_rows(data.frame("Soil"="both", "Amendment"="both", # add overall result
+                       "estimate"=chabundk.all.pcor$estimate, 
+                       "pvalue"=chabundk.all.pcor$p.value)) %>%
+  bind_cols(padj) %>% # add adjusted p-values
+  rename(padj=5)
+
+# Results
+chabundk.pcor
+```
+
+Possible interpretation: faster growing taxa are more competitive for flush of resources released by wetting and amendment, but when extra C is added, competition is decreased and slow growing taxa are able to have a slice of the pie, attenuating relationship. Interesting in light of change in abundance by treatment data from other script, this means that fast taxa aren't necessarily growing more, but than slow taxa are also growing more than they would, creating greater abundance changes overall.
+
+
+
+
+
+

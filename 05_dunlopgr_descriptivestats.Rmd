@@ -1,0 +1,194 @@
+---
+title: "Dunlop growth rate - descriptive statistics"
+author: "Cassandra Wattenburger"
+date: "2/13/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Explore the properties of the data and descriptive statistics of in-situ growth rates.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(cowplot)
+library(phyloseq)
+library(lmerTest)
+library(emmeans)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Whole communities
+
+**Number of taxa in whole dataset**
+
+```{r}
+# Import phyloseq object
+load("rdata.files/gr_physeq.rarefy.RData")
+
+# Extract from phyloseq
+count <-  data.frame(otu_table(physeq.rarefy))
+tax <- data.frame(tax_table(physeq.rarefy)) %>%
+  rownames_to_column(var="ASV")
+meta <- data.frame(sam_data(physeq.rarefy))
+
+# Remove unused samples
+## Only microcosm and S17/C3 from field are relevant to this project
+meta.rm <- meta %>% subset(Soil == "C3" | Soil == "S17")
+
+# Merge count and metadata
+count.meta <- count %>%
+  t() %>% # flip data frame
+  as.data.frame() %>%
+  merge(meta.rm, by=0) %>%
+  column_to_rownames(var="Row.names") %>%
+  select(everything(), -(SampleID:Experiment))
+
+# Remove absent ASVs
+count.meta.rm0 <- colSums(count.meta, dims=1)
+count.meta.rm0 <- count.meta.rm0[count.meta.rm0 > 0]
+
+# Total ASVs
+whole.asvs  <- names(count.meta.rm0)
+
+# Total phyla
+tax.rm0 <- tax[tax$ASV %in% whole.asvs,]
+whole.phyla <- unique(tax.rm0$Phylum)
+```
+
+Number of ASVs:
+
+```{r}
+length(whole.asvs)
+```
+
+Total phyla:
+
+```{r}
+length(whole.phyla)
+```
+
+# Normalized microcosm and field data
+
+```{r}
+# Import normalized microcosm data
+ucosm <- readRDS("rdata.files/gr_ucosm.norm.clean.rds")
+
+# Import normalized field data
+field <- readRDS("rdata.files/gr_field.norm.clean.rds")
+
+# total ASVs (not including 0 abundance)
+ucosm %>% bind_rows(field) %>% 
+  filter(norm_abund != 0) %>% # remove absent taxa
+  distinct(ASV) %>% 
+  nrow() 
+```
+
+Agrees with above.
+
+
+**Most abundant phyla**
+
+In micrococms at tp0:
+
+```{r}
+# Microcosms (tp0)
+ucosm %>% 
+  filter(Day==0) %>%
+  group_by(Replicate, Phylum) %>% 
+  summarize(total_abund = sum(norm_abund)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -total_abund), x=total_abund)) +
+  geom_boxplot() +
+  labs(title="Microcosms at TP0", x="Total normalized abundance", y="Phylum") +
+  theme_test()
+```
+
+In field:
+
+```{r}
+# Field
+field %>% 
+  group_by(Replicate, Phylum) %>% 
+  summarize(total_abund = sum(norm_abund)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -total_abund), x=total_abund)) +
+  geom_boxplot() +
+  labs(title="Field", x="Total normalized abundance", y="Phylum") +
+  theme_test()
+```
+
+Not sure why that didn't reorder correctly.
+
+
+# In situ growth
+
+```{r}
+# Import data
+growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+```
+
+Total ASVs with estimates:
+
+```{r}
+# Estimated growth rates
+growth %>% distinct(ASV) %>% nrow() # total ASVs with estimates
+```
+
+Total phyla with estimated representative(s):
+
+* Putative/unclassified taxa rolled into nearest related phylum
+
+```{r}
+growth %>% # total phyla, not counting 0 abundance ASVs, not counting putative/unclassified
+  mutate(Phylum = str_remove(Phylum, "putative "), Phylum = str_remove(Phylum, "unclassified ")) %>% 
+  distinct(Phylum) %>% 
+  nrow()
+```
+
+Number of estimates per phylum:
+
+```{r}
+# Number of estimates per phylum
+growth %>% 
+  mutate(Phylum = str_remove(Phylum, "putative ")) %>% # roll putative into the phylum
+  distinct(ASV, Phylum) %>%
+  group_by(Phylum) %>%
+  summarize(total = n()) %>%
+  arrange(-total)
+```
+
+Visualize by replicate:
+
+```{r}
+growth %>% 
+  group_by(Replicate, Phylum) %>%
+  summarize(num_ASV = length(ASV)) %>%
+  ggplot(aes(y=fct_reorder(Phylum, -num_ASV), x=num_ASV)) +
+  geom_boxplot() +
+  labs(title="Growth estimates", x="Total ASVs", y="Phylum") +
+  theme_test()
+```
+
+Number of estimates per treatment:
+
+```{r}
+# Number of estimates per treatment
+growth %>%
+  group_by(Soil, Amendment) %>%
+  distinct(ASV) %>%
+  summarize(total = n())
+```
+
+
+
+
+

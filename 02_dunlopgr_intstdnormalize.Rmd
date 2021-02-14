@@ -277,8 +277,8 @@ field.norm.tax <- merge(field.norm.melt, tax, by.x=4, by.y=7)
 ```
 
 ```{r, eval=FALSE}
-saveRDS(microcosm.norm.tax, file="rdata.files/gr_ucosm.norm.tax.rds")
-saveRDS(field.norm.tax, file="rdata.files/gr_field.norm.tax.rds")
+save(microcosm.norm.tax, file="rdata.files/gr_microcosm.norm.tax.RData")
+save(field.norm.tax, file="rdata.files/gr_field.norm.tax.RData")
 ```
 
 

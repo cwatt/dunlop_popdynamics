@@ -1,0 +1,229 @@
+---
+title: "Dunlop growth rates - Growth metrics by treatment"
+author: "Cassandra Wattenburger"
+date: "2/13/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+**Goal of this script:** Investigate the effects of soil habitat on in-situ growth dynamics.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(cowplot)
+library(data.table)
+library(phyloseq)
+library(lmerTest)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import growth data
+
+```{r}
+growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+```
+
+Average data across ASVs
+
+* Averaging across ASVs gives variance in a metric across whole community
+
+```{r}
+# Replicate averages
+growth.trt <- growth %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(start_day = mean(start_day),
+            end_day = mean(end_day),
+            start_abund = mean(start_abund),
+            end_abund = mean(end_abund),
+            k = mean(k),
+            g = mean(g)) # excluding PAPRICA estimates for now because archaea were not able to be estimated resulting in NAs
+```
+
+
+# Start of growth window
+
+The day of the start of the growth window is being used as a proxy for lag time. The later a growth window starts, the longer lag the bacteria experienced.
+
+Hypotheses:
+
+1. Bacteria in cropped soils will start growth sooner than those in successional, due to more frequent disturbances (tillage, low plant cover) and/or higher nutrient availability (fertilizers)
+1. Bacteria in C-amended soils will start growth sooner than those in the water control due to having more resources available to ramp up growth
+
+**Whole community**
+
+```{r}
+growth.trt %>%
+  ggplot(aes(x=Soil, y=start_day, color=Amendment)) +
+  geom_point() +
+  labs(title="Start of growth, treatment", y="Day") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+strtday.trt.aov = aov(start_day ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+hist(resid(strtday.trt.aov)) # check normality
+plot(predict(strtday.trt.aov), resid(strtday.trt.aov)) # check residuals
+```
+
+Everything looks good.
+
+```{r}
+summary(strtday.trt.aov)
+```
+
+Start of growth is affected by soil and amendment.
+
+**Post hoc:** T-tests with multiple test correction
+
+* Only interested in certain contrasts (doesn't make sense to compare cropped C-amended to successional water control).
+
+```{r}
+# Contrasts
+strtday.trt.ttest1 <- t.test(log(start_day) ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",], var.equal = TRUE)
+strtday.trt.ttest2 <- t.test(log(start_day) ~ Amendment, data=growth.trt[growth.trt$Soil=="S17",], var.equal = TRUE)
+strtday.trt.ttest3 <- t.test(log(start_day) ~ Soil, data=growth.trt[growth.trt$Amendment=="Y",], var.equal = TRUE)
+strtday.trt.ttest4 <- t.test(log(start_day) ~ Soil, data=growth.trt[growth.trt$Amendment=="N",], var.equal = TRUE)
+
+# Adjust p-values
+strtday.trt.adjpvals <- p.adjust(p <- c(strtday.trt.ttest1$p.value, strtday.trt.ttest2$p.value, strtday.trt.ttest3$p.value, strtday.trt.ttest4$p.value),
+                          method="BH", n=length(p))
+
+# Results
+strtday.trt.results <- data.frame(contrast = c("Cropped, C vs W", "Successional, C vs W", "C-amended, cropped vs succ.", "Water, cropped vs succ."), 
+                                  pvals = strtday.trt.adjpvals)
+strtday.trt.results
+```
+
+No significance, not enough power.
+
+
+# End of growth window
+
+Hypotheses:
+
+1. Bacteria will end growth sooner in the water control compared to C-amended because less resources are available to sustain growth
+1. Toss up on effect of soil habitat, cropped soil disturbances could promote growth that ends sooner due to heightened competition, or longer because greater N and other nutrient availability
+
+
+**Whole community**
+
+```{r}
+growth.trt %>%
+  ggplot(aes(x=Soil, y=end_day, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="End of growth, treatment", y="Day") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+endday.trt.aov = aov(end_day ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+hist(resid(endday.trt.aov)) # check normality
+```
+
+Try log transform
+
+```{r}
+endday.trt.aov2 = aov(log(end_day) ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+hist(resid(endday.trt.aov2)) # check normality
+```
+
+Not better, stick with original data.
+
+```{r}
+plot(predict(endday.trt.aov), resid(endday.trt.aov))
+summary(endday.trt.aov)
+```
+
+End of growth is not affected by soil or amendment.
+
+
+# Growth rate
+
+Hypotheses:
+
+1. Bacteria in cropped soils will have greater growth rates, because of more frequent disturbances that lead to boom-bust lifestyle and increased nutrient availability from fertilization
+1. Bacteria in C-amended soils will have greater growth rates, because more fuel for growth available
+
+**Whole community**
+
+```{r}
+growth.trt %>%
+  ggplot(aes(x=Soil, y=k, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Specific growth rate, treatment", y="k") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+k.trt.aov = aov(k ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+hist(resid(k.trt.aov)) # check normality
+plot(resid(k.trt.aov), predict(k.trt.aov))
+summary(k.trt.aov)
+```
+
+No significance, though the trends agree with second hypothesis.
+
+
+# Change in abundance
+
+Competitive bacteria are able to increase there abundance when they encounter substrate in competition with other taxa. There are likely various strategies to be competitive. Some bacteria are likely more competitive and better able to grow under certain environmental or resource conditions but not others. Did the soil habitat or 
+
+
+Hypotheses:
+
+1. Cropped soils will have greater change in abundance due to boom-bust/more nutrients available to lift limitations on growth
+1. Bacteria in C-amended soils will have greater change in abundance due to greater resource availability
+
+**Whole community**
+
+```{r}
+# Calculate change in abundance
+growth.trt <- growth.trt %>%
+  mutate(change_abund = end_abund - start_abund)
+  
+growth.trt %>%
+  ggplot(aes(x=Soil, y=change_abund, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Change in abundance, treatment", y="normalized abundance") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+changeabund.trt.aov = aov(change_abund ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+hist(resid(changeabund.trt.aov)) # check normality
+plot(resid(changeabund.trt.aov), predict(changeabund.trt.aov))
+summary(changeabund.trt.aov)
+```
+
+Amendment had significant effect on change in abudnance, in agreement with hypothesis 2, but no effect of soil.
+
+
+
+
