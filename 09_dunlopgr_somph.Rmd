@@ -1,0 +1,128 @@
+---
+title: "Dunlop growth rates - SOM and pH"
+author: "Cassandra Wattenburger"
+date: "2/16/2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(results = "show")
+```
+
+**Goal of this script:** Compare soil organic matter and pH from cropped and successional plots.
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+
+# Soil organic matter
+
+```{r}
+# Import data
+som = read_csv("biogeochem_data/growthrate_insitu_som.csv")
+som = som %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(som = (Preignition - Postignition) / (Preignition - Crucible) * 100, # calculate % SOM
+         Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+som %>% 
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  labs(y="Soil organic matter (%)") +
+  theme_test()
+
+som %>% 
+  ggplot(aes(x=Soil, y=som)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(y="Soil organic matter (%)") +
+  theme_test()
+```
+
+Strong block effect.
+
+
+**Statistics**
+
+Simple linear model:
+
+Consulted statistician, with block having such a storng effect, suggested to use as main effect with interaction term.
+
+```{r}
+som.lm = lm(som ~ Soil*Block, data=som)
+
+hist(resid(som.lm))
+plot(predict(som.lm), resid(som.lm))
+summary(som.lm)
+```
+
+Overall significant effect of soil, strong interactive effect with block.
+
+
+# pH
+
+```{r}
+# Import data
+ph = read_csv("biogeochem_data/growthrate_insitu_ph.csv")
+ph = ph %>% 
+  filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
+  mutate(Soil = parse_factor(Soil),
+         Soil = recode_factor(Soil, C="Cropped", S="Successional")) # clean up
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  labs(x="") +
+  theme_test()
+
+ph %>% 
+  ggplot(aes(x=Soil, y=pH)) +
+  geom_boxplot() +
+  facet_wrap(~Block) +
+  labs(x="") +
+  theme_test()
+```
+
+Also looks like there is a strong, strange block effect here.
+
+
+**Statistics**
+
+Simple linear model
+
+* Soil and Block as main effects with interaction term
+
+```{r}
+ph.lm = lm(pH ~ Soil*Block, data=ph)
+
+hist(resid(ph.lm)) # check normality
+plot(predict(ph.lm), resid(ph.lm)) # check variances
+
+summary(ph.lm)
+```
+
+There is a significant soil, block, and interaction between block and soil for pH.
+
+
+### Make table of results
+
+```{r}
+# Merge SOM and pH data
+som.ph = full_join(som, ph) %>%
+  group_by(Soil) %>%
+  summarize(som.avg = mean(som, na.rm=TRUE), som.sd = sd(som, na.rm=TRUE),
+            ph.avg = mean(pH, na.rm=TRUE), ph.sd = sd(pH, na.rm=TRUE))
+som.ph
+```

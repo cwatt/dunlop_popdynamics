@@ -38,25 +38,84 @@ growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
 Average across replicates to get a single estimated growth rate for each taxa.
 
 ```{r}
+# Average across replicates for each ASV
 growth.asv <- growth %>%
   group_by(Soil, Amendment, ASV) %>%
-  summarize(k = mean(k)) # average replicates for each taxa
+  summarize(k = mean(k),
+            start_day = mean(start_day),
+            end_day = mean(end_day),
+            start_abund = mean(start_abund),
+            end_abund = mean(end_abund))
+
+# Including PAPRICA results
+# Have to remove archaea because they weren't predicted
+growth.paprica.asv <- growth %>%
+  na.omit() %>%
+  group_by(Soil, Amendment, ASV) %>%
+  summarize(k = mean(k),
+            start_day = mean(start_day),
+            end_day = mean(end_day),
+            start_abund = mean(start_abund),
+            end_abund = mean(end_abund),
+            n16S = mean(n16S),
+            genome_size = mean(genome_size))
 ```
 
 Visualize distributions:
 
 ```{r}
+# Averaged across replicates
 growth.asv %>%
   ggplot(aes(x=log(k), color=Soil)) +
   geom_density() +
   facet_wrap(~Amendment) +
   theme_test()
+
+# Replicate variability
+growth %>%
+  filter(Soil=="C3" & Amendment=="N") %>%
+  ggplot(aes(x=log(k))) +
+  geom_density() +
+  facet_wrap(~Replicate) +
+  labs(title = "Cropped water control, replicates") +
+  theme_test()
+
+growth %>%
+  filter(Soil=="S17" & Amendment=="N") %>%
+  ggplot(aes(x=log(k))) +
+  geom_density() +
+  facet_wrap(~Replicate) +
+  labs(title = "Successional water control, replicates") +
+  theme_test()
+
+growth %>%
+  filter(Soil=="C3" & Amendment=="Y") %>%
+  ggplot(aes(x=log(k))) +
+  geom_density() +
+  facet_wrap(~Replicate) +
+  labs(title = "Cropped C-amended, replicates") +
+  theme_test()
+
+growth %>%
+  filter(Soil=="S17" & Amendment=="Y") %>%
+  ggplot(aes(x=log(k))) +
+  geom_density() +
+  facet_wrap(~Replicate) +
+  labs(title = "Successional C-amended, replicates") +
+  theme_test()
+
+# Number of estimates per replicate
+growth %>%
+  group_by(Soil, Amendment, Replicate) %>%
+  summarize(n = n())
 ```
+
+A lot of patchiness across replicates. Some replicates seem to capture bimodality, others only one side. This may be due to the experimental design where I added water based on individual replicate GWC, should have just averaged them all and added the same amount to each. To get a fuller "view" of the community growth dynamics, I think it makes sense to average across replicates and use as much data as possible. Hopefully future uses of this method will give us more estimates.
 
 
 # Grouping
 
-I need an objective method to split possible populations based on this distribution. Since these distributions look like they may be a mixture of two gaussian distributions, I'll try to fit a finite mixture model to each to delineate them from one another.
+I need an objective method to split possible "populations" or groups based on these distributions. Since they look like they may be a mixture of two gaussian distributions, I'll try to fit a finite mixture model to each to delineate them from one another.
 
 See: 
 * Explanation of finite mixed models: https://www.thedigitaltransformationpeople.com/channels/analytics/what-are-finite-mixture-models%E2%80%8B/
@@ -87,7 +146,37 @@ summary(S17n.mixfit)
 Visualize:
 
 ```{r}
-plot(S17n.mixfit, density=TRUE)
+# Function to plot mixture components
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+# Visualize
+data.frame(x = S17n.mixfit$x) %>%
+  ggplot() +
+  geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17n.mixfit$mu[1], S17n.mixfit$sigma[1], lam = S17n.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17n.mixfit$mu[2], S17n.mixfit$sigma[2], lam = S17n.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
+
+data.frame(x = S17n.mixfit$x) %>%
+  ggplot() +
+  geom_density(aes(x), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17n.mixfit$mu[1], S17n.mixfit$sigma[1], lam = S17n.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17n.mixfit$mu[2], S17n.mixfit$sigma[2], lam = S17n.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
 ```
 
 Assign:
@@ -106,8 +195,7 @@ S17n.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>% 
   ggplot(aes(x = factor(label))) +
   geom_bar() +
-  xlab("Component") +
-  ylab("Number of Data Points") +
+  labs(title="Successional water control", x="Component", y="Number of Data Points") +
   theme_test()
 
 # Label
@@ -115,6 +203,21 @@ S17n.mixfit.post <- S17n.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>%
   add_column(Soil=c(rep("S17", nrow(.))), Amendment=c(rep("N", nrow(.)))) # add soil and amendment labels back
 ```
+
+Compare clustered data to modeled distributions:
+
+Clustered data:
+```{r}
+# clustered
+S17n.mixfit.post %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(S17n.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# modeled
+summary(S17n.mixfit)
+```
+
+They are very similar, though everything is separated a bit more because the distributions were truncated.
 
 
 **Cropped water control**
@@ -137,7 +240,32 @@ summary(C3n.mixfit)
 Visualize:
 
 ```{r}
-plot(C3n.mixfit, density=TRUE)
+# Visualize
+data.frame(x = C3n.mixfit$x) %>%
+  ggplot() +
+  geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3n.mixfit$mu[1], C3n.mixfit$sigma[1], lam = C3n.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3n.mixfit$mu[2], C3n.mixfit$sigma[2], lam = C3n.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
+
+data.frame(x = C3n.mixfit$x) %>%
+  ggplot() +
+  geom_density(aes(x), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3n.mixfit$mu[1], C3n.mixfit$sigma[1], lam = C3n.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3n.mixfit$mu[2], C3n.mixfit$sigma[2], lam = C3n.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
 ```
 
 Assign:
@@ -156,14 +284,26 @@ C3n.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>% 
   ggplot(aes(x = factor(label))) +
   geom_bar() +
-  xlab("Component") +
-  ylab("Number of Data Points") +
+  labs(title="Cropped water control", x="Component", y="Number of Data Points") +
   theme_test()
 
 # Label
 C3n.mixfit.post <- C3n.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>%
   add_column(Soil=c(rep("C3", nrow(.))), Amendment=c(rep("N", nrow(.)))) # add soil and amendment labels back
+```
+
+Compare clustered data to modeled distributions:
+
+Clustered data:
+```{r}
+# clustered
+C3n.mixfit.post %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# modeled
+summary(C3n.mixfit)
 ```
 
 
@@ -179,7 +319,7 @@ S17y <- growth.asv %>%
   filter(Soil=="S17" & Amendment=="Y")
 
 # Fit model
-S17y.mixfit <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2, -1), sigma = 0.3) # chose starting values by looking at the density graph
+S17y.mixfit <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2, -0.8), sigma = 0.3) # chose starting values by looking at the density graph
 summary(S17y.mixfit)
 # mu refers to distribution means
 # sigma refers to standard deviation
@@ -189,8 +329,36 @@ summary(S17y.mixfit)
 Visualize:
 
 ```{r}
-plot(S17y.mixfit, density=TRUE)
+# Visualize
+data.frame(x = S17y.mixfit$x) %>%
+  ggplot() +
+  geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17y.mixfit$mu[1], S17y.mixfit$sigma[1], lam = S17y.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17y.mixfit$mu[2], S17y.mixfit$sigma[2], lam = S17y.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
+
+
+data.frame(x = S17y.mixfit$x) %>%
+  ggplot() +
+  geom_density(aes(x), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17y.mixfit$mu[1], S17y.mixfit$sigma[1], lam = S17y.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(S17y.mixfit$mu[2], S17y.mixfit$sigma[2], lam = S17y.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
 ```
+
+A more dubious fit. Hard to say if two gaussian distributions are a good fit here.
 
 Assign:
 
@@ -208,8 +376,7 @@ S17y.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>% 
   ggplot(aes(x = factor(label))) +
   geom_bar() +
-  xlab("Component") +
-  ylab("Number of Data Points") +
+  labs(title="Successional C amended", x="Component", y="Number of Data Points") +
   theme_test()
 
 # Label
@@ -218,14 +385,25 @@ S17y.mixfit.post <- S17y.mixfit.post %>%
   add_column(Soil=c(rep("S17", nrow(.))), Amendment=c(rep("Y", nrow(.)))) # add soil and amendment labels back
 ```
 
+Compare clustered data to modeled distributions:
+
+Clustered data:
+```{r}
+# clustered
+S17y.mixfit.post %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(S17y.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# modeled
+summary(S17y.mixfit)
+```
+
 
 **Cropped water control**
 
 Fit model:
 
 ```{r}
-library(mixtools)
-
 # Isolate treatment
 C3y <- growth.asv %>% 
   filter(Soil=="C3" & Amendment=="Y")
@@ -241,7 +419,32 @@ summary(C3y.mixfit)
 Visualize:
 
 ```{r}
-plot(C3y.mixfit, density=TRUE)
+# Visualize
+data.frame(x = C3y.mixfit$x) %>%
+  ggplot() +
+  geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3y.mixfit$mu[1], C3y.mixfit$sigma[1], lam = C3y.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3y.mixfit$mu[2], C3y.mixfit$sigma[2], lam = C3y.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
+
+data.frame(x = C3y.mixfit$x) %>%
+  ggplot() +
+  geom_density(aes(x), binwidth = 0.25, colour = "black", 
+                 fill = "white") +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3y.mixfit$mu[1], C3y.mixfit$sigma[1], lam = C3y.mixfit$lambda[1]),
+                colour = "red", lwd = 1.5) +
+  stat_function(geom = "line", fun = plot_mix_comps,
+                args = list(C3y.mixfit$mu[2], C3y.mixfit$sigma[2], lam = C3y.mixfit$lambda[2]),
+                colour = "blue", lwd = 1.5) +
+  ylab("Density") +
+  theme_test()
 ```
 
 Assign:
@@ -260,8 +463,7 @@ C3y.mixfit.post %>%
   mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>% 
   ggplot(aes(x = factor(label))) +
   geom_bar() +
-  xlab("Component") +
-  ylab("Number of Data Points") +
+  labs(title="Cropped C amended", x="Component", y="Number of Data Points") +
   theme_test()
 
 # Label
@@ -270,10 +472,169 @@ C3y.mixfit.post <- C3y.mixfit.post %>%
   add_column(Soil=c(rep("C3", nrow(.))), Amendment=c(rep("Y", nrow(.)))) # add soil and amendment labels back
 ```
 
+Compare clustered data to modeled distributions:
 
-# next
+Clustered data:
+```{r}
+# clustered
+C3n.mixfit.post %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
 
-* can I test between distributions using mu and sigma?
+# modeled
+summary(C3n.mixfit)
+```
+
+# Statistics
+
+Note: I can't compare "slow" and "fast" distributions in the same treatment because I truncated those distributions to sort the ASVs into groups. Fast vs slow from the same treatment will always significantly differ because there is no overlap in the data, effectively pushing the means away from one another further as a result.
+
+Merge all grouped data:
+
+```{r}
+# Merge results
+all.mixfit.post <- bind_rows(S17n.mixfit.post, C3n.mixfit.post, S17y.mixfit.post, C3y.mixfit.post)
+```
+
+
+### Do slow and fast groups vary in growth rate between amendments?
+
+Hypothesis: Slow taxa increase growth rate when amended with C. Fast taxa growth rate remains similar.
+
+A less competitive environment (more C available) gives slow growing taxa more of an advantage than fast growing taxa, which are more likely to respond to and take advantage of the C flush anyway. Kernel density distribution and correlation between change in abundance and growth rates in previous analysis seem to support this line of reasoning as well.
+
+**Successional:** 
+
+```{r}
+# Successional
+S17.mixfit.post <- all.mixfit.post %>%
+  filter(Soil=="S17")
+
+# ANOVA
+S17.aov <- lm(x ~ label * Amendment, data=S17.mixfit.post)
+hist(resid(S17.aov))
+plot(predict(S17.aov), resid(S17.aov))
+summary(S17.aov)
+
+# Post hoc: t-tests
+S17slow.lm <- lm(x ~ Amendment, data=S17.mixfit.post[S17.mixfit.post$label=="slow",])
+hist(resid(S17slow.lm))
+plot(predict(S17slow.lm), resid(S17slow.lm))
+summary(S17slow.lm)
+
+S17fast.lm <- lm(x ~ Amendment, data=S17.mixfit.post[S17.mixfit.post$label=="fast",])
+hist(resid(S17fast.lm))
+plot(predict(S17fast.lm), resid(S17fast.lm))
+summary(S17fast.lm)
+
+S17.mixfit.post %>%
+  ggplot(aes(x=label, y=x, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Successional", x="Group", y="specific growth rate, ln") +
+  theme_test()
+```
+
+Hypothesis supported.
+
+**Cropped:**
+
+```{r}
+# Cropped
+C3.mixfit.post <- all.mixfit.post %>%
+  filter(Soil=="C3")
+
+# ANOVA
+C3.aov <- lm(x ~ label * Amendment, data=C3.mixfit.post)
+hist(resid(C3.aov))
+plot(predict(C3.aov), resid(C3.aov))
+summary(C3.aov)
+
+# Post hoc: t-tests
+C3slow.lm <- lm(x ~ Amendment, data=C3.mixfit.post[C3.mixfit.post$label=="slow",])
+hist(resid(C3slow.lm))
+plot(predict(C3slow.lm), resid(C3slow.lm))
+summary(C3slow.lm)
+
+C3fast.lm <- lm(x ~ Amendment, data=C3.mixfit.post[C3.mixfit.post$label=="fast",])
+hist(resid(C3fast.lm))
+plot(predict(C3fast.lm), resid(C3fast.lm))
+summary(C3fast.lm)
+
+C3.mixfit.post %>%
+  ggplot(aes(x=label, y=x, color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Successional", x="Group", y="specific growth rate, ln") +
+  theme_test()
+```
+
+Fast also changed in growth rate, but to a smaller degree.
+
+Compare to growth rates that have not been separated by groups:
+
+```{r}
+growth.asv %>%
+  ggplot(aes(x=Amendment, y=log(k), color=Amendment)) +
+  geom_boxplot() +
+  facet_wrap(~Soil) +
+  labs() +
+  theme_test()
+```
+
+Because of the non-normal distiributions, the growth rate data taken as a whole is highly variable and difficult to draw conclusions from. Separating them into discrete groups helped to pick out trends.
+
+
+### 16S copy number
+
+Hypothesis: slow group taxa will have lower 16S copy number than fast group taxa. 
+
+Based on growth rate vs 16S copy umber correlations from before, it is more likely that "slow" taxa will vary widely in 16S copy number and fast taxa will not.
+
+
+**Incorporate grouped data back into main dataframe**
+
+```{r}
+growth.paprica.asv %>% 
+  filter(Soil=="S17" & Amendment=="Y") %>%
+  dim()
+
+# Separate data by treatment, precaution against duplicate values
+growth.paprica.asv.S17n <- growth.paprica.asv %>%
+  filter(Soil=="S17" & Amendment=="N") %>%
+  mutate(log_k = log(k)) %>%
+  full_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k)
+
+growth.paprica.asv.C3n <- growth.paprica.asv %>%
+  filter(Soil=="C3" & Amendment=="N") %>%
+  mutate(log_k = log(k)) %>%
+  full_join(C3n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k)
+
+growth.paprica.asv.S17y <- growth.paprica.asv %>%
+  filter(Soil=="S17" & Amendment=="Y") %>%
+  mutate(log_k = log(k)) %>%
+  full_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k)
+
+growth.paprica.asv.C3y <- growth.paprica.asv %>%
+  filter(Soil=="C3" & Amendment=="Y") %>%
+  mutate(log_k = log(k)) %>%
+  full_join(C3y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k)
+
+# Merge all
+growth.paprica.asv <- bind_rows(growth.paprica.asv.S17n, growth.paprica.asv.C3n, growth.paprica.asv.S17y, growth.paprica.asv.C3y)
+```
+
+```{r}
+growth.paprica.asv %>%
+  ggplot(aes(x=label, y=n16S)) +
+  geom_boxplot() +
+  theme_test()
+```
+
+
+
 
 apply groups back to ASVs in unaveraged data sets
 * slow vs fast proportion 
