@@ -1,0 +1,356 @@
+---
+title: "06 scrap"
+output: html_notebook
+---
+
+06_dunlop_treatments.Rmd - individual ASVs stats
+
+Putting aside because it was getting COMPLICATED to analyze due to very unbalanced data, non-nomrality, and interactions. Another issue is the question of independence. The ASVs may be averaged over replicates, but does that really make them independent of one another?
+
+I think the most robust way to investigate growth metrics statistically is to average over ASV to get a value for each replicate. It reduces the data by a lot, but the observations are truly independent and the design is balanced. The drawback is loss of power. More sophisticated analysis that do not average data will need to be considered with mixed linear models, but should be interpretted with great caution.
+
+
+
+
+
+# Scrapped content
+
+NOTE: need to revisit anova results for individual ASV because of unbalanced design, consider type II or III SS because it matters to results and interpretation!
+  
+See: https://www.r-bloggers.com/2011/03/anova-%E2%80%93-type-iiiiii-ss-explained/
+  
+* "NOTE: when data is balanced, the factors are orthogonal, and types I, II and III all give the same results."
+* "In general, if there is no significant interaction effect, then type II is more powerful, and follows the principle of marginality. If interaction is present, then type II is inappropriate while type III can still be used, but results need to be interpreted with caution (in the presence of interactions, main effects are rarely interpretable)."
+
+```{r}
+# ASV averages
+growth.asv <- growth %>%
+  group_by(Soil, Amendment, ASV) %>%
+  summarize(start_day = mean(start_day),
+            end_day = mean(end_day),
+            start_abund = mean(start_abund),
+            end_abund = mean(end_abund),
+            k = mean(k),
+            g = mean(g))
+```
+
+# Start day
+
+### Individual ASVs
+
+```{r}
+growth.asv %>%
+  ggplot(aes(x=Soil, y=log(start_day), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Start of growth, individual ASVs", y="Day, ln") +
+  theme_test()
+```
+
+The above graph dropped all the 0s, I think, due to log transformation.
+
+
+**Statistics**
+  
+  ANOVA
+
+* Add 1 to all data so that there are no 0s (need to log transform) <- WRONG, apparently this only works if start day is unitless, instead should add half of the minimum for 0 value observations
+* log transform to improve normality
+
+```{r}
+# Add 1 to all start day values
+growth.asv <- growth.asv %>%
+  mutate(start_day_add1 = start_day + 1)
+
+growth.asv %>%
+  ggplot(aes(x=Soil, y=log(start_day_add1), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Start of growth, individual ASVs", y="Day, ln") +
+  theme_test()
+```
+
+```{r}
+# Test interaction
+int1 <- lm(log(start_day_add1) ~ Soil*Amendment, data=growth.asv)
+hist(resid(int1))
+summary(int1)
+```
+
+Not normal. Use non-parametric tests instead.
+
+```{r}
+summary(glm(log(start_day_add1) ~ Soil + Amendment + Amendment*Soil, data=growth.asv))
+```
+
+
+No interaction. Procede with type II ANOVA.
+
+```{r}
+# ANOVA
+strtday.asv.lm = lm(log(start_day_add1) ~ Soil + Amendment, data=growth.asv)
+hist(resid(strtday.asv.lm)) # check normality
+plot(predict(strtday.trt.lm), resid(strtday.trt.lm)) # check residuals
+```
+
+Normality is still off but heteroskedasticity is not a problem. I'll try a non-parametric model instead.
+
+```{r}
+# Generalized linear model
+strtday.asv.glm = glm(log(start_day_add1) ~ Soil + Amendment, data=growth.asv)
+hist(resid(strtday.asv.glm))
+plot(predict(strtday.asv.glm), resid(strtday.asv.glm))
+summary(strtday.asv.glm)
+```
+
+Log transform helps with heteroskedasticity. Normality doesn't matter, because non-paramateric model.
+
+Significant effect of soil and amendment.
+
+
+Post hoc:
+  
+  * Cropped water vs C-amended
+* Successional water vs C-amended
+* Cropped vs successional, water
+* Cropped vs successional, C-amended
+
+Using generalized linear models due to normality issues. Lof transform to help with heteroskedasticity.
+
+```{r}
+# Cropped water vs C-amended
+strtday.asv.ph.glm1 <- glm(log(start_day_add1) ~ Amendment, data=growth.asv[growth.asv$Soil=="C3",])
+hist(resid(strtday.asv.ph.glm1))
+plot(predict(strtday.asv.ph.glm1), resid(strtday.asv.ph.glm1))
+
+# Successional water vs C-amended
+strtday.asv.ph.glm2 <- glm(log(start_day_add1) ~ Amendment, data=growth.asv[growth.asv$Soil=="S17",])
+hist(resid(strtday.asv.ph.glm2))
+plot(predict(strtday.asv.ph.glm2), resid(strtday.asv.ph.glm2))
+
+# Water cropped vs successional
+strtday.asv.ph.glm3 <- glm(log(start_day_add1) ~ Soil, data=growth.asv[growth.asv$Amendment=="N",])
+hist(resid(strtday.asv.ph.glm3))
+plot(predict(strtday.asv.ph.glm3), resid(strtday.asv.ph.glm3))
+
+# C-amended cropped vs successional
+strtday.asv.ph.glm4 <- glm(log(start_day_add1) ~ Soil, data=growth.asv[growth.asv$Amendment=="Y",])
+hist(resid(strtday.asv.ph.glm4))
+plot(predict(strtday.asv.ph.glm4), resid(strtday.asv.ph.glm4))
+
+# Adjust p-values
+strtday.asv.ph.glm.padj <- p.adjust(p <- c(coef(summary(strtday.asv.ph.glm1))[2,4], coef(summary(strtday.asv.ph.glm2))[2,4],
+                                           coef(summary(strtday.asv.ph.glm1))[2,4], coef(summary(strtday.asv.ph.glm4))[2,4]),
+                                    method = "BH", n=length(p))
+
+# Show results
+data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs C-amended",
+                          "Water, cropped vs successsional", "C-amended, cropped vs successional"),
+           "p_value" = strtday.asv.ph.glm.padj)
+```
+
+Looks like water cropped vs successional did not significantly differ.
+
+
+# End day
+
+
+### Individual ASVs
+
+```{r}
+growth.asv %>%
+  ggplot(aes(x=Soil, y=log(end_day), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="End of growth, individuals ASVs", y="Day, ln") +
+  theme_test()
+```
+
+Similar trends to start day but with more variability.
+
+
+**Statistics**
+
+ANOVA
+
+```{r}
+endday.asv.lm = lm(log(end_day) ~ Soil + Amendment + Soil*Amendment, data=growth.asv)
+hist(resid(endday.asv.lm)) # check normality
+plot(predict(endday.asv.lm), resid(endday.asv.lm))
+summary(endday.asv.lm)
+```
+
+
+Post hoc:
+
+* Cropped water vs C-amended
+* Successional water vs C-amended
+* Cropped vs successional, water
+* Cropped vs successional, C-amended
+
+Using simple linear models. Log transform to help with non-normality and heteroskedasticity.
+
+```{r}
+# Cropped water vs C-amended
+endday.asv.ph.lm1 <- lm(log(end_day) ~ Amendment, data=growth.asv[growth.asv$Soil=="C3",])
+hist(resid(endday.asv.ph.lm1))
+plot(predict(endday.asv.ph.lm1), resid(endday.asv.ph.lm1))
+
+# Successional water vs C-amended
+endday.asv.ph.lm2 <- lm(log(end_day) ~ Amendment, data=growth.asv[growth.asv$Soil=="S17",])
+hist(resid(endday.asv.ph.lm2))
+plot(predict(endday.asv.ph.lm2), resid(endday.asv.ph.lm2))
+
+# Water cropped vs successional
+endday.asv.ph.lm3 <- lm(log(end_day) ~ Soil, data=growth.asv[growth.asv$Amendment=="N",])
+hist(resid(endday.asv.ph.lm3))
+plot(predict(endday.asv.ph.lm3), resid(endday.asv.ph.lm3))
+
+# C-amended cropped vs successional
+endday.asv.ph.lm4 <- glm(log(end_day) ~ Soil, data=growth.asv[growth.asv$Amendment=="Y",])
+hist(resid(endday.asv.ph.lm4))
+plot(predict(endday.asv.ph.lm4), resid(endday.asv.ph.lm4))
+
+# Adjust p-values
+endday.asv.ph.lm.padj <- p.adjust(p <- c(coef(summary(endday.asv.ph.lm1))[2,4], coef(summary(endday.asv.ph.lm2))[2,4],
+                    coef(summary(endday.asv.ph.lm1))[2,4], coef(summary(endday.asv.ph.lm4))[2,4]),
+                    method = "BH", n=length(p))
+
+# Show results
+data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs C-amended",
+                        "Water, cropped vs successsional", "C-amended, cropped vs successional"),
+           "p_value" = endday.asv.ph.lm.padj)
+```
+
+
+# Growth rate
+
+
+### Individual ASVs
+
+```{r}
+growth.asv %>%
+  ggplot(aes(x=Soil, y=log(k), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Specific growth rate, individual ASVs", y="specific growth rate (k, ln)") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+k.asv.lm = lm(log(k) ~ Soil + Amendment + Soil*Amendment, data=growth.asv)
+hist(resid(k.asv.lm)) # check normality
+plot(predict(k.asv.lm), resid(k.asv.lm))
+summary(k.asv.lm)
+```
+
+
+Post hoc:
+
+* Cropped water vs C-amended
+* Successional water vs C-amended
+* Cropped vs successional, water
+* Cropped vs successional, C-amended
+
+Using simple linear models. Log transform to help with non-normality and heteroskedasticity.
+
+```{r}
+# Cropped water vs C-amended
+k.asv.ph.lm1 <- lm(log(k) ~ Amendment, data=growth.asv[growth.asv$Soil=="C3",])
+hist(resid(k.asv.ph.lm1))
+plot(predict(k.asv.ph.lm1), resid(k.asv.ph.lm1))
+
+# Successional water vs C-amended
+k.asv.ph.lm2 <- lm(log(k) ~ Amendment, data=growth.asv[growth.asv$Soil=="S17",])
+hist(resid(k.asv.ph.lm2))
+plot(predict(k.asv.ph.lm2), resid(k.asv.ph.lm2))
+
+# Water cropped vs successional
+k.asv.ph.lm3 <- lm(log(k) ~ Soil, data=growth.asv[growth.asv$Amendment=="N",])
+hist(resid(k.asv.ph.lm3))
+plot(predict(k.asv.ph.lm3), resid(k.asv.ph.lm3))
+
+# C-amended cropped vs successional
+k.asv.ph.lm4 <- glm(log(k) ~ Soil, data=growth.asv[growth.asv$Amendment=="Y",])
+hist(resid(k.asv.ph.lm4))
+plot(predict(k.asv.ph.lm4), resid(k.asv.ph.lm4))
+
+# Adjust p-values
+k.asv.ph.lm.padj <- p.adjust(p <- c(coef(summary(k.asv.ph.lm1))[2,4], coef(summary(k.asv.ph.lm2))[2,4],
+                    coef(summary(k.asv.ph.lm1))[2,4], coef(summary(k.asv.ph.lm4))[2,4]),
+                    method = "BH", n=length(p))
+
+# Show results
+data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs C-amended",
+                        "Water, cropped vs successsional", "C-amended, cropped vs successional"),
+           "p_value" = k.asv.ph.lm.padj)
+```
+
+
+# Change abundance
+
+
+### Individual ASVs
+
+```{r}
+# Calculate change in abundance
+growth.asv <- growth.asv %>%
+  mutate(change_abund = end_abund - start_abund)
+  
+growth.asv %>%
+  ggplot(aes(x=Soil, y=log(change_abund), color=Amendment)) +
+  geom_boxplot() +
+  labs(title="Change in abundance, treatment", y="change in abundance, ln") +
+  theme_test()
+```
+
+**Statistics**
+
+ANOVA
+
+```{r}
+changeabund.asv.lm = lm(log(change_abund) ~ Soil + Amendment + Soil:Amendment, data=growth.asv)
+hist(resid(changeabund.asv.lm)) # check normality
+plot(predict(changeabund.asv.lm), resid(changeabund.asv.lm))
+summary(changeabund.asv.lm)
+```
+
+Post hoc:
+* Cropped water vs C-amended
+* Successional water vs C-amended
+* Cropped vs successional, water
+* Cropped vs successional, C-amended
+
+Using simple linear models. Log transform to help with non-normality and heteroskedasticity.
+
+```{r}
+# Cropped water vs C-amended
+changeabund.asv.ph.lm1 <- lm(log(change_abund) ~ Amendment, data=growth.asv[growth.asv$Soil=="C3",])
+hist(resid(changeabund.asv.ph.lm1))
+plot(predict(changeabund.asv.ph.lm1), resid(changeabund.asv.ph.lm1))
+
+# Successional water vs C-amended
+changeabund.asv.ph.lm2 <- lm(log(change_abund) ~ Amendment, data=growth.asv[growth.asv$Soil=="S17",])
+hist(resid(changeabund.asv.ph.lm2))
+plot(predict(changeabund.asv.ph.lm2), resid(changeabund.asv.ph.lm2))
+
+# Water cropped vs successional
+changeabund.asv.ph.lm3 <- lm(log(change_abund) ~ Soil, data=growth.asv[growth.asv$Amendment=="N",])
+hist(resid(changeabund.asv.ph.lm3))
+plot(predict(changeabund.asv.ph.lm3), resid(changeabund.asv.ph.lm3))
+
+# C-amended cropped vs successional
+changeabund.asv.ph.lm4 <- glm(log(change_abund) ~ Soil, data=growth.asv[growth.asv$Amendment=="Y",])
+hist(resid(changeabund.asv.ph.lm4))
+plot(predict(changeabund.asv.ph.lm4), resid(changeabund.asv.ph.lm4))
+
+# Adjust p-values
+changeabund.asv.ph.lm.padj <- p.adjust(p <- c(coef(summary(changeabund.asv.ph.lm1))[2,4], coef(summary(changeabund.asv.ph.lm2))[2,4],
+                    coef(summary(changeabund.asv.ph.lm1))[2,4], coef(summary(changeabund.asv.ph.lm4))[2,4]),
+                    method = "BH", n=length(p))
+
+# Show results
+data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs C-amended",
+                        "Water, cropped vs successsional", "C-amended, cropped vs successional"),
+           "p_value" = changeabund.asv.ph.lm.padj)
+```

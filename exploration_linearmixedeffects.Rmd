@@ -1,0 +1,69 @@
+---
+title: "Exploration - using linear mixed effects model"
+output: html_document
+---
+
+
+Way to use all the data for comparing growth metrics instead of averaging over all ASVs. I'm dubious about results though, so putting aside for now.
+
+
+```{r}
+growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+```
+
+
+# growth rates
+
+```{r}
+growth %>%
+  ggplot(aes(x=Soil, y=log(k), color=Amendment)) +
+  geom_boxplot() +
+  theme_test()
+```
+
+```{r}
+library(lmerTest)
+library(emmeans)
+
+# what is the right variable to treat as random? ASV or replicate?
+# ASVs are like teachers in the school house, replicates are like different school houses? test performance is growth rate. so random effect on replicate?
+
+fit1 <- lmer(log(k) ~ Soil + Amendment + (1|Replicate), data=growth)
+fit2 <- lmer(log(k) ~ Soil + Amendment + Soil*Amendment + (1|Replicate), data=growth)
+anova(fit1, fit2)
+# interaction fits the data better
+
+hist(resid(fit2))
+plot(predict(fit2), resid(fit2))
+summary(fit2)
+
+emmeans(test, pairwise ~ Amendment | Soil, type = "response") # I just don't buy that the cropped contrast is actually significant
+# because of unbalanced design and interaction?
+# every resource I've looked at indicates that unbalanced designs are not an issue
+```
+
+# change abundance
+
+```{r}
+growth <- growth %>%
+  mutate(change_abund = end_abund - start_abund) 
+
+growth%>%
+  ggplot(aes(x=Soil, y=log(change_abund), color=Amendment)) +
+  geom_boxplot() +
+  theme_test()
+```
+
+```{r}
+fit1 <- lmer(log(change_abund) ~ Soil + Amendment + (1|Replicate), data=growth)
+fit2 <- lmer(log(change_abund) ~ Soil + Amendment + Soil*Amendment + (1|Replicate), data=growth)
+anova(fit1, fit2)
+# interaction fits the data better
+
+hist(resid(fit2))
+plot(predict(fit2), resid(fit2))
+summary(fit2)
+
+emmeans(fit2, pairwise ~ Amendment | Soil, type = "response")
+emmeans(fit2, pairwise ~ Soil | Amendment, type = "response") # don't buy it
+```
