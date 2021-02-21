@@ -12,7 +12,7 @@ knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
 
-**Goal of this script:** Bimodal distributions of growth rate data may indicate diffring populations? Explore variables that may distinguish two groups within community.
+**Goal of this script:** Growth rate distributions seem to bimodal. Explicitely model these separate groups and explore relationships with other variables.
 
 Exploratory analysis.
 
@@ -35,7 +35,7 @@ rm(list=ls())
 growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
 ```
 
-Average across replicates to get a single estimated growth rate for each taxa.
+Average across replicates to get a single estimated growth rate for each taxa in each treatment.
 
 ```{r}
 # Average across replicates for each ASV
@@ -110,18 +110,17 @@ growth %>%
   summarize(n = n())
 ```
 
-A lot of patchiness across replicates. Some replicates seem to capture bimodality, others only one side. This may be due to the experimental design where I added water based on individual replicate GWC, should have just averaged them all and added the same amount to each. To get a fuller "view" of the community growth dynamics, I think it makes sense to average across replicates and use as much data as possible. Hopefully future uses of this method will give us more estimates.
+A lot of patchiness across replicates. Some replicates seem to capture bimodality, others only one side. To get a fuller "view" of the community growth dynamics, I think it makes sense to average across replicates and use as much data as possible. Hopefully future uses of this method will give us more estimates with less variability between replicates.
 
 
 # Grouping
 
-I need an objective method to split possible "populations" or groups based on these distributions. Since they look like they may be a mixture of two gaussian distributions, I'll try to fit a finite mixture model to each to delineate them from one another.
+I need an objective method to split possible "populations" or groups based on these distributions. Since they look like they may be a mixture of two gaussian distributions, I'll try to fit finite mixture models to each to delineate them from one another.
 
 See: 
 * Explanation of finite mixed models: https://www.thedigitaltransformationpeople.com/channels/analytics/what-are-finite-mixture-models%E2%80%8B/
 * Code hijacked from: https://tinyheero.github.io/2015/10/13/mixture-model.html
-
-I'll attempt the water control treatment first, since the separation is more clear cut there.
+* And: https://www.r-bloggers.com/2011/08/fitting-mixture-distributions-with-the-r-package-mixtools/
 
 
 **Successional water control**
@@ -131,17 +130,40 @@ Starting here because it is the most clear-cut example.
 Fit model:
 
 ```{r}
+# Model fitting is iterative and random, so set a seed for reproducibility
+set.seed(2)
+
 # Isolate treatment
 S17n <- growth.asv %>% 
   filter(Soil=="S17" & Amendment=="N")
 
 # Fit model
-S17n.mixfit <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-2.8, -1), sigma = 0.3) # chose starting values by looking at the density graph
-summary(S17n.mixfit)
+# Use multiple starting points to avoid finding a local but not global maxima
+S17n.mixfit1 <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-2.8, -1), sigma = 0.3)
+S17n.mixfit2 <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-2.5, -0.5), sigma = 0.3)
+S17n.mixfit3 <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-3.5, -1.5), sigma = 0.3)
+
+# Results
+summary(S17n.mixfit1)
+summary(S17n.mixfit2)
+summary(S17n.mixfit3)
 # mu refers to distribution means
 # sigma refers to standard deviation
 # lambda refers to mixing weights (ie what proportion of data falls under distribution 1 and 2)
+
+# Change sigma starting point
+S17n.mixfit4 <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-2.8, -1), sigma = 0.5, arbvar=TRUE)
+S17n.mixfit5 <- normalmixEM(log(S17n$k), lambda = .5, mu = c(-2.8, -1), sigma = 1, arbvar=TRUE)
+
+# Results
+summary(S17n.mixfit1)
+summary(S17n.mixfit4)
+summary(S17n.mixfit5)
 ```
+
+Results are essentially the same for all, so global maxima likely found.
+
+It looks like the EM algotithm has fit equal variances for each distribution.
 
 Visualize:
 
@@ -152,40 +174,71 @@ plot_mix_comps <- function(x, mu, sigma, lam) {
 }
 
 # Visualize
-data.frame(x = S17n.mixfit$x) %>%
+data.frame(x = S17n.mixfit1$x) %>%
   ggplot() +
   geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17n.mixfit$mu[1], S17n.mixfit$sigma[1], lam = S17n.mixfit$lambda[1]),
+                args = list(S17n.mixfit1$mu[1], S17n.mixfit1$sigma[1], lam = S17n.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17n.mixfit$mu[2], S17n.mixfit$sigma[2], lam = S17n.mixfit$lambda[2]),
+                args = list(S17n.mixfit1$mu[2], S17n.mixfit1$sigma[2], lam = S17n.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 
-data.frame(x = S17n.mixfit$x) %>%
+data.frame(x = S17n.mixfit1$x) %>%
   ggplot() +
   geom_density(aes(x), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17n.mixfit$mu[1], S17n.mixfit$sigma[1], lam = S17n.mixfit$lambda[1]),
+                args = list(S17n.mixfit1$mu[1], S17n.mixfit1$sigma[1], lam = S17n.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17n.mixfit$mu[2], S17n.mixfit$sigma[2], lam = S17n.mixfit$lambda[2]),
+                args = list(S17n.mixfit1$mu[2], S17n.mixfit1$sigma[2], lam = S17n.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 ```
 
-Assign:
+Calculate SE for lambda, mu, and sigma with bootstrapping.
 
-* Using a threshold of 0.5 because I have no reason to assume one group may be more represented than another
+```{r message=FALSE, include=FALSE}
+# Bootstrapping
+S17n.boot <- boot.se(S17n.mixfit1, B=1000)
+```
+
+Original estimates:
+
+```{r}
+summary(S17n.mixfit1)
+```
+
+Lambda se:
+
+```{r}
+S17n.boot$lambda.se
+```
+
+Mu se:
+
+```{r}
+S17n.boot$mu.se
+```
+
+Sigma se:
+
+```{r}
+S17n.boot$sigma.se
+```
+
+Cluster:
+
+* Using a threshold of 0.5 to best match proportions estimated by lambda
 
 ```{r}
 # Get posterior probabilities for each observation
-S17n.mixfit.post <- as.data.frame(cbind(x = S17n.mixfit$x, S17n.mixfit$posterior))
+S17n.mixfit.post <- as.data.frame(cbind(x = S17n.mixfit1$x, S17n.mixfit1$posterior))
 
 # Set threshold
 # I'm just going to use 0.5, because that seems least biased
@@ -206,7 +259,6 @@ S17n.mixfit.post <- S17n.mixfit.post %>%
 
 Compare clustered data to modeled distributions:
 
-Clustered data:
 ```{r}
 # clustered
 S17n.mixfit.post %>%
@@ -214,7 +266,7 @@ S17n.mixfit.post %>%
   summarize(prop = n()/nrow(S17n.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
-summary(S17n.mixfit)
+summary(S17n.mixfit1)
 ```
 
 They are very similar, though everything is separated a bit more because the distributions were truncated.
@@ -230,51 +282,98 @@ C3n <- growth.asv %>%
   filter(Soil=="C3" & Amendment=="N")
 
 # Fit model
-C3n.mixfit <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-3, -1.3), sigma = 0.3) # chose starting values by looking at the density graph
-summary(C3n.mixfit)
+# Use multiple starting points to avoid finding a local but not global maxima
+C3n.mixfit1 <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-3, -1.5), sigma = 0.3)
+C3n.mixfit2 <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-2.5, -0.5), sigma = 0.3)
+C3n.mixfit3 <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-3.5, -1.5), sigma = 0.3)
+
+# Results
+summary(C3n.mixfit1)
+summary(C3n.mixfit2)
+summary(C3n.mixfit3)
 # mu refers to distribution means
 # sigma refers to standard deviation
 # lambda refers to mixing weights (ie what proportion of data falls under distribution 1 and 2)
+
+# Change sigma starting point
+C3n.mixfit4 <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-3, -1.5), sigma = 0.5)
+C3n.mixfit5 <- normalmixEM(log(C3n$k), lambda = .5, mu = c(-3, -1.5), sigma = 1)
+
+# Results
+summary(C3n.mixfit1)
+summary(C3n.mixfit4)
+summary(C3n.mixfit5)
 ```
 
 Visualize:
 
 ```{r}
 # Visualize
-data.frame(x = C3n.mixfit$x) %>%
+data.frame(x = C3n.mixfit1$x) %>%
   ggplot() +
   geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3n.mixfit$mu[1], C3n.mixfit$sigma[1], lam = C3n.mixfit$lambda[1]),
+                args = list(C3n.mixfit1$mu[1], C3n.mixfit1$sigma[1], lam = C3n.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3n.mixfit$mu[2], C3n.mixfit$sigma[2], lam = C3n.mixfit$lambda[2]),
+                args = list(C3n.mixfit1$mu[2], C3n.mixfit1$sigma[2], lam = C3n.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 
-data.frame(x = C3n.mixfit$x) %>%
+data.frame(x = C3n.mixfit1$x) %>%
   ggplot() +
   geom_density(aes(x), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3n.mixfit$mu[1], C3n.mixfit$sigma[1], lam = C3n.mixfit$lambda[1]),
+                args = list(C3n.mixfit1$mu[1], C3n.mixfit1$sigma[1], lam = C3n.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3n.mixfit$mu[2], C3n.mixfit$sigma[2], lam = C3n.mixfit$lambda[2]),
+                args = list(C3n.mixfit1$mu[2], C3n.mixfit1$sigma[2], lam = C3n.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 ```
 
-Assign:
+Calculate SE for lambda, mu, and sigma with bootstrapping.
 
-* Using a threshold of 0.5 because I have no reason to assume one group may be more represented than another
+```{r message=FALSE, include=FALSE}
+# Bootstrapping
+C3n.boot <- boot.se(C3n.mixfit1, B=1000)
+```
+
+Original estimates:
+
+```{r}
+summary(C3n.mixfit1)
+```
+
+Lambda se:
+
+```{r}
+C3n.boot$lambda.se
+```
+
+Mu se:
+
+```{r}
+C3n.boot$mu.se
+```
+
+Sigma se:
+
+```{r}
+C3n.boot$sigma.se
+```
+
+Cluster
+
+* Using a threshold of 0.5 to best match proportions estimated by lambda.
 
 ```{r}
 # Get posterior probabilities for each observation
-C3n.mixfit.post <- as.data.frame(cbind(x = C3n.mixfit$x, C3n.mixfit$posterior))
+C3n.mixfit.post <- as.data.frame(cbind(x = C3n.mixfit1$x, C3n.mixfit1$posterior))
 
 # Set threshold
 # I'm just going to use 0.5, because that seems least biased
@@ -295,7 +394,6 @@ C3n.mixfit.post <- C3n.mixfit.post %>%
 
 Compare clustered data to modeled distributions:
 
-Clustered data:
 ```{r}
 # clustered
 C3n.mixfit.post %>%
@@ -303,13 +401,11 @@ C3n.mixfit.post %>%
   summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
-summary(C3n.mixfit)
+summary(C3n.mixfit1)
 ```
 
 
 **Successional C amended**
-
-This will likely be trickier, if even possible.
 
 Fit model:
 
@@ -319,54 +415,99 @@ S17y <- growth.asv %>%
   filter(Soil=="S17" & Amendment=="Y")
 
 # Fit model
-S17y.mixfit <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2, -0.8), sigma = 0.3) # chose starting values by looking at the density graph
-summary(S17y.mixfit)
+# Use multiple starting points to avoid finding a local but not global maxima
+S17y.mixfit1 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-1, -2), sigma = 0.3)
+S17y.mixfit2 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2.5, -0.5), sigma = 0.3)
+S17y.mixfit3 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-3.5, -1.5), sigma = 0.3)
+
+# Results
+summary(S17y.mixfit1)
+summary(S17y.mixfit2)
+summary(S17y.mixfit3)
 # mu refers to distribution means
 # sigma refers to standard deviation
 # lambda refers to mixing weights (ie what proportion of data falls under distribution 1 and 2)
+
+# Change sigma starting point
+S17y.mixfit4 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-1, -2), sigma = 0.5)
+S17y.mixfit5 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-1, -2), sigma = 1)
+
+# Results
+summary(S17y.mixfit1)
+summary(S17y.mixfit4)
+summary(S17y.mixfit5)
 ```
 
 Visualize:
 
 ```{r}
 # Visualize
-data.frame(x = S17y.mixfit$x) %>%
+data.frame(x = S17y.mixfit1$x) %>%
   ggplot() +
   geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17y.mixfit$mu[1], S17y.mixfit$sigma[1], lam = S17y.mixfit$lambda[1]),
+                args = list(S17y.mixfit1$mu[1], S17y.mixfit1$sigma[1], lam = S17y.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17y.mixfit$mu[2], S17y.mixfit$sigma[2], lam = S17y.mixfit$lambda[2]),
+                args = list(S17y.mixfit1$mu[2], S17y.mixfit1$sigma[2], lam = S17y.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 
 
-data.frame(x = S17y.mixfit$x) %>%
+data.frame(x = S17y.mixfit1$x) %>%
   ggplot() +
   geom_density(aes(x), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17y.mixfit$mu[1], S17y.mixfit$sigma[1], lam = S17y.mixfit$lambda[1]),
+                args = list(S17y.mixfit1$mu[1], S17y.mixfit1$sigma[1], lam = S17y.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(S17y.mixfit$mu[2], S17y.mixfit$sigma[2], lam = S17y.mixfit$lambda[2]),
+                args = list(S17y.mixfit1$mu[2], S17y.mixfit1$sigma[2], lam = S17y.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 ```
 
-A more dubious fit. Hard to say if two gaussian distributions are a good fit here.
+Calculate SE for lambda, mu, and sigma with bootstrapping.
 
-Assign:
+```{r message=FALSE, include=FALSE}
+# Bootstrapping
+S17y.boot <- boot.se(S17y.mixfit1, B=1000)
+```
 
-* Using a threshold of 0.5 because I have no reason to assume one group may be more represented than another
+Original estimates:
+
+```{r}
+summary(S17y.mixfit1)
+```
+
+Lambda se:
+
+```{r}
+S17y.boot$lambda.se
+```
+
+Mu se:
+
+```{r}
+S17y.boot$mu.se
+```
+
+Sigma se:
+
+```{r}
+S17y.boot$sigma.se
+```
+
+Cluster:
+
+* Using a threshold of 0.5 to best match proportions estimated as lambda by model.
 
 ```{r}
 # Get posterior probabilities for each observation
-S17y.mixfit.post <- as.data.frame(cbind(x = S17y.mixfit$x, S17y.mixfit$posterior))
+S17y.mixfit.post <- as.data.frame(cbind(x = S17y.mixfit1$x, S17y.mixfit1$posterior))
 
 # Set threshold
 # I'm just going to use 0.5, because that seems least biased
@@ -387,7 +528,6 @@ S17y.mixfit.post <- S17y.mixfit.post %>%
 
 Compare clustered data to modeled distributions:
 
-Clustered data:
 ```{r}
 # clustered
 S17y.mixfit.post %>%
@@ -395,11 +535,13 @@ S17y.mixfit.post %>%
   summarize(prop = n()/nrow(S17y.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
-summary(S17y.mixfit)
+summary(S17y.mixfit1)
 ```
 
+A bit more off due to the degree of overlap in the distributions.
 
-**Cropped water control**
+
+**Cropped C-amended**
 
 Fit model:
 
@@ -409,51 +551,98 @@ C3y <- growth.asv %>%
   filter(Soil=="C3" & Amendment=="Y")
 
 # Fit model
-C3y.mixfit <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-2, -1.5), sigma = 0.3) # chose starting values by looking at the density graph
-summary(C3y.mixfit)
+# Use multiple starting points to avoid finding a local but not global maxima
+C3y.mixfit1 <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-2, -1), sigma = 0.3)
+C3y.mixfit2 <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-2.5, -0.5), sigma = 0.3)
+C3y.mixfit3 <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-1.5, -1), sigma = 0.3)
+
+# Results
+summary(C3y.mixfit1)
+summary(C3y.mixfit2)
+summary(C3y.mixfit3)
 # mu refers to distribution means
 # sigma refers to standard deviation
 # lambda refers to mixing weights (ie what proportion of data falls under distribution 1 and 2)
+
+# Change sigma starting point
+C3y.mixfit4 <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-2, -1), sigma = 0.5)
+C3y.mixfit5 <- normalmixEM(log(C3y$k), lambda = .5, mu = c(-2, -1), sigma = 0.1)
+
+# Results
+summary(C3y.mixfit1)
+summary(C3y.mixfit4)
+summary(C3y.mixfit5)
 ```
 
 Visualize:
 
 ```{r}
 # Visualize
-data.frame(x = C3y.mixfit$x) %>%
+data.frame(x = C3y.mixfit1$x) %>%
   ggplot() +
   geom_histogram(aes(x, ..density..), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3y.mixfit$mu[1], C3y.mixfit$sigma[1], lam = C3y.mixfit$lambda[1]),
+                args = list(C3y.mixfit1$mu[1], C3y.mixfit1$sigma[1], lam = C3y.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3y.mixfit$mu[2], C3y.mixfit$sigma[2], lam = C3y.mixfit$lambda[2]),
+                args = list(C3y.mixfit1$mu[2], C3y.mixfit1$sigma[2], lam = C3y.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 
-data.frame(x = C3y.mixfit$x) %>%
+data.frame(x = C3y.mixfit1$x) %>%
   ggplot() +
   geom_density(aes(x), binwidth = 0.25, colour = "black", 
                  fill = "white") +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3y.mixfit$mu[1], C3y.mixfit$sigma[1], lam = C3y.mixfit$lambda[1]),
+                args = list(C3y.mixfit1$mu[1], C3y.mixfit1$sigma[1], lam = C3y.mixfit1$lambda[1]),
                 colour = "red", lwd = 1.5) +
   stat_function(geom = "line", fun = plot_mix_comps,
-                args = list(C3y.mixfit$mu[2], C3y.mixfit$sigma[2], lam = C3y.mixfit$lambda[2]),
+                args = list(C3y.mixfit1$mu[2], C3y.mixfit1$sigma[2], lam = C3y.mixfit1$lambda[2]),
                 colour = "blue", lwd = 1.5) +
   ylab("Density") +
   theme_test()
 ```
 
-Assign:
+Calculate SE for lambda, mu, and sigma with bootstrapping.
 
-* Using a threshold of 0.5 because I have no reason to assume one group may be more represented than another
+```{r message=FALSE, include=FALSE}
+# Bootstrapping
+C3y.boot <- boot.se(C3y.mixfit1, B=1000)
+```
+
+Original estimates:
+
+```{r}
+summary(C3y.mixfit1)
+```
+
+Lambda se:
+
+```{r}
+C3y.boot$lambda.se
+```
+
+Mu se:
+
+```{r}
+C3y.boot$mu.se
+```
+
+Sigma se:
+
+```{r}
+C3y.boot$sigma.se
+```
+
+Cluster:
+
+* Using a threshold of 0.5 so that proportions best match lambda from model
 
 ```{r}
 # Get posterior probabilities for each observation
-C3y.mixfit.post <- as.data.frame(cbind(x = C3y.mixfit$x, C3y.mixfit$posterior))
+C3y.mixfit.post <- as.data.frame(cbind(x = C3y.mixfit1$x, C3y.mixfit1$posterior))
 
 # Set threshold
 # I'm just going to use 0.5, because that seems least biased
@@ -474,7 +663,6 @@ C3y.mixfit.post <- C3y.mixfit.post %>%
 
 Compare clustered data to modeled distributions:
 
-Clustered data:
 ```{r}
 # clustered
 C3n.mixfit.post %>%
@@ -482,105 +670,202 @@ C3n.mixfit.post %>%
   summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
-summary(C3n.mixfit)
+summary(C3n.mixfit1)
 ```
+
 
 # Statistics
 
-Note: I can't compare "slow" and "fast" distributions in the same treatment because I truncated those distributions to sort the ASVs into groups. Fast vs slow from the same treatment will always significantly differ because there is no overlap in the data, effectively pushing the means away from one another further as a result.
 
-Merge all grouped data:
+### Slow vs fast
 
-```{r}
-# Merge results
-all.mixfit.post <- bind_rows(S17n.mixfit.post, C3n.mixfit.post, S17y.mixfit.post, C3y.mixfit.post)
-```
+NOTE: it seems like bootstrapping the CI might be the better way to establish this see Stahl 2012 WIRE Comp Stat an citation therein.
 
 
-### Do slow and fast groups vary in growth rate between amendments?
 
-Hypothesis: Slow taxa increase growth rate when amended with C. Fast taxa growth rate remains similar.
+The best way I could find to cluster the data was to bisect the distributions in each treatment. This seems to be how other popular gaussian mixture model packages work as well, such as Mclust. This means I will be more liklely to detect false positive results if I try to perform hypothesis tests with clustered data from the same treatments (because they are exclusionary), so I will avoid this.
 
-A less competitive environment (more C available) gives slow growing taxa more of an advantage than fast growing taxa, which are more likely to respond to and take advantage of the C flush anyway. Kernel density distribution and correlation between change in abundance and growth rates in previous analysis seem to support this line of reasoning as well.
+I wonder if there is a better way to cluster the data, that allows overlap between clusters?
 
-**Successional:** 
+A work around is to use the mu, sigma, and lambda parameters estimated by the model to calculate a t-test statistic for hypothesis testing. I'll try this. Based on the model parmaters, I know that the mixtools function estimated distirbutions with equal variances, so I can use a regular Student's t-test.
 
-```{r}
-# Successional
-S17.mixfit.post <- all.mixfit.post %>%
-  filter(Soil=="S17")
+I want to use this as evidence that two groups exist within the overall community. If I reject the null hypothesis, the distributions estimated by mix-tools cannot be meaningfully differentiated from one-another, and analysis based on separating the data by groups is less justifiable.
 
-# ANOVA
-S17.aov <- lm(x ~ label * Amendment, data=S17.mixfit.post)
-hist(resid(S17.aov))
-plot(predict(S17.aov), resid(S17.aov))
-summary(S17.aov)
+Student's t-test forumla:
 
-# Post hoc: t-tests
-S17slow.lm <- lm(x ~ Amendment, data=S17.mixfit.post[S17.mixfit.post$label=="slow",])
-hist(resid(S17slow.lm))
-plot(predict(S17slow.lm), resid(S17slow.lm))
-summary(S17slow.lm)
+t = (mu1 - mu2)/(sp*sqrt(sigma1^2/n + sigma2^2/n))
 
-S17fast.lm <- lm(x ~ Amendment, data=S17.mixfit.post[S17.mixfit.post$label=="fast",])
-hist(resid(S17fast.lm))
-plot(predict(S17fast.lm), resid(S17fast.lm))
-summary(S17fast.lm)
+sp = sqrt(((n1-1)*s1^2 + (n2-1)*s2^2))/(n1+n2-2))
 
-S17.mixfit.post %>%
-  ggplot(aes(x=label, y=x, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="Successional", x="Group", y="specific growth rate, ln") +
-  theme_test()
-```
+df =  n1 + n2 – 2
 
-Hypothesis supported.
+List of critical values: https://www.gradecalculator.tech/t-table/
 
-**Cropped:**
+
+**Succesional water control**
 
 ```{r}
-# Cropped
-C3.mixfit.post <- all.mixfit.post %>%
-  filter(Soil=="C3")
+# Variables for formula
+mu1 <- S17y.mixfit1$mu[1]
+mu2 <- S17y.mixfit1$mu[2]
+sigma1 <- S17y.mixfit1$sigma[1]
+sigma2 <- S17y.mixfit1$sigma[2]
+n1 <- round(S17y.mixfit1$lambda[1]*nrow(S17y), digits=0) # round to nearest integer
+n2 <- round(S17y.mixfit1$lambda[2]*nrow(S17y), digits=0)
 
-# ANOVA
-C3.aov <- lm(x ~ label * Amendment, data=C3.mixfit.post)
-hist(resid(C3.aov))
-plot(predict(C3.aov), resid(C3.aov))
-summary(C3.aov)
+# Sp
+sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
 
-# Post hoc: t-tests
-C3slow.lm <- lm(x ~ Amendment, data=C3.mixfit.post[C3.mixfit.post$label=="slow",])
-hist(resid(C3slow.lm))
-plot(predict(C3slow.lm), resid(C3slow.lm))
-summary(C3slow.lm)
+# T-statistic
+t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
+t
 
-C3fast.lm <- lm(x ~ Amendment, data=C3.mixfit.post[C3.mixfit.post$label=="fast",])
-hist(resid(C3fast.lm))
-plot(predict(C3fast.lm), resid(C3fast.lm))
-summary(C3fast.lm)
+# Calculate degrees of freedom
+df <-   n1 + n2 - 2
+df
 
-C3.mixfit.post %>%
-  ggplot(aes(x=label, y=x, color=Amendment)) +
-  geom_boxplot() +
-  labs(title="Successional", x="Group", y="specific growth rate, ln") +
-  theme_test()
+# Critical value at df
+crit <- 1.962
+isTRUE(abs(t) > crit)
 ```
 
-Fast also changed in growth rate, but to a smaller degree.
+For successional water control, reject null hypothesis
 
-Compare to growth rates that have not been separated by groups:
+
+**Succesional water control**
 
 ```{r}
-growth.asv %>%
-  ggplot(aes(x=Amendment, y=log(k), color=Amendment)) +
-  geom_boxplot() +
-  facet_wrap(~Soil) +
-  labs() +
-  theme_test()
+# Treatment model and data
+treatment <- S17n.mixfit1
+treatment.data <- S17n
+
+# Variables for formula
+mu1 <- treatment$mu[1]
+mu2 <- treatment$mu[2]
+sigma1 <- treatment$sigma[1]
+sigma2 <- treatment$sigma[2]
+n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
+n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
+
+# Sp
+sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
+
+# T-statistic
+t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
+t
+
+# Calculate degrees of freedom
+df <-   n1 + n2 - 2
+df
+
+# Critical value at df
+crit <- 1.98
+isTRUE(abs(t) > crit)
 ```
 
-Because of the non-normal distiributions, the growth rate data taken as a whole is highly variable and difficult to draw conclusions from. Separating them into discrete groups helped to pick out trends.
+Reject null hypothesis.
+
+
+**Cropped water control**
+
+```{r}
+# Treatment model and data
+treatment <- C3n.mixfit1
+treatment.data <- C3n
+
+# Variables for formula
+mu1 <- treatment$mu[1]
+mu2 <- treatment$mu[2]
+sigma1 <- treatment$sigma[1]
+sigma2 <- treatment$sigma[2]
+n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
+n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
+
+# Sp
+sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
+
+# T-statistic
+t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
+t
+
+# Calculate degrees of freedom
+df <-   n1 + n2 - 2
+df
+
+# Critical value at df
+crit <- 1.97
+isTRUE(abs(t) > crit)
+```
+
+Reject null hypothesis.
+
+
+**Successional C-amended**
+
+```{r}
+# Treatment model and data
+treatment <- S17y.mixfit1
+treatment.data <- S17y
+
+# Variables for formula
+mu1 <- treatment$mu[1]
+mu2 <- treatment$mu[2]
+sigma1 <- treatment$sigma[1]
+sigma2 <- treatment$sigma[2]
+n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
+n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
+
+# Sp
+sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
+
+# T-statistic
+t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
+t
+
+# Calculate degrees of freedom
+df <-   n1 + n2 - 2
+df
+
+# Critical value at df
+crit <- 1.98
+isTRUE(abs(t) > crit)
+```
+
+Reject null hypothesis.
+
+
+**Cropped C-amended**
+
+```{r}
+# Treatment model and data
+treatment <- C3y.mixfit1
+treatment.data <- C3y
+
+# Variables for formula
+mu1 <- treatment$mu[1]
+mu2 <- treatment$mu[2]
+sigma1 <- treatment$sigma[1]
+sigma2 <- treatment$sigma[2]
+n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
+n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
+
+# Sp
+sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
+
+# T-statistic
+t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
+t
+
+# Calculate degrees of freedom
+df <-   n1 + n2 - 2
+df
+
+# Critical value at df
+crit <- 1.97
+isTRUE(abs(t) > crit)
+```
+
+Reject null hypothesis.
 
 
 ### 16S copy number
@@ -589,56 +874,78 @@ Hypothesis: slow group taxa will have lower 16S copy number than fast group taxa
 
 Based on growth rate vs 16S copy umber correlations from before, it is more likely that "slow" taxa will vary widely in 16S copy number and fast taxa will not.
 
+Incorporate groupings back into main dataframe:
 
-**Incorporate grouped data back into main dataframe**
+BROKEN BELOW
 
 ```{r}
-growth.paprica.asv %>% 
-  filter(Soil=="S17" & Amendment=="Y") %>%
-  dim()
-
-# Separate data by treatment, precaution against duplicate values
+# Merge classifications with other variables
 growth.paprica.asv.S17n <- growth.paprica.asv %>%
   filter(Soil=="S17" & Amendment=="N") %>%
   mutate(log_k = log(k)) %>%
-  full_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k)
+  left_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
 
 growth.paprica.asv.C3n <- growth.paprica.asv %>%
   filter(Soil=="C3" & Amendment=="N") %>%
   mutate(log_k = log(k)) %>%
-  full_join(C3n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k)
+  left_join(C3n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
 
 growth.paprica.asv.S17y <- growth.paprica.asv %>%
   filter(Soil=="S17" & Amendment=="Y") %>%
   mutate(log_k = log(k)) %>%
-  full_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k)
+  left_join(S17y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
 
 growth.paprica.asv.C3y <- growth.paprica.asv %>%
   filter(Soil=="C3" & Amendment=="Y") %>%
   mutate(log_k = log(k)) %>%
-  full_join(C3y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k)
+  left_join(C3y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
 
 # Merge all
-growth.paprica.asv <- bind_rows(growth.paprica.asv.S17n, growth.paprica.asv.C3n, growth.paprica.asv.S17y, growth.paprica.asv.C3y)
+growth.paprica.asv.label <- bind_rows(growth.paprica.asv.S17n, growth.paprica.asv.C3n, growth.paprica.asv.S17y, growth.paprica.asv.C3y)
 ```
 
 ```{r}
-growth.paprica.asv %>%
-  ggplot(aes(x=label, y=n16S)) +
+growth.paprica.asv.label %>%
+  ggplot(aes(x=Soil, y=log(n16S), color=label)) +
   geom_boxplot() +
   theme_test()
 ```
 
+Not even going to bother testing that.
 
 
+### Change in abundance
 
-apply groups back to ASVs in unaveraged data sets
-* slow vs fast proportion 
-* 16S copy number in each group, hypothesis = slow has low, fast has high
-* change abundance in each group, hypothesis = depends on amendment, in water control fast higher than slow, in water equal
-* start time in each group, hypothesis = fast early, slow mix, probably insignicant but variation might vary (levene's test?)
+Hypothesis: Fast taxa experience greater change in abundance (boom-bust strategy)
+
+```{r}
+growth.paprica.asv.label %>%
+  mutate(change_abund = end_abund - start_abund) %>%
+  ggplot(aes(x=Soil, y=log(change_abund), color=label)) +
+  geom_boxplot() +
+  theme_test()
+```
+
+### Start day
+
+Slow and fast groups might tend to experience lag more or less.
+
+Hypothesis: Fast taxa experience less lag.
+
+```{r}
+growth.paprica.asv.label %>%
+  ggplot(aes(x=Soil, y=log(start_day), color=label)) +
+  geom_boxplot() +
+  theme_test()
+```
+
+Seems like "groups" don't separate well based on other growth variables.
 

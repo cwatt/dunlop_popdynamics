@@ -66,7 +66,7 @@ Hypotheses:
 growth.trt %>%
   ggplot(aes(x=Soil, y=start_day, color=Amendment)) +
   geom_point() +
-  labs(title="Start of growth, treatment", y="Day") +
+  labs(title="Start of growth", y="Day") +
   theme_test()
 ```
 
@@ -136,7 +136,7 @@ Hypotheses:
 growth.trt %>%
   ggplot(aes(x=Soil, y=end_day, color=Amendment)) +
   geom_boxplot() +
-  labs(title="End of growth, treatment", y="Day") +
+  labs(title="End of growth", y="Day") +
   theme_test()
 ```
 
@@ -167,7 +167,7 @@ Hypotheses:
 growth.trt %>%
   ggplot(aes(x=Soil, y=k, color=Amendment)) +
   geom_boxplot() +
-  labs(title="Specific growth rate, treatment", y="k") +
+  labs(title="Specific growth rate", y="k") +
   theme_test()
 ```
 
@@ -203,7 +203,7 @@ growth.trt <- growth.trt %>%
 growth.trt %>%
   ggplot(aes(x=Soil, y=change_abund, color=Amendment)) +
   geom_boxplot() +
-  labs(title="Change in abundance, treatment", y="change in abundance") +
+  labs(title="Change in abundance", y="change in abundance") +
   theme_test()
 ```
 
