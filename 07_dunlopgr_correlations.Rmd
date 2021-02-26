@@ -166,15 +166,8 @@ summary(n16sstrt.fit)
 
 Visualize
 
-```{r}
-
-
-
-
-
-# BROKEN
-
-
+```{r, eval=FALSE}
+# BROKEN?
 
 # Predict values based on model
 growth.asv$predict_nls <- predict(n16sstrt.fit)

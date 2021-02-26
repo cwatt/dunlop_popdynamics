@@ -71,6 +71,14 @@ growth.asv %>%
   facet_wrap(~Amendment) +
   theme_test()
 
+# all data
+growth.asv %>%
+  ggplot(aes(x=log(k))) +
+  geom_density() +
+  labs(title="All data") +
+  theme_test()
+
+
 # Replicate variability
 growth %>%
   filter(Soil=="C3" & Amendment=="N") %>%
@@ -106,12 +114,11 @@ growth %>%
 
 # Number of estimates per replicate
 growth %>%
-  group_by(Soil, Amendment, Replicate) %>%
+  group_by(Soil, Amendment) %>%
   summarize(n = n())
 ```
 
 A lot of patchiness across replicates. Some replicates seem to capture bimodality, others only one side. To get a fuller "view" of the community growth dynamics, I think it makes sense to average across replicates and use as much data as possible. Hopefully future uses of this method will give us more estimates with less variability between replicates.
-
 
 # Grouping
 
@@ -272,6 +279,53 @@ summary(S17n.mixfit1)
 They are very similar, though everything is separated a bit more because the distributions were truncated.
 
 
+Alternative clustering method to allow overlap:
+
+1. Draw random number between 0 and 1
+1. Compare rrandom number to posterior probability of component 1
+1. If random draw is less than posterior probability of component 1, the taxa is labelled slow
+1. If the random draw is greater than the posterior probability of component 1, the taxa is labelled fast
+
+This makes it so that taxa with high posterior probability of component 1 are most likely to be labelled component 1, but edge cases (closer to 50/50) can be assigned to either group.
+
+Avoids truncating the distribution and causing statistical issues.
+
+```{r}
+# Draw x numbers randomly between 0 and 1
+draw <- runif(nrow(S17n.mixfit.post), 0, 1)
+
+# Label based on described method
+S17n.mixfit.post2 <- as.data.frame(cbind(x = S17n.mixfit1$x, S17n.mixfit1$posterior))
+
+S17n.mixfit.post2 <- S17n.mixfit.post2 %>%
+  add_column(draw = draw) %>%
+  mutate(label = if_else(draw < comp.1, "slow", "fast")) %>%
+  add_column(Soil=c(rep("S17", nrow(.))), Amendment=c(rep("N", nrow(.)))) # add soil and amendment labels back
+
+# Visualize distributions
+S17n.mixfit.post2 %>%
+  ggplot(aes(x=x, color=label)) +
+  geom_histogram() +
+  theme_test()
+
+# Visualize proportion fast and slow
+S17n.mixfit.post2 %>%
+  ggplot(aes(x=label)) +
+  geom_bar() +
+  theme_test()
+
+# Compare clustered data to modeled distributions
+
+# Clustered
+S17n.mixfit.post2 %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(S17n.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# Modeled
+summary(S17n.mixfit1)
+```
+
+
 **Cropped water control**
 
 Fit model:
@@ -401,6 +455,44 @@ C3n.mixfit.post %>%
   summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
+summary(C3n.mixfit1)
+```
+
+
+Alternative clustering method to allow overlap:
+
+```{r}
+# Draw x numbers randomly between 0 and 1
+draw <- runif(nrow(C3n.mixfit.post), 0, 1)
+
+# Label based on described method
+C3n.mixfit.post2 <- as.data.frame(cbind(x = C3n.mixfit1$x, C3n.mixfit1$posterior))
+
+C3n.mixfit.post2 <- C3n.mixfit.post2 %>%
+  add_column(draw = draw) %>%
+  mutate(label = if_else(draw < comp.1, "slow", "fast")) %>%
+  add_column(Soil=c(rep("C3", nrow(.))), Amendment=c(rep("N", nrow(.)))) # add soil and amendment labels back
+
+# Visualize distributions
+C3n.mixfit.post2 %>%
+  ggplot(aes(x=x, color=label)) +
+  geom_histogram() +
+  theme_test()
+
+# Visualize proportion fast and slow
+C3n.mixfit.post2 %>%
+  ggplot(aes(x=label)) +
+  geom_bar() +
+  theme_test()
+
+# Compare clustered data to modeled distributions
+
+# Clustered
+C3n.mixfit.post2 %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# Modeled
 summary(C3n.mixfit1)
 ```
 
@@ -541,6 +633,44 @@ summary(S17y.mixfit1)
 A bit more off due to the degree of overlap in the distributions.
 
 
+Alternative clustering method to allow overlap:
+
+```{r}
+# Draw x numbers randomly between 0 and 1
+draw <- runif(nrow(S17y.mixfit.post), 0, 1)
+
+# Label based on described method
+S17y.mixfit.post2 <- as.data.frame(cbind(x = S17y.mixfit1$x, S17y.mixfit1$posterior))
+
+S17y.mixfit.post2 <- S17y.mixfit.post2 %>%
+  add_column(draw = draw) %>%
+  mutate(label = if_else(draw < comp.1, "slow", "fast")) %>%
+  add_column(Soil=c(rep("S17", nrow(.))), Amendment=c(rep("Y", nrow(.)))) # add soil and amendment labels back
+
+# Visualize distributions
+S17y.mixfit.post2 %>%
+  ggplot(aes(x=x, color=label)) +
+  geom_histogram() +
+  theme_test()
+
+# Visualize proportion fast and slow
+S17y.mixfit.post2 %>%
+  ggplot(aes(x=label)) +
+  geom_bar() +
+  theme_test()
+
+# Compare clustered data to modeled distributions
+
+# Clustered
+S17y.mixfit.post2 %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(S17y.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# Modeled
+summary(S17y.mixfit1)
+```
+
+
 **Cropped C-amended**
 
 Fit model:
@@ -674,278 +804,104 @@ summary(C3n.mixfit1)
 ```
 
 
+Alternative clustering method to allow overlap:
+
+```{r}
+# Draw x numbers randomly between 0 and 1
+draw <- runif(nrow(C3y.mixfit.post), 0, 1)
+
+# Label based on described method
+C3y.mixfit.post2 <- as.data.frame(cbind(x = C3y.mixfit1$x, C3y.mixfit1$posterior))
+
+C3y.mixfit.post2 <- C3y.mixfit.post2 %>%
+  add_column(draw = draw) %>%
+  mutate(label = if_else(draw < comp.1, "slow", "fast")) %>%
+  add_column(Soil=c(rep("C3", nrow(.))), Amendment=c(rep("Y", nrow(.)))) # add soil and amendment labels back
+
+# Visualize distributions
+C3y.mixfit.post2 %>%
+  ggplot(aes(x=x, color=label)) +
+  geom_histogram() +
+  theme_test()
+
+# Visualize proportion fast and slow
+C3y.mixfit.post2 %>%
+  ggplot(aes(x=label)) +
+  geom_bar() +
+  theme_test()
+
+# Compare clustered data to modeled distributions
+
+# Clustered
+C3y.mixfit.post2 %>%
+  group_by(label) %>%
+  summarize(prop = n()/nrow(C3y.mixfit.post), mu = mean(x), sigma = sd(x))
+
+# Modeled
+summary(C3y.mixfit1)
+```
+
+
 # Statistics
 
-
-### Slow vs fast
-
-NOTE: it seems like bootstrapping the CI might be the better way to establish this see Stahl 2012 WIRE Comp Stat an citation therein.
-
-
-
-The best way I could find to cluster the data was to bisect the distributions in each treatment. This seems to be how other popular gaussian mixture model packages work as well, such as Mclust. This means I will be more liklely to detect false positive results if I try to perform hypothesis tests with clustered data from the same treatments (because they are exclusionary), so I will avoid this.
-
-I wonder if there is a better way to cluster the data, that allows overlap between clusters?
-
-A work around is to use the mu, sigma, and lambda parameters estimated by the model to calculate a t-test statistic for hypothesis testing. I'll try this. Based on the model parmaters, I know that the mixtools function estimated distirbutions with equal variances, so I can use a regular Student's t-test.
-
-I want to use this as evidence that two groups exist within the overall community. If I reject the null hypothesis, the distributions estimated by mix-tools cannot be meaningfully differentiated from one-another, and analysis based on separating the data by groups is less justifiable.
-
-Student's t-test forumla:
-
-t = (mu1 - mu2)/(sp*sqrt(sigma1^2/n + sigma2^2/n))
-
-sp = sqrt(((n1-1)*s1^2 + (n2-1)*s2^2))/(n1+n2-2))
-
-df =  n1 + n2 – 2
-
-List of critical values: https://www.gradecalculator.tech/t-table/
-
-
-**Succesional water control**
+Merge data for analysis:
 
 ```{r}
-# Variables for formula
-mu1 <- S17y.mixfit1$mu[1]
-mu2 <- S17y.mixfit1$mu[2]
-sigma1 <- S17y.mixfit1$sigma[1]
-sigma2 <- S17y.mixfit1$sigma[2]
-n1 <- round(S17y.mixfit1$lambda[1]*nrow(S17y), digits=0) # round to nearest integer
-n2 <- round(S17y.mixfit1$lambda[2]*nrow(S17y), digits=0)
-
-# Sp
-sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
-
-# T-statistic
-t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
-t
-
-# Calculate degrees of freedom
-df <-   n1 + n2 - 2
-df
-
-# Critical value at df
-crit <- 1.962
-isTRUE(abs(t) > crit)
+clustered.data <- bind_rows(S17n.mixfit.post2, S17y.mixfit.post2, C3n.mixfit.post2, C3y.mixfit.post2)
 ```
 
-For successional water control, reject null hypothesis
 
+### Fast vs slow in differing treatments
 
-**Succesional water control**
+Do fast and slow taxa respond differently based on soil management and C-availability? 
 
-```{r}
-# Treatment model and data
-treatment <- S17n.mixfit1
-treatment.data <- S17n
-
-# Variables for formula
-mu1 <- treatment$mu[1]
-mu2 <- treatment$mu[2]
-sigma1 <- treatment$sigma[1]
-sigma2 <- treatment$sigma[2]
-n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
-n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
-
-# Sp
-sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
-
-# T-statistic
-t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
-t
-
-# Calculate degrees of freedom
-df <-   n1 + n2 - 2
-df
-
-# Critical value at df
-crit <- 1.98
-isTRUE(abs(t) > crit)
-```
-
-Reject null hypothesis.
-
-
-**Cropped water control**
+Hypothesis: Slow taxa grow faster in response to C-amendment, while fast taxa remain the same. I think that fast-strategists likely grow as fast as they can whenever C is available, and are typically not growing when the C availability is too low to allow that. Slow strategist taxa may grow under a wide array of conditions, and may grow faster when more C is available as a result.
 
 ```{r}
-# Treatment model and data
-treatment <- C3n.mixfit1
-treatment.data <- C3n
-
-# Variables for formula
-mu1 <- treatment$mu[1]
-mu2 <- treatment$mu[2]
-sigma1 <- treatment$sigma[1]
-sigma2 <- treatment$sigma[2]
-n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
-n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
-
-# Sp
-sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
-
-# T-statistic
-t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
-t
-
-# Calculate degrees of freedom
-df <-   n1 + n2 - 2
-df
-
-# Critical value at df
-crit <- 1.97
-isTRUE(abs(t) > crit)
-```
-
-Reject null hypothesis.
-
-
-**Successional C-amended**
-
-```{r}
-# Treatment model and data
-treatment <- S17y.mixfit1
-treatment.data <- S17y
-
-# Variables for formula
-mu1 <- treatment$mu[1]
-mu2 <- treatment$mu[2]
-sigma1 <- treatment$sigma[1]
-sigma2 <- treatment$sigma[2]
-n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
-n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
-
-# Sp
-sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
-
-# T-statistic
-t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
-t
-
-# Calculate degrees of freedom
-df <-   n1 + n2 - 2
-df
-
-# Critical value at df
-crit <- 1.98
-isTRUE(abs(t) > crit)
-```
-
-Reject null hypothesis.
-
-
-**Cropped C-amended**
-
-```{r}
-# Treatment model and data
-treatment <- C3y.mixfit1
-treatment.data <- C3y
-
-# Variables for formula
-mu1 <- treatment$mu[1]
-mu2 <- treatment$mu[2]
-sigma1 <- treatment$sigma[1]
-sigma2 <- treatment$sigma[2]
-n1 <- floor(treatment$lambda[1]*nrow(treatment.data)) # round down to nearest integer
-n2 <- floor(treatment$lambda[2]*nrow(treatment.data)) # round down to nearest integer
-
-# Sp
-sp = sqrt(((n1-1)*sigma1^2 + (n2-1)*sigma2^2)/(n1+n2-2))
-
-# T-statistic
-t = (mu1 - mu2)/(sp*sqrt(1/n1 + 1/n2))
-t
-
-# Calculate degrees of freedom
-df <-   n1 + n2 - 2
-df
-
-# Critical value at df
-crit <- 1.97
-isTRUE(abs(t) > crit)
-```
-
-Reject null hypothesis.
-
-
-### 16S copy number
-
-Hypothesis: slow group taxa will have lower 16S copy number than fast group taxa. 
-
-Based on growth rate vs 16S copy umber correlations from before, it is more likely that "slow" taxa will vary widely in 16S copy number and fast taxa will not.
-
-Incorporate groupings back into main dataframe:
-
-BROKEN BELOW
-
-```{r}
-# Merge classifications with other variables
-growth.paprica.asv.S17n <- growth.paprica.asv %>%
-  filter(Soil=="S17" & Amendment=="N") %>%
-  mutate(log_k = log(k)) %>%
-  left_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k) %>%
-  unique() # not sure why but the merge created duplicate rows
-
-growth.paprica.asv.C3n <- growth.paprica.asv %>%
-  filter(Soil=="C3" & Amendment=="N") %>%
-  mutate(log_k = log(k)) %>%
-  left_join(C3n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k) %>%
-  unique() # not sure why but the merge created duplicate rows
-
-growth.paprica.asv.S17y <- growth.paprica.asv %>%
-  filter(Soil=="S17" & Amendment=="Y") %>%
-  mutate(log_k = log(k)) %>%
-  left_join(S17y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k) %>%
-  unique() # not sure why but the merge created duplicate rows
-
-growth.paprica.asv.C3y <- growth.paprica.asv %>%
-  filter(Soil=="C3" & Amendment=="Y") %>%
-  mutate(log_k = log(k)) %>%
-  left_join(C3y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
-  select(everything(), -comp.1, -comp.2, -log_k) %>%
-  unique() # not sure why but the merge created duplicate rows
-
-# Merge all
-growth.paprica.asv.label <- bind_rows(growth.paprica.asv.S17n, growth.paprica.asv.C3n, growth.paprica.asv.S17y, growth.paprica.asv.C3y)
-```
-
-```{r}
-growth.paprica.asv.label %>%
-  ggplot(aes(x=Soil, y=log(n16S), color=label)) +
+# Visual
+clustered.data %>%
+  ggplot(aes(x=label, y=x, color=Amendment)) +
+  geom_jitter() +
   geom_boxplot() +
+  facet_wrap(~Soil) +
+  labs(y="k, ln") +
   theme_test()
 ```
 
-Not even going to bother testing that.
-
-
-### Change in abundance
-
-Hypothesis: Fast taxa experience greater change in abundance (boom-bust strategy)
-
 ```{r}
-growth.paprica.asv.label %>%
-  mutate(change_abund = end_abund - start_abund) %>%
-  ggplot(aes(x=Soil, y=log(change_abund), color=label)) +
-  geom_boxplot() +
-  theme_test()
+# Cropped
+# Fast water vs C
+C3fast.ttest <- lm(x ~ Amendment, data=clustered.data[clustered.data$Soil=="C3" & clustered.data$label=="fast",])
+hist(resid(C3fast.ttest))
+plot(predict(C3fast.ttest), resid(C3fast.ttest))
+summary(C3fast.ttest)
+
+# Slow water vs C
+C3slow.ttest <- lm(x ~ Amendment, data=clustered.data[clustered.data$Soil=="C3" & clustered.data$label=="slow",])
+hist(resid(C3slow.ttest))
+plot(predict(C3slow.ttest), resid(C3slow.ttest))
+summary(C3slow.ttest)
+
+# Successional
+# Fast water vs C
+S17fast.ttest <- lm(x ~ Amendment, data=clustered.data[clustered.data$Soil=="S17" & clustered.data$label=="fast",])
+hist(resid(S17fast.ttest))
+plot(predict(S17fast.ttest), resid(S17fast.ttest))
+summary(S17fast.ttest)
+
+# Slow water vs C
+S17slow.ttest <- lm(x ~ Amendment, data=clustered.data[clustered.data$Soil=="S17" & clustered.data$label=="slow",])
+hist(resid(S17slow.ttest))
+plot(predict(S17slow.ttest), resid(S17slow.ttest))
+summary(S17slow.ttest)
+
+# Multiple comparisons adjustment
+x <- p.adjust(p <- c(coefficients(summary(C3fast.ttest))[2,4], coefficients(summary(C3slow.ttest))[2,4], 
+                     coefficients(summary(S17fast.ttest))[2,4], coefficients(summary(S17slow.ttest))[2,4]),
+              method="BH",
+              n=length(p))
 ```
 
-### Start day
+That seems fishy. Why is C3 fast highly signifiant? The data almost entirely overlaps.
 
-Slow and fast groups might tend to experience lag more or less.
-
-Hypothesis: Fast taxa experience less lag.
-
-```{r}
-growth.paprica.asv.label %>%
-  ggplot(aes(x=Soil, y=log(start_day), color=label)) +
-  geom_boxplot() +
-  theme_test()
-```
-
-Seems like "groups" don't separate well based on other growth variables.
 
