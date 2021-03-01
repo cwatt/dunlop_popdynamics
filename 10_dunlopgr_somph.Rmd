@@ -40,12 +40,14 @@ som = som %>%
 som %>% 
   ggplot(aes(x=Soil, y=som)) +
   geom_boxplot() +
+  geom_jitter() +
   labs(y="Soil organic matter (%)") +
   theme_test()
 
 som %>% 
   ggplot(aes(x=Soil, y=som)) +
   geom_boxplot() +
+  geom_jitter() +
   facet_wrap(~Block) +
   labs(y="Soil organic matter (%)") +
   theme_test()
@@ -61,11 +63,11 @@ Simple linear model:
 Consulted statistician, with block having such a storng effect, suggested to use as main effect with interaction term.
 
 ```{r}
-som.lm = lm(som ~ Soil*Block, data=som)
+som.lm = lm(som ~ Soil+Block+Soil*Block, data=som)
 
 hist(resid(som.lm))
 plot(predict(som.lm), resid(som.lm))
-summary(som.lm)
+anova(som.lm)
 ```
 
 Overall significant effect of soil, strong interactive effect with block.
@@ -84,6 +86,7 @@ ph = ph %>%
 ph %>% 
   ggplot(aes(x=Soil, y=pH)) +
   geom_boxplot() +
+  geom_jitter() +
   labs(x="") +
   theme_test()
 
@@ -92,6 +95,7 @@ ph %>%
   geom_boxplot() +
   facet_wrap(~Block) +
   labs(x="") +
+  geom_jitter() +
   theme_test()
 ```
 
@@ -105,12 +109,12 @@ Simple linear model
 * Soil and Block as main effects with interaction term
 
 ```{r}
-ph.lm = lm(pH ~ Soil*Block, data=ph)
+ph.lm = lm(pH ~ Soil + Block + Soil*Block, data=ph)
 
 hist(resid(ph.lm)) # check normality
 plot(predict(ph.lm), resid(ph.lm)) # check variances
 
-summary(ph.lm)
+anova(ph.lm)
 ```
 
 There is a significant soil, block, and interaction between block and soil for pH.

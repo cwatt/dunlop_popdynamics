@@ -194,7 +194,7 @@ Hypotheses:
 ```{r}
 growth.asv %>%
   mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
-  ggplot(aes(x=log(change_abund), y=log(k))) +
+  ggplot(aes(x=log(k), y=log(change_abund))) +
   geom_point() +
   geom_smooth(method="lm") +
   facet_wrap(Soil~Amendment) +
@@ -236,7 +236,8 @@ chabundk.pcor <- chabundk.pcor %>%
                        "estimate"=chabundk.all.pcor$estimate, 
                        "pvalue"=chabundk.all.pcor$p.value)) %>%
   bind_cols(padj) %>% # add adjusted p-values
-  rename(padj=5)
+  rename(padj=5) %>%
+  select(everything(), -pvalue)
 
 # Results
 chabundk.pcor

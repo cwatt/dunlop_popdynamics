@@ -260,9 +260,10 @@ Filled circles are significant, unfilled circles are not significant.
 ```{r}
 # Overall
 p1 = ucosm.growth.asv %>%
-  ggplot(aes(x=log(k), y=fct_reorder(Phylum, -k))) +
+  ggplot(aes(x=log(k), y=fct_reorder(Phylum, -k), fill=Amendment)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2, shape=1) +
+  facet_wrap(~Soil) +
   labs(y = "", x = expression("Specific growth rate (ln day"^{-1}*")")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
