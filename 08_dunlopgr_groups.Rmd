@@ -130,7 +130,7 @@ See:
 * And: https://www.r-bloggers.com/2011/08/fitting-mixture-distributions-with-the-r-package-mixtools/
 
 
-**Successional water control**
+### Successional water control
 
 Starting here because it is the most clear-cut example.
 
@@ -326,7 +326,7 @@ summary(S17n.mixfit1)
 ```
 
 
-**Cropped water control**
+### Cropped water control
 
 Fit model:
 
@@ -497,7 +497,7 @@ summary(C3n.mixfit1)
 ```
 
 
-**Successional C amended**
+### Successional C-amended
 
 Fit model:
 
@@ -508,7 +508,7 @@ S17y <- growth.asv %>%
 
 # Fit model
 # Use multiple starting points to avoid finding a local but not global maxima
-S17y.mixfit1 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-1, -2), sigma = 0.3)
+S17y.mixfit1 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2, -1), sigma = 0.3)
 S17y.mixfit2 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-2.5, -0.5), sigma = 0.3)
 S17y.mixfit3 <- normalmixEM(log(S17y$k), lambda = .5, mu = c(-3.5, -1.5), sigma = 0.3)
 
@@ -606,7 +606,7 @@ S17y.mixfit.post <- as.data.frame(cbind(x = S17y.mixfit1$x, S17y.mixfit1$posteri
 
 # Visualize breakdown of observations
 S17y.mixfit.post %>%
-  mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>% 
+  mutate(label = ifelse(comp.1 > 0.5, "slow", "fast")) %>%
   ggplot(aes(x = factor(label))) +
   geom_bar() +
   labs(title="Successional C amended", x="Component", y="Number of Data Points") +
@@ -795,12 +795,12 @@ Compare clustered data to modeled distributions:
 
 ```{r}
 # clustered
-C3n.mixfit.post %>%
+C3y.mixfit.post %>%
   group_by(label) %>%
-  summarize(prop = n()/nrow(C3n.mixfit.post), mu = mean(x), sigma = sd(x))
+  summarize(prop = n()/nrow(C3y.mixfit.post), mu = mean(x), sigma = sd(x))
 
 # modeled
-summary(C3n.mixfit1)
+summary(C3y.mixfit1)
 ```
 
 
@@ -900,8 +900,135 @@ x <- p.adjust(p <- c(coefficients(summary(C3fast.ttest))[2,4], coefficients(summ
                      coefficients(summary(S17fast.ttest))[2,4], coefficients(summary(S17slow.ttest))[2,4]),
               method="BH",
               n=length(p))
+x
 ```
 
-That seems fishy. Why is C3 fast highly signifiant? The data almost entirely overlaps.
+Why is C3 fast highly signifiant? The data almost entirely overlaps. In any case, it seems that the results support the hypothesis. "Slow strategists" shift growth rate more in response to C availability.
 
 
+# Exploration
+
+Are there any other variables that group with growth rates?
+
+**Change in abundance**
+
+```{r}
+# Merge classifications with other variables
+growth.paprica.asv.S17n <- growth.paprica.asv %>%
+  filter(Soil=="S17" & Amendment=="N") %>%
+  mutate(log_k = log(k)) %>%
+  left_join(S17n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
+
+growth.paprica.asv.C3n <- growth.paprica.asv %>%
+  filter(Soil=="C3" & Amendment=="N") %>%
+  mutate(log_k = log(k)) %>%
+  left_join(C3n.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
+
+growth.paprica.asv.S17y <- growth.paprica.asv %>%
+  filter(Soil=="S17" & Amendment=="Y") %>%
+  mutate(log_k = log(k)) %>%
+  left_join(S17y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
+
+growth.paprica.asv.C3y <- growth.paprica.asv %>%
+  filter(Soil=="C3" & Amendment=="Y") %>%
+  mutate(log_k = log(k)) %>%
+  left_join(C3y.mixfit.post, by=c("log_k"="x", "Soil", "Amendment")) %>%
+  select(everything(), -comp.1, -comp.2, -log_k) %>%
+  unique() # not sure why but the merge created duplicate rows
+
+# Merge all
+growth.paprica.asv.label <- bind_rows(growth.paprica.asv.S17n, growth.paprica.asv.C3n, growth.paprica.asv.S17y, growth.paprica.asv.C3y)
+```
+
+
+**Start abundance**
+
+```{r}
+growth.paprica.asv.label %>%
+  ggplot(aes(x=log(k), y=log(start_abund), color=label)) +
+  geom_point(alpha=0.5) +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+
+growth.paprica.asv.label %>%
+  mutate(label = fct_relevel(label, "slow", "fast")) %>%
+  ggplot(aes(y=log(start_abund), color=label)) +
+  geom_boxplot() +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Not much differentiation.
+
+
+**Change in abundance**
+
+```{r}
+growth.paprica.asv.label %>%
+  mutate(change_abund = end_abund-start_abund) %>%
+  ggplot(aes(x=log(k), y=log(change_abund), color=label)) +
+  geom_point(alpha=0.5) +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+
+growth.paprica.asv.label %>%
+  mutate(change_abund = end_abund-start_abund) %>%
+  mutate(label = fct_relevel(label, "slow", "fast")) %>%
+  ggplot(aes(y=log(change_abund), color=label)) +
+  geom_boxplot() +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+There does seem to be some clustering here... Particularly in thewater control. C-amended treatment looks more continuous.
+
+
+**16S copy number**
+
+```{r}
+growth.paprica.asv.label %>%
+  ggplot(aes(x=log(k), y=n16S, color=label)) +
+  geom_point(alpha=0.5) +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+
+growth.paprica.asv.label %>%
+  mutate(label = fct_relevel(label, "slow", "fast")) %>%
+  ggplot(aes(y=n16S, color=label)) +
+  geom_boxplot() +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Wider variation in one group than another?
+
+
+**Genome size**
+
+```{r}
+growth.paprica.asv.label %>%
+  ggplot(aes(x=log(k), y=genome_size, color=label)) +
+  geom_point(alpha=0.5) +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+
+growth.paprica.asv.label %>%
+  mutate(label = fct_relevel(label, "slow", "fast")) %>%
+  ggplot(aes(y=genome_size, color=label)) +
+  geom_boxplot() +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Nah.
+
+
+**Summary**
+
+I'm not seeing many clear clusters except for in change abundance in water control soils. Maybe C-amendment makes the lines between strategies "blurrier"? It's possible we haven't measured variables that may help differentiate further.
