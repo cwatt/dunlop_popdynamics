@@ -181,7 +181,63 @@ growth.asv %>%
 ```
 
 02/10/21
-After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biolgical explanation from there.
+After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biological explanation from there.
+
+Permutation approach:
+
+* Shuffle 16S copy number and start day pairings
+* Calculate average 16S copy number after day 3 (chosen as "slow" responders)
+* Repeat 1000x
+* See how likely actual result is based on permuted results, if the actual result is less than the 50th lowest average consitutes 95% CI
+
+One way to try to establish that the pattern observed is non-random, ie show that the tail at the end is a real signal.
+
+```{r}
+actual <- growth.asv %>%
+  na.omit() %>%
+  filter(start_day > 3) %>%
+  group_by() %>%
+  summarize(avg_n16S = mean(n16S))
+
+# Permute
+perm.n16S <- c()
+for (i in 1:1000) {
+  dat <- growth.asv %>% na.omit()
+  dat$n16S <- sample(dat$n16S, replace=FALSE) # shuffle 16S copy number column
+  avg.n16S <- dat %>%
+    filter(start_day > 3) %>%
+    group_by() %>%
+    summarize(avg_n16S = mean(n16S)) %>%
+    as.numeric()
+  perm.n16S <- c(perm.n16S, avg.n16S)
+}
+
+hist(perm.n16S)
+perm.n16S <- sort(perm.n16S)
+actual < perm.n16S[50]
+```
+
+Statistical evidence (P < 0.05) that the low value past day 3 isn't just due to random chance.
+
+Spearman rank correlation:
+
+```{r}
+cor.test(growth.asv$start_day, growth.asv$n16S, method="spearman")
+```
+
+
+
+# 16S copy number vs change in abundance
+
+```{r}
+growth.asv %>%
+  mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
+  ggplot(aes(x=n16S, y=log(change_abund))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
 
 
 # Change in abundance vs specific growth rate

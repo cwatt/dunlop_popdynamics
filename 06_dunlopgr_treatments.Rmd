@@ -264,3 +264,55 @@ data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs
 
 Not enough power.
 
+
+# Create figure
+
+```{r}
+plot.start <- growth.trt %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17")) %>%
+  ggplot(aes(y=start_day, x=Soil)) +
+  geom_jitter(aes(shape=Amendment), width=0.1) +
+  scale_shape_manual(values=c(19,1)) +
+  labs(y="Start day", x="") +
+  theme_test() +
+  theme(legend.position="none")
+plot.start
+
+plot.abund <- growth.trt %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17")) %>%
+  ggplot(aes(y=change_abund, x=Soil)) +
+  geom_jitter(aes(shape=Amendment), width=0.1) +
+  scale_shape_manual(values=c(19,1)) +
+  labs(y="Change in normalized abundance", x="") +
+  theme_test() +
+  theme(legend.position="none")
+plot.abund
+
+plot.rate <- growth.trt %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17")) %>%
+  ggplot(aes(y=k, x=Soil)) +
+  geom_jitter(aes(shape=Amendment), width=0.1) +
+  scale_shape_manual(values=c(19,1)) +
+  labs(y="Specific growth rate (units)", x="") +
+  theme_test() +
+  theme(legend.position="none")
+plot.rate
+
+plot.legend <- growth.trt %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17")) %>%
+  ggplot(aes(y=start_day, x=Soil)) +
+  geom_jitter(aes(shape=Amendment), width=0.1) +
+  scale_shape_manual(values=c(19,1)) +
+  labs(y="Start day", x="") +
+  theme_test() +
+  theme(legend.position="top")
+
+legend <- get_legend(plot.legend)
+
+figure <- plot_grid(legend, plot.start, plot.abund, plot.rate, ncol=1, rel_heights = c(0.1,1,1,1))
+figure
+
+# save figure
+ggsave(figure, filename="figures/fig3_treatments.png", units="mm", width=90, height=200)
+```
+
