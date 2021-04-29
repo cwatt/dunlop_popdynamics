@@ -194,6 +194,53 @@ C3y.class <- C3y %>%
 
 It looks like a model with a single distribution best fits this treatment, rather than 2 distributions.
 
+# Figure
+
+```{r}
+#pro
+#0.1473935 0.8526065
+#$mean
+#-3.165505 -1.402565 
+#variance$sigmasq
+#[1] 0.1338452
+
+plot1 <- growth.asv %>%
+  filter(Soil=="C3", Amendment=="N") %>%
+  mutate(Treatment = as_factor(paste0(Soil, Amendment)),
+         Treatment = fct_relevel(Treatment, c("C3N", "S17N", "C3Y", "S17N")), # BROKEN
+         Treatment = fct_recode(Treatment, 'Cropped, water'="C3N", 'Cropped, resources'="C3Y", 'Successional, water'="S17N", 'Successional, resources'="S17Y")) %>%
+  ggplot() +
+  geom_density(aes(x=log(k))) +
+  labs(y="Kernel density", x="Specific growth rate (units), ln") +
+  stat_function(fun = dnorm, n = 100, args = list(mean = -3.165505, sd = 0.1338452)) +
+  stat_function(fun = dnorm, n = 100, args = list(mean = -1.402565, sd = 0.1338452)) +
+  theme_test() +
+  theme(text = element_text(size=9),
+        strip.text.x = element_text(size = 10, hjust = 0),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+plot1
+
+```
+
+```{r}
+#faceted
+plot <- growth.asv %>%
+  mutate(Treatment = as_factor(paste0(Soil, Amendment)),
+         Treatment = fct_relevel(Treatment, c("C3N", "S17N", "C3Y", "S17N")), # BROKEN
+         Treatment = fct_recode(Treatment, 'Cropped, water'="C3N", 'Cropped, resources'="C3Y", 'Successional, water'="S17N", 'Successional, resources'="S17Y")) %>%
+  ggplot() +
+  geom_density(aes(x=log(k))) +
+  facet_wrap(~Treatment) +
+  labs(y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_test() +
+  theme(text = element_text(size=9),
+        strip.text.x = element_text(size = 10, hjust = 0),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+plot
+```
+
 
 ### Summarize results
 

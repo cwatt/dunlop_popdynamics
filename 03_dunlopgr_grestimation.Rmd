@@ -812,18 +812,16 @@ gr.asvs <- gr.final %>% select(ASV) %>% unique()
 write.txt(gr.asvs, )
 ```
 
-# Figures
-
-Choosing example "growth curves" to represent diversity of taxonomies and growth rates.
+# Figure
 
 ```{r}
 # Import data (from script 04)
 
 # Microcosm data
-ucosm <- readRDS(file="rdata.files/ucosm.norm.cleaned.rds")
+ucosm <- readRDS(file="rdata.files/gr_ucosm.norm.clean.rds")
 
 # Growth rate estimations
-gr.est <- readRDS(file="rdata.files/gr.final.cleaned.rds")
+gr.est <- readRDS(file="rdata.files/gr_gr.final_rm0.rds")
 ```
 
 
@@ -847,8 +845,10 @@ p1.data <- ucosm.clean %>%
 
 p1 <- ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
+  geom_point(data = p1.data[p1.estimate$Start,], color="#A9A9A9") +
+  geom_point(data = p1.data[p1.estimate$End,], color="#A9A9A9") +
   geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p1.data[p1.estimate$start_tp:p1.estimate$end_tp,], color="black", fill="gray", linetype=2, alpha=0.5) +
+  geom_smooth(method="lm", data=p1.data[p1.estimate$Start:p1.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, alpha=0.5) +
   labs(title=paste(unique(p1.data$Phylum), ", ", unique(p1.data$Genus), sep=""), y="ln normalized abundance") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -858,7 +858,7 @@ p1 <- ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text = element_text(size = 8))
+        axis.text = element_text(size = 9))
 p1
 
 # Example 2: Streptomyces
@@ -869,8 +869,10 @@ p2.data <- ucosm.clean %>%
 
 p2 <- ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
+  geom_point(data = p2.data[p2.estimate$Start,], color="#A9A9A9") +
+  geom_point(data = p2.data[p2.estimate$End,], color="#A9A9A9") +
   geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p2.data[p2.estimate$start_tp:p2.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
+  geom_smooth(method="lm", data=p2.data[p2.estimate$Start:p2.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
   labs(title=paste(unique(p2.data$Phylum), ", ", unique(p2.data$Genus), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -880,7 +882,7 @@ p2 <- ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text = element_text(size = 8))
+        axis.text = element_text(size = 9))
 p2
 
 # Example 3: Acidobacteria
@@ -891,8 +893,10 @@ p3.data <- ucosm.clean %>%
 
 p3 <- ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
+  geom_point(data = p3.data[p3.estimate$Start,], color="#A9A9A9") +
+  geom_point(data = p3.data[p3.estimate$End,], color="#A9A9A9") +
   geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p3.data[p3.estimate$start_tp:p3.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
+  geom_smooth(method="lm", data=p3.data[p3.estimate$Start:p3.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
   labs(title=paste(unique(p3.data$Phylum), ", ", unique(p3.data$Genus), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -902,7 +906,7 @@ p3 <- ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text = element_text(size = 8))
+        axis.text = element_text(size = 9))
 p3
 
 # Example 4: Planctomyces
@@ -913,8 +917,10 @@ p4.data <- ucosm.clean %>%
 
 p4 <- ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(color="#676366", shape=1) +
+  geom_point(data = p4.data[p4.estimate$Start,], color="#A9A9A9") +
+  geom_point(data = p4.data[p4.estimate$End,], color="#A9A9A9") +
   geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p4.data[p4.estimate$start_tp:p4.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
+  geom_smooth(method="lm", data=p4.data[p4.estimate$Start:p4.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
   labs(title=paste(unique(p4.data$Phylum), ", ", unique(p4.data$Family), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -924,19 +930,16 @@ p4 <- ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text = element_text(size = 8))
+        axis.text = element_text(size = 9))
 p4
 
 example.curves <- plot_grid(p1, p2, p3, p4)
 example.curves
+
+ggsave(example.curves, file="figures/fig2_examplegrowth.png", units="mm", width=180, height=95)
 ```
 
-Cowplot doesn't have a built-in method for adding axis titles that span graphs, so I'll do that in adobe illustrator.
-
-```{r, eval=FALSE}
-ggsave(plot = example.curves, file = "figures/fig_examplegrowth.pdf", device=pdf, width=180, height=95, unit="mm")
-```
-
+Cowplot doesn't have a built-in method for adding axis titles that span graphs.
 
 
 

@@ -280,3 +280,27 @@ print(paste("Succ. amended vs unamended, adj. p-value:", fish.padj[4]))
 
 Cropped vs. successional water control significant.
 Cropped water control vs. C-amended signficiant.
+
+# Figures
+
+```{r}
+plot <- growth.asv %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Succesional = "S17"),
+         Amendment = fct_relevel(Amendment, c("N", "Y")),
+         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
+  ggplot() +
+  geom_density(aes(x=log(k), fill=Soil), alpha=0.5) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  facet_wrap(~Amendment, scales="fixed") +
+  labs(y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(text = element_text(size=9),
+        strip.text.x = element_text(size = 10, hjust = 0),
+        legend.position = "right",
+        legend.justification = "top",
+        strip.background = element_blank())
+plot
+
+ggsave(plot, filename="figures/fig_distributions.png", units="mm", width=140, height=60)
+```
+
