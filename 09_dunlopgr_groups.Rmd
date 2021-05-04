@@ -196,50 +196,149 @@ It looks like a model with a single distribution best fits this treatment, rathe
 
 # Figure
 
-```{r}
-#pro
-#0.1473935 0.8526065
-#$mean
-#-3.165505 -1.402565 
-#variance$sigmasq
-#[1] 0.1338452
+Code to create and plot clusters borrowed from https://github.com/jlw-ecoevo/eggo/blob/master/Scripts/RefSeq_Analysis.R
 
+```{r}
+# Generate clusters for graphing, scaled to proportion
+C3n.clusters <- data.frame(x = seq(-5,0.5,0.01),
+                    cl1 = dnorm(seq(-5,0.5,0.01),
+                              mean = C3n.mclust$parameters$mean[1],
+                              sd = sqrt(C3n.mclust$p$variance$sigmasq))*C3n.mclust$parameters$pro[1],
+                    cl2 = dnorm(seq(-5,0.5,0.01),
+                              mean = C3n.mclust$parameters$mean[2],
+                              sd = sqrt(C3n.mclust$p$variance$sigmasq))*C3n.mclust$parameters$pro[2])
+
+# Plot
 plot1 <- growth.asv %>%
   filter(Soil=="C3", Amendment=="N") %>%
-  mutate(Treatment = as_factor(paste0(Soil, Amendment)),
-         Treatment = fct_relevel(Treatment, c("C3N", "S17N", "C3Y", "S17N")), # BROKEN
-         Treatment = fct_recode(Treatment, 'Cropped, water'="C3N", 'Cropped, resources'="C3Y", 'Successional, water'="S17N", 'Successional, resources'="S17Y")) %>%
   ggplot() +
+  geom_polygon(data=C3n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=C3n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
   geom_density(aes(x=log(k))) +
-  labs(y="Kernel density", x="Specific growth rate (units), ln") +
-  stat_function(fun = dnorm, n = 100, args = list(mean = -3.165505, sd = 0.1338452)) +
-  stat_function(fun = dnorm, n = 100, args = list(mean = -1.402565, sd = 0.1338452)) +
-  theme_test() +
-  theme(text = element_text(size=9),
-        strip.text.x = element_text(size = 10, hjust = 0),
+  labs(title="Cropped, water", y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(plot.title = element_text(size=9),
+        text = element_text(size=9),
         strip.background = element_blank(),
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
 plot1
-
 ```
 
 ```{r}
-#faceted
-plot <- growth.asv %>%
-  mutate(Treatment = as_factor(paste0(Soil, Amendment)),
-         Treatment = fct_relevel(Treatment, c("C3N", "S17N", "C3Y", "S17N")), # BROKEN
-         Treatment = fct_recode(Treatment, 'Cropped, water'="C3N", 'Cropped, resources'="C3Y", 'Successional, water'="S17N", 'Successional, resources'="S17Y")) %>%
+# Generate clusters for graphing, scaled to proportion
+C3y.clusters <- data.frame(x = seq(-5,0.5,0.01),
+                    cl1 = dnorm(seq(-5,0.5,0.01),
+                              mean = C3y.mclust$parameters$mean[1],
+                              sd = sqrt(C3y.mclust$parameters$variance$sigmasq)))
+
+# Plot
+plot2 <- growth.asv %>%
+  filter(Soil=="C3", Amendment=="Y") %>%
   ggplot() +
+  geom_polygon(data=C3y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
   geom_density(aes(x=log(k))) +
-  facet_wrap(~Treatment) +
-  labs(y="Kernel density", x="Specific growth rate (units), ln") +
-  theme_test() +
-  theme(text = element_text(size=9),
-        strip.text.x = element_text(size = 10, hjust = 0),
+  labs(title="Cropped, resources", y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(plot.title = element_text(size=9),
+        text = element_text(size=9),
         strip.background = element_blank(),
-        axis.line = element_line(colour = "black"))
-plot
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
+plot2
 ```
+
+```{r}
+# Generate clusters for graphing, scaled to proportion
+S17n.clusters <- data.frame(x = seq(-5,0.5,0.01),
+                    cl1 = dnorm(seq(-5,0.5,0.01),
+                              mean = S17n.mclust$parameters$mean[1],
+                              sd = sqrt(S17n.mclust$p$variance$sigmasq[1]))*S17n.mclust$parameters$pro[1],
+                    cl2 = dnorm(seq(-5,0.5,0.01),
+                              mean = S17n.mclust$parameters$mean[2],
+                              sd = sqrt(S17n.mclust$p$variance$sigmasq[2]))*S17n.mclust$parameters$pro[2])
+
+# Plot
+plot3 <- growth.asv %>%
+  filter(Soil=="S17", Amendment=="N") %>%
+  ggplot() +
+  geom_polygon(data=S17n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=S17n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
+  geom_density(aes(x=log(k))) +
+  labs(title="Successional, water", y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(plot.title = element_text(size=9),
+        text = element_text(size=9),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
+plot3
+```
+
+```{r}
+# Generate clusters for graphing, scaled to proportion
+S17y.clusters <- data.frame(x = seq(-5,0.5,0.01),
+                    cl1 = dnorm(seq(-5,0.5,0.01),
+                              mean = S17y.mclust$parameters$mean[1],
+                              sd = sqrt(S17y.mclust$p$variance$sigmasq[1]))*S17y.mclust$parameters$pro[1],
+                    cl2 = dnorm(seq(-5,0.5,0.01),
+                              mean = S17y.mclust$parameters$mean[2],
+                              sd = sqrt(S17y.mclust$p$variance$sigmasq[2]))*S17y.mclust$parameters$pro[2])
+
+# Plot
+plot4 <- growth.asv %>%
+  filter(Soil=="S17", Amendment=="Y") %>%
+  ggplot() +
+  geom_polygon(data=S17y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=S17y.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
+  geom_density(aes(x=log(k))) +
+  labs(title="Successional, resources", y="Kernel density", x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(plot.title = element_text(size=9),
+        text = element_text(size=9),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
+plot4
+```
+
+```{r}
+figure <- plot_grid(plot1, plot2, plot3, plot4)
+figure
+
+ggsave(figure, filename="figures/fig_groups.png", units="mm", width=85, height=85)
+```
+
+```{r}
+plot(C3n.mclust$BIC) +
+title("Cropped, water")
+plot(S17n.mclust$BIC) +
+title("Succesional, water")
+plot(C3y.mclust$BIC) +
+title("Cropped, resources")
+plot(S17y.mclust$BIC) +
+title("Succesional, water")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### Summarize results

@@ -310,26 +310,28 @@ Possible interpretation: faster growing taxa are more competitive for flush of r
 plot1 <- growth.asv %>%
   ggplot(aes(x=log(k), y=n16S)) +
   geom_point(shape=1, alpha= 0.5) +
-  labs(title="16S rRNA copy numbers", subtitle = "Overall", x="Specific growth rate (units)") +
+  labs(title = "Overall", x="Specific growth rate (units)", y="16S rRNA copy number") +
   theme_classic() +
   theme(plot.title = element_text(size=9),
         text = element_text(size=9),
-        axis.title.y = element_blank(),
+        #axis.title.y = element_blank(),
         axis.title.x = element_blank())
 
 plot2 <- growth.asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
-                                'Successional, water' = "S17N", 'Successional, resources' = "S17Y")) %>%
+                                'Successional, water' = "S17N", 'Successional, resources' = "S17Y"),
+         Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
+                                                 "Successional, water", "Successional, resources"))) %>%
   ggplot(aes(x=log(k), y=n16S)) +
   geom_point(shape=1, alpha= 0.5) +
   facet_wrap(~Treatment) +
-  labs(x="Specific growth rate, ln (units)") +
+  labs(subtitle="Treatments", x="Specific growth rate, ln (units)", y="16S rRNA copy number") +
   theme_test() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 9, hjust = 0),
         axis.line = element_line(colour = "black"),
-        axis.title.y = element_blank(),
+        #axis.title.y = element_blank(),
         strip.background = element_blank())
 
 figure <- plot_grid(plot1, plot2, cols=1, rel_heights = c(0.8,1))
@@ -344,10 +346,12 @@ Change in abundance vs 16S copy number
 plot3 <- growth.asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
-                                'Successional, water' = "S17N", 'Successional, resources' = "S17Y")) %>%
+                                'Successional, water' = "S17N", 'Successional, resources' = "S17Y"),
+         Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
+                                                 "Successional, water", "Successional, resources"))) %>%
   ggplot(aes(x=log(k), y=log(change_abund))) +
   geom_point(shape=1, alpha= 0.5) +
-  geom_smooth(method="lm", linetype=2, color="black") +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8) +
   facet_wrap(~Treatment) +
   labs(x="Specific growth rate (units), ln", y="Change in abundance, ln") +
   theme_test() +

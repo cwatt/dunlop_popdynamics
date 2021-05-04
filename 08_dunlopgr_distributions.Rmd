@@ -304,3 +304,37 @@ plot
 ggsave(plot, filename="figures/fig_distributions.png", units="mm", width=140, height=60)
 ```
 
+
+```{r}
+plot2 <- growth.asv %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Succesional = "S17"),
+         Amendment = fct_relevel(Amendment, c("N", "Y")),
+         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
+  ggplot() +
+  geom_histogram(aes(x=log(k))) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  facet_wrap(Soil~Amendment, scales="fixed") +
+  labs(x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(text = element_text(size=8),
+        strip.text.x = element_text(size = 8, hjust = 0),
+        legend.position = "right",
+        legend.justification = "top",
+        strip.background = element_blank())
+plot2
+
+ggsave(plot2, filename="figures/suppfig_hist.png", units="mm", width=140, height=60)
+```
+
+```{r}
+plot3 <- ggplot(bin.data) +
+  geom_boxplot(aes(x=Bin, y=bin_freq, fill=Amendment)) +
+  facet_wrap(~Soil) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  theme_test() +
+  labs(x="Bins, slow to fast", y="Taxa count")
+plot3
+
+ggsave(plot3, filename="figures/suppfig_bins.png", units="mm", width=140, height=60)
+```
+

@@ -242,7 +242,7 @@ Visualize:
 
 ```{r, results="show"}
 # plot correlograms
-ggplot(data=growth.crlg, aes(x=class.index, y=Mantel.cor)) +
+plot1 <- ggplot(data=growth.crlg, aes(x=class.index, y=Mantel.cor)) +
   geom_point(data=growth.crlg[growth.crlg$sig=="significant",], color="black", size=2, shape=16) +
   geom_point(data=growth.crlg[growth.crlg$sig=="non-significant",], color="black", size=2, shape=1) +
   geom_line() +
@@ -250,6 +250,9 @@ ggplot(data=growth.crlg, aes(x=class.index, y=Mantel.cor)) +
   labs(x="Phylogenetic distance", y="Mantel correlation (specific growth rate)") +
   facet_grid(Soil~Amend) +
   theme_test()
+plot1
+
+ggsave(plot1, file="figures/suppfig_phylcons.png", width=140, height=80, units="mm")
 ```
 
 Filled circles are significant, unfilled circles are not significant.
