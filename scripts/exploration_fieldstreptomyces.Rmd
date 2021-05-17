@@ -1,0 +1,69 @@
+---
+title: "Field data Streptomyces"
+author: "Cassandra Wattenburger"
+date: "5/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r}
+rm(list=ls())
+library(phyloseq)
+library(tidyverse)
+```
+
+Load field data
+
+```{r}
+load(file="rdata.files/gr_physeq.rarefy.RData")
+physeq.rarefy
+```
+
+Subset Streptomyces and field samples
+
+```{r}
+physeq.strep <- subset_taxa(physeq.rarefy, Genus=="Streptomyces")
+physeq.strep <- subset_samples(physeq.strep, Experiment=="Field")
+physeq.strep
+otu_table(physeq.strep)
+```
+
+Reformat
+
+```{r}
+count <- data.frame(otu_table(physeq.strep))
+meta <- data.frame(sample_data(physeq.strep))
+tax <- data.frame(tax_table(physeq.strep))
+
+count.m <- as.matrix(count)
+count.t <- as.data.frame(t(count.m)) %>%
+  rownames_to_column("Sample")
+meta <- rownames_to_column(meta, "Sample")
+count.meta <- inner_join(meta, count.t, by="Sample") %>%
+  select(everything(), -c(Sample, primer_number, BarcodeSequence, Cammend, Other, TimePoint, Days, Experiment))
+```
+
+Read counts per sample
+
+```{r}
+count.meta %>%
+  pivot_longer(!c(SampleID, Soil, Block), names_to = "ASV" , values_to = "reads") %>%
+  filter(reads != 0) %>%
+  ggplot(aes(x=Soil, y=reads, color=ASV)) +
+  geom_boxplot() +
+  #facet_wrap(~Block) +
+  theme_test()
+```
+
+
+
+
+
+
+

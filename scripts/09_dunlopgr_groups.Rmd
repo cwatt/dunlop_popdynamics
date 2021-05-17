@@ -34,7 +34,7 @@ set.seed(2) # mclust uses EM algorhythm which is iterative and random
 # Import data
 
 ```{r}
-growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
 Average across replicates to get a single estimated growth rate for each taxa in each treatment.
@@ -306,7 +306,7 @@ plot4
 figure <- plot_grid(plot1, plot2, plot3, plot4)
 figure
 
-ggsave(figure, filename="figures/fig_groups.png", units="mm", width=85, height=85)
+ggsave(figure, filename="../figures/fig_groups.png", units="mm", width=85, height=85)
 ```
 
 ```{r}
