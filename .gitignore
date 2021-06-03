@@ -25,6 +25,7 @@ field_comparison/
 # Files
 *.csv
 *.tsv
+*scrap*
 
 # Other
 .RData
