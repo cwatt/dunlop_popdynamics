@@ -185,6 +185,7 @@ summary(C3y.mclust)
 plot(C3y.mclust$BIC)
 C3y.mclust$parameters
 plot(C3y.mclust, what = "density", data = log(C3y$k))
+C3y.boot <- MclustBootstrap(C3y.mclust, nboot=999, type="bs", verbose=FALSE)
 
 # Add classifications
 C3y.class <- C3y %>%
@@ -212,8 +213,8 @@ C3n.clusters <- data.frame(x = seq(-5,0.5,0.01),
 plot1 <- growth.asv %>%
   filter(Soil=="C3", Amendment=="N") %>%
   ggplot() +
-  geom_polygon(data=C3n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
-  geom_polygon(data=C3n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=C3n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="blue") +
+  geom_polygon(data=C3n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black", fill="red") +
   geom_density(aes(x=log(k))) +
   labs(title="Cropped, water", y="Kernel density", x="Specific growth rate (units), ln") +
   theme_classic() +
@@ -236,7 +237,7 @@ C3y.clusters <- data.frame(x = seq(-5,0.5,0.01),
 plot2 <- growth.asv %>%
   filter(Soil=="C3", Amendment=="Y") %>%
   ggplot() +
-  geom_polygon(data=C3y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=C3y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="purple") +
   geom_density(aes(x=log(k))) +
   labs(title="Cropped, resources", y="Kernel density", x="Specific growth rate (units), ln") +
   theme_classic() +
@@ -262,8 +263,8 @@ S17n.clusters <- data.frame(x = seq(-5,0.5,0.01),
 plot3 <- growth.asv %>%
   filter(Soil=="S17", Amendment=="N") %>%
   ggplot() +
-  geom_polygon(data=S17n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
-  geom_polygon(data=S17n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=S17n.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="blue") +
+  geom_polygon(data=S17n.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black", fill="red") +
   geom_density(aes(x=log(k))) +
   labs(title="Successional, water", y="Kernel density", x="Specific growth rate (units), ln") +
   theme_classic() +
@@ -289,8 +290,8 @@ S17y.clusters <- data.frame(x = seq(-5,0.5,0.01),
 plot4 <- growth.asv %>%
   filter(Soil=="S17", Amendment=="Y") %>%
   ggplot() +
-  geom_polygon(data=S17y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black") +
-  geom_polygon(data=S17y.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black") +
+  geom_polygon(data=S17y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="blue") +
+  geom_polygon(data=S17y.clusters, aes(x=x, y=cl2), linetype=2, alpha=0.6, color="black", fill="red") +
   geom_density(aes(x=log(k))) +
   labs(title="Successional, resources", y="Kernel density", x="Specific growth rate (units), ln") +
   theme_classic() +
@@ -303,6 +304,7 @@ plot4
 ```
 
 ```{r}
+library(cowplot)
 figure <- plot_grid(plot1, plot2, plot3, plot4)
 figure
 

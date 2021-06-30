@@ -32,7 +32,7 @@ rm(list=ls())
 # Import growth data
 
 ```{r}
-growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
 
@@ -285,7 +285,7 @@ Cropped water control vs. C-amended signficiant.
 
 ```{r}
 plot <- growth.asv %>%
-  mutate(Soil = fct_recode(Soil, Cropped = "C3", Succesional = "S17"),
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
          Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
   ggplot() +
@@ -301,13 +301,13 @@ plot <- growth.asv %>%
         strip.background = element_blank())
 plot
 
-ggsave(plot, filename="figures/fig_distributions.png", units="mm", width=140, height=60)
+ggsave(plot, filename="../figures/fig_distributions.png", units="mm", width=140, height=60)
 ```
 
 
 ```{r}
 plot2 <- growth.asv %>%
-  mutate(Soil = fct_recode(Soil, Cropped = "C3", Succesional = "S17"),
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
          Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
   ggplot() +
@@ -323,7 +323,7 @@ plot2 <- growth.asv %>%
         strip.background = element_blank())
 plot2
 
-ggsave(plot2, filename="figures/suppfig_hist.png", units="mm", width=140, height=60)
+ggsave(plot2, filename="../figures/suppfig_hist.png", units="mm", width=140, height=60)
 ```
 
 ```{r}
@@ -335,6 +335,28 @@ plot3 <- ggplot(bin.data) +
   labs(x="Bins, slow to fast", y="Taxa count")
 plot3
 
-ggsave(plot3, filename="figures/suppfig_bins.png", units="mm", width=140, height=60)
+ggsave(plot3, filename="../figures/suppfig_bins.png", units="mm", width=140, height=60)
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+S17n.plot <- growth.asv %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
+         Amendment = fct_relevel(Amendment, c("N", "Y")),
+         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
+  filter(Soil=="Successional", Amendment=="Water amendment") +
+  ggplot() +
+  geom_histogram(aes(x=log(k))) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  labs(x="Specific growth rate (units), ln") +
+  theme_classic() +
+  theme(text = element_text(size=8),
+        strip.text.x = element_text(size = 8, hjust = 0),
+        legend.position = "right",
+        legend.justification = "top",
+        strip.background = element_blank())
+
+
+
 ```
 
