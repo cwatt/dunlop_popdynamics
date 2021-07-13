@@ -292,7 +292,7 @@ plot <- growth.asv %>%
   geom_density(aes(x=log(k), fill=Soil), alpha=0.5) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
   facet_wrap(~Amendment, scales="fixed") +
-  labs(y="Kernel density", x="Specific growth rate (units), ln") +
+  labs(y="Kernel density", x="ln(Specific growth rate)") +
   theme_classic() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 10, hjust = 0),
@@ -307,32 +307,36 @@ ggsave(plot, filename="../figures/fig_distributions.png", units="mm", width=140,
 
 ```{r}
 plot2 <- growth.asv %>%
-  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
-         Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
+  mutate(treatment = case_when(Soil=="C3" & Amendment=="N" ~ "Cropped, water",
+                               Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
+                               Soil=="S17" & Amendment=="N" ~ "Successional, water",
+                               Soil=="S17" & Amendment=="Y" ~ "Successional, resources")) %>%
   ggplot() +
   geom_histogram(aes(x=log(k))) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
-  facet_wrap(Soil~Amendment, scales="fixed") +
-  labs(x="Specific growth rate (units), ln") +
-  theme_classic() +
+  facet_wrap(~treatment, scales="fixed") +
+  labs(x="ln(Specific growth rate)", y="Frequency") +
+  theme_test() +
   theme(text = element_text(size=8),
         strip.text.x = element_text(size = 8, hjust = 0),
         legend.position = "right",
-        legend.justification = "top",
-        strip.background = element_blank())
+        legend.justification = "top")
 plot2
 
 ggsave(plot2, filename="../figures/suppfig_hist.png", units="mm", width=140, height=60)
 ```
 
 ```{r}
-plot3 <- ggplot(bin.data) +
+plot3 <- bin.data %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
+         Amendment = fct_relevel(Amendment, c("N", "Y")),
+         Amendment = fct_recode(Amendment, 'Resources' = "Y", 'Water' = "N")) %>%
+  ggplot() +
   geom_boxplot(aes(x=Bin, y=bin_freq, fill=Amendment)) +
   facet_wrap(~Soil) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
   theme_test() +
-  labs(x="Bins, slow to fast", y="Taxa count")
+  labs(x="Bins, slow to fast", y="ASV count")
 plot3
 
 ggsave(plot3, filename="../figures/suppfig_bins.png", units="mm", width=140, height=60)

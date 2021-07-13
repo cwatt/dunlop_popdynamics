@@ -30,7 +30,7 @@ rm(list=ls())
 
 ```{r}
 # Import data
-som = read_csv("biogeochem_data/growthrate_insitu_som.csv")
+som = read_csv("../data_biogeochem/growthrate_insitu_som.csv")
 som = som %>% 
   filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
   mutate(som = (Preignition - Postignition) / (Preignition - Crucible) * 100, # calculate % SOM
@@ -77,7 +77,7 @@ Overall significant effect of soil, strong interactive effect with block.
 
 ```{r}
 # Import data
-ph = read_csv("biogeochem_data/growthrate_insitu_ph.csv")
+ph = read_csv("../data_biogeochem/growthrate_insitu_ph.csv")
 ph = ph %>% 
   filter((Soil=="S" & Year==17) | (Soil=="C" & Year==3)) %>%
   mutate(Soil = parse_factor(Soil),

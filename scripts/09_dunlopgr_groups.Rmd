@@ -320,5 +320,5 @@ plot(C3y.mclust$BIC) +
 title("Cropped, resources")
 plot(S17y.mclust$BIC) +
 title("Succesional, water")
-
 ```
+

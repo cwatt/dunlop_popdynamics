@@ -289,7 +289,7 @@ saveRDS(totalspikesum, file="rdata.files/gr_intstd.csv")
 library(tidyverse)
 library(cowplot)
 
-totalspikesum <- readRDS(file="rdata.files/gr_intstd.csv")
+totalspikesum <- readRDS(file="../rdata.files/gr_intstd.csv")
 
 # Clean up the dataframe for plotting
 intstd = totalspikesum %>%
@@ -301,7 +301,7 @@ intstd = totalspikesum %>%
 p1 = intstd %>%
   ggplot(aes(x=DNA_conc, y=log(spike_perc))) +
   geom_point(size=1, shape=1) +
-  labs(x="DNA concentration (ng/\u03BCL)", y="Internal standard (% of reads), ln") +
+  labs(x="Sample DNA concentration (ng/\u03BCL)", y="ln(Internal standard, % reads)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
@@ -332,6 +332,6 @@ p2
 ```{r, eval = FALSE}
 library(Cairo)
 #device=cairo_pdf,
-ggsave(p1, file = "figures/suppfig_dnavsintstd.png", width = 90, height = 90, unit="mm")
+ggsave(p1, file = "../figures/suppfig_dnavsintstd.png", width = 90, height = 90, unit="mm")
 ```
 

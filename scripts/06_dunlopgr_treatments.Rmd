@@ -320,7 +320,7 @@ plot <- growth.trt %>%
          'Start day' = "start_day", 
          'Change in abundance' = "change_abund", 
          'Specific growth rate' = "k",
-         '16S copy number' = "n16S")) %>%
+         'rrn copy number' = "n16S")) %>%
   ggplot(aes(y=value, x=Soil)) +
   geom_jitter(aes(shape=Amendment), width=0.1) +
   scale_shape_manual(values=c(19,1)) +

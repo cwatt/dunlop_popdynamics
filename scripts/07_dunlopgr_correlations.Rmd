@@ -28,7 +28,7 @@ rm(list=ls())
 # Import data
 
 ```{r}
-growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
 
@@ -309,8 +309,8 @@ Possible interpretation: faster growing taxa are more competitive for flush of r
 ```{r}
 plot1 <- growth.asv %>%
   ggplot(aes(x=log(k), y=n16S)) +
-  geom_point(shape=1, alpha= 0.5) +
-  labs(title = "Overall", x="Specific growth rate (units)", y="16S rRNA copy number") +
+  geom_point(shape=1, alpha= 0.3) +
+  labs(title = "Overall", x="ln(Specific growth rate)", y="rrn copy number") +
   theme_classic() +
   theme(plot.title = element_text(size=9),
         text = element_text(size=9),
@@ -324,9 +324,9 @@ plot2 <- growth.asv %>%
          Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
                                                  "Successional, water", "Successional, resources"))) %>%
   ggplot(aes(x=log(k), y=n16S)) +
-  geom_point(shape=1, alpha= 0.5) +
+  geom_point(shape=1, alpha= 0.35) +
   facet_wrap(~Treatment) +
-  labs(subtitle="Treatments", x="Specific growth rate, ln (units)", y="16S rRNA copy number") +
+  labs(subtitle="Treatments", x="ln(Specific growth rate)", y="rrn copy number") +
   theme_test() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 9, hjust = 0),
@@ -337,10 +337,10 @@ plot2 <- growth.asv %>%
 figure <- plot_grid(plot1, plot2, cols=1, rel_heights = c(0.8,1))
 figure  
 
-ggsave(figure, filename = "figures/fig_16Sgr.png", units="mm", width=90, height=120)
+ggsave(figure, filename = "../figures/fig_16Sgr.png", units="mm", width=90, height=120)
 ```
 
-Change in abundance vs 16S copy number
+Change in abundance vs specific growth rate
 
 ```{r}
 plot3 <- growth.asv %>%
@@ -353,16 +353,32 @@ plot3 <- growth.asv %>%
   geom_point(shape=1, alpha= 0.5) +
   geom_smooth(method="lm", linetype=2, color="black", alpha=0.8) +
   facet_wrap(~Treatment) +
-  labs(x="Specific growth rate (units), ln", y="Change in abundance, ln") +
+  labs(x="ln(Specific growth rate)", y="ln(Change in normalized read abundance)") +
   theme_test() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 9, hjust = 0),
         strip.background = element_blank())
 plot3
   
-ggsave(plot3, filename = "figures/fig_abundgr.png", units="mm", width=90, height=90)
+ggsave(plot3, filename = "../figures/fig_abundgr.png", units="mm", width=90, height=90)
 ```
 
+Supplemental: rrn copy number vs start of growth
 
+```{r}
+plot4 <- growth.asv %>% 
+  mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
+                               Soil=="C3" & Amendment=="N" ~ "Cropped, water",
+                               Soil=="S17" & Amendment=="Y" ~ "Successional, resources",
+                               Soil=="S17" & Amendment=="N" ~ "Successional, water")) %>%
+  ggplot(aes(x=start_day, y=n16S)) +
+  geom_point(shape=1, alpha=0.3) +
+  facet_wrap(~treatment) +
+  labs(y="rrn copy number", x="Start of growth, day") +
+  theme_test()
+plot4
+
+ggsave(plot4, file="../figures/suppfig_rrnstart.png", units="mm", width=90, height=90)
+```
 
 
