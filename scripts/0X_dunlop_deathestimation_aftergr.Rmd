@@ -1,0 +1,611 @@
+---
+title: "Untitled"
+author: "Cassandra Wattenburger"
+date: "12/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+```
+
+```{r}
+rm(list=ls())
+
+library("tidyverse")
+
+sessionInfo()
+```
+
+Applying success from recent SFA2 experiment here to see if I can estimate death in this dataset.
+
+# Import data
+
+Normalized abundances, estimated growth.
+
+```{r}
+# Normalized abundance data
+norm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds")
+
+# Growth estimates
+growth_est <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
+```
+
+# Prepare normalized abundance data for death estimation
+
+Same steps as 03_dunlopgr_grestimation.Rmd, with additional steps:
+* Only include ASVs with estimated growth
+* Only look for death in time points after growth period ended
+
+```{r}
+# Create unique labels for each time series
+norm_label <- mutate(norm, Label = paste0(Soil, Amendment, Replicate, ASV))
+growth_label <- mutate(growth_est, Label = paste0(Soil, Amendment, Replicate, ASV))
+
+# Remove 0s
+norm_zerorm <- filter(norm_label, norm_abund > 0)
+
+# Remove time series with < 3 tps remaining
+occurences <- norm_zerorm %>% 
+  group_by(Soil, Amendment, Replicate, ASV) %>% 
+  summarize(occurs = n()) %>% 
+  filter(occurs > 2) %>% 
+  ungroup()
+
+norm_3tp <- inner_join(norm_zerorm, occurences) %>% 
+  select(everything(), -occurs)
+
+# Natural log transform
+norm_ln <- mutate(norm_3tp, abund_ln = log(norm_abund))
+
+# Remove ASVs without a growth estimate
+asvs_grew <- as.character(unique(growth_label$Label))
+norm_grew <- filter(norm_ln, Label %in% asvs_grew)
+
+# Isolate time points after end of growth for each time series
+norm_after <- data.frame()
+for (label in as.character(unique(growth_label$Label))) {
+  end_day <- growth_label[growth_label$Label==label,]$end_day
+  norm_subset <- filter(norm_ln, Label==label & Day >= end_day)
+  # Make sure there are enough time points left to try to fit model
+  if (nrow(norm_subset) < 3) {
+    next
+  }
+  else {
+    norm_after <- bind_rows(norm_subset, norm_after)
+  }
+}
+
+norm_prepped <- norm_after
+```
+
+# Fit linear model to time series
+
+Same method as 03_dunlopgr_grestimation.Rmd but looking for slope < 0 instead.
+
+```{r}
+# Save estimate function
+savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
+  est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(abund_ln ~ Day, data=datasub[start:end,])
+  coeff <- est$coefficients[2]
+  resids <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  thisrow <- bind_cols(Label=label, start=start, end=end, coeff=coeff, pval=pval, residuals=resids, row.names <- NULL)
+  output <- bind_rows(output, thisrow)
+  return(output)
+}
+
+# Fit linear model with sliding window
+death_est <- data.frame()
+for (label in as.character(unique(norm_prepped$Label))) {
+  # Subset one time series
+  datasub <- data.frame()
+  datasub <- norm_prepped[norm_prepped$Label==label,] %>%  # subset growth curve
+    arrange(Day)
+  stop <- FALSE
+  # Save time series info
+  label <- NULL
+  label <- as.character(unique(datasub$Label))
+  
+  # Sliding window
+  for (b in 1:(nrow(datasub)-2)) { # start of window
+    #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    for (e in (b+2):nrow(datasub)) { # end of window
+      if (stop == TRUE) {break} # stop extending the window if a solution is found
+   
+      # Fit linear model to window
+      test_lm <- NULL; test_pval <- NULL; test_coeff <- NULL
+      test_lm <- lm(abund_ln ~ Day, data=datasub[b:e,])
+      test_pval <- summary(test_lm)$coefficients[2,4]
+      test_coeff <- test_lm$coefficients[2]
+
+      # Extend the window
+      if (test_pval <= 0.05 & test_coeff < 0 & e < nrow(datasub)) { # good fit, but more data might improve?
+        for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
+          if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
+          testprev_lm <- NULL; testprev_pval <- NULL; testprev_coeff <- NULL; testnew_lm <- NULL; testnew_pval <- NULL; testnew_coeff <- NULL
+          testprev_lm <- lm(abund_ln ~ Day, data=datasub[b:(x-1),])
+          testprev_pval <- summary(testprev_lm)$coefficients[2,4]
+          testprev_coeff <- testprev_lm$coefficients[2]
+          testnew_lm <- lm(abund_ln ~ Day, data=datasub[b:x,])
+          testnew_pval <- summary(testnew_lm)$coefficients[2,4]
+          testnew_coeff <- testnew_lm$coefficients[2]
+          
+          # Continue extending the window
+          if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
+            next
+          }
+          
+          # No improvement
+          else if (testnew_pval > testprev_pval & testprev_coeff < 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
+            end <- x-1
+            death_est <- savefit(start, end, datasub, death_est) # where it tried to save but failed, think issue is in savefit function
+            stop <- TRUE
+          }
+          
+          # No more data pts to fit
+          else if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x == nrow(datasub)) { # improved but no more data
+            end <- x
+            death_est <- savefit(start, end, datasub, death_est)
+            stop <- TRUE
+          } 
+        }
+      }
+      
+      # No more data pts to fit
+      else if (test_pval <= 0.05 & test_coeff < 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
+        end <- e
+        death_est <- savefit(start, end, datasub, death_est)
+        stop <- TRUE
+      }
+    }
+  }
+}
+```
+
+# Remove "essentially perfect fits"
+
+I can't find any guidance on how to determine whether or not a fit is "perfect" but I know that the residuals are essentially equally to 0 for perfect fits. I'll use 0.0001 as a filtering threshold for removal.
+
+```{r}
+# Remove "perfect" fits as precaution
+death_noperf <- filter(death_est, residuals >= 0.0001)
+nrow(death_est)
+nrow(death_noperf)
+```
+
+None were removed.
+
+# Select best fit for each time series
+
+* Smallest slope p-value
+
+```{r}
+# Best p-value for each curve
+death_lowestp <- death_noperf %>% 
+  group_by(Label) %>% 
+  summarize(pval = min(pval)) %>% 
+  ungroup()
+
+death_best <- semi_join(death_noperf, death_lowestp)
+
+nrow(death_best)
+```
+
+# False positive control
+
+Histogram of quality filtered p-values from actual estimates:
+
+```{r}
+hist(death_best$pval, xlab="P-values", main="Histogram of quality filtered p-values")
+```
+
+That doesn't look promising.
+
+See: http://varianceexplained.org/statistics/interpreting-pvalue-histogram/
+
+I'm choosing to use a permutation approach where I use my growth estimating algorhithm on randomly generated data with characteristics of the real data. I'll use this false positive information to filter my real estimates. Traditional false positive control methods are far too conservative for my dataset.
+
+### Simulate random data
+
+Completely random data designed to reflect actual data, if we detect "significant" growth rate estimates from this, we must control for that, because the same thing can happen in our actual data.
+
+Information about real dataset to use for simulating random data:
+* number of time points
+* min and max of abundance
+
+```{r, results="show"}
+# Minimum and maximum relational abund_ln
+min_abund_ln <- min(norm_prepped$abund_ln)
+max_abund_ln <- max(norm_prepped$abund_ln)
+avg_abund_ln <- mean(norm_prepped$abund_ln)
+sd_abund_ln <- sd(norm_prepped$abund_ln)
+
+hist(norm_prepped$abund_ln)
+
+# Number of time points
+num_tps <- norm_prepped %>% 
+  group_by(Label) %>% 
+  summarize(num_points = n()) %>% 
+  ungroup()
+
+min_pts <- min(num_tps$num_points)
+max_pts <- max(num_tps$num_points)
+avg_pts <- mean(num_tps$num_points)
+sd_pts <- sd(num_tps$num_points)
+
+hist(num_tps$num_points)
+```
+
+Simulate random time series:
+
+```{r}
+set.seed(2021)
+
+# Set time points, remove anything below day 0.667 (minimum window of growth)
+tps <- unique(norm$Day)
+tps <- na.omit(tps)
+tps <- tps[! tps %in% c(0.000, 0.333, 0.667)]
+
+# Generate using normal distributions
+sim_data <- data.frame()
+cont <-  TRUE
+counter <- 1
+while (cont == TRUE) {
+  # Stop loop once 1000 simulations have been created
+  if (counter == 1001) {
+    cont <-  FALSE
+  } 
+  else {
+    thisrow <- data.frame(); hold <- NULL; rand_abund_ln = NULL; rand_pts = NULL; rand_days = NULL # reset values
+    # Generate number of time points
+    rand_pts <- ceiling(rnorm(1, mean=avg_pts, sd=sd_pts))
+    # Make sure number of tps doesn't fall outside min/max
+    if (rand_pts <= min_pts | rand_pts >= max_pts) {
+      next
+      }
+    else {
+      # Generate abundance for each point
+      rand_abund_ln <- rnorm(rand_pts, mean=avg_abund_ln, sd=sd_abund_ln) 
+      # Make sure abundances don't fall outside min/max
+      if (min(rand_abund_ln) <= min_abund_ln | max(rand_abund_ln) >= max_abund_ln) {
+        next
+      }
+      else {
+        # Assign a day to each point
+        rand_day <- sort(sample(tps, size=rand_pts, replace=FALSE))
+        hold <- cbind(rep(counter, rand_pts), rand_day, rand_abund_ln)
+        sim_data= rbind(sim_data, hold)
+        counter <- counter + 1
+      }
+    }
+  }
+}
+colnames(sim_data)[1] <- "simulation"
+
+# Compare simulation to actual data
+# Abundances
+hist(sim_data$rand_abund_ln)
+
+# Number of data points
+sim_num_points <- sim_data %>% 
+  group_by(simulation) %>% 
+  summarize(num_pts = n()) %>% 
+  ungroup() %>% 
+  mutate(num_pts = as.numeric(num_pts))
+hist(sim_num_points$num_pts)
+```
+
+Looks pretty comparable to actual data properties.
+
+Save simulated data:
+
+* for reproducibility
+
+```{r, eval=FALSE}
+saveRDS(sim_data, file="../rdata.files/gr_deathsimulation_aftergr.rds")
+```
+
+View some simulated time series:
+
+```{r}
+# Choose randomly
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+```
+
+### Estimate "death" on simulated data
+
+```{r}
+# Save estimate function
+savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
+  est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(rand_abund_ln ~ rand_day, data=datasub[start:end,])
+  coeff <- est$coefficients[2]
+  resids <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  thisrow <- bind_cols(simulation=s, start=start, end=end, coeff=coeff, pval=pval, residuals=resids, row.names <- NULL)
+  output <- bind_rows(output, thisrow)
+  return(output)
+}
+
+# Fit linear model with sliding window
+sim_est <- data.frame()
+for (s in as.character(unique(sim_data$simulation))) {
+  # Subset one time series
+  datasub <- data.frame()
+  datasub <- sim_data[sim_data$simulation==s,] %>%  # subset growth curve
+    arrange(rand_day)
+  stop <- FALSE
+  # Save time series info
+  simulation <- NULL
+  simulation <- s
+  
+  # Sliding window
+  for (b in 1:(nrow(datasub)-2)) { # start of window
+    #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    for (e in (b+2):nrow(datasub)) { # end of window
+      if (stop == TRUE) {break} # stop extending the window if a solution is found
+   
+      # Fit linear model to window
+      test_lm <- NULL; test_pval <- NULL; test_coeff <- NULL
+      test_lm <- lm(rand_abund_ln ~ rand_day, data=datasub[b:e,])
+      test_pval <- summary(test_lm)$coefficients[2,4]
+      test_coeff <- test_lm$coefficients[2]
+
+      # Extend the window
+      if (test_pval <= 0.05 & test_coeff < 0 & e < nrow(datasub)) { # good fit, but more data might improve?
+        for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
+          if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
+          testprev_lm <- NULL; testprev_pval <- NULL; testprev_coeff <- NULL; testnew_lm <- NULL; testnew_pval <- NULL; testnew_coeff <- NULL
+          testprev_lm <- lm(rand_abund_ln ~ rand_day, data=datasub[b:(x-1),])
+          testprev_pval <- summary(testprev_lm)$coefficients[2,4]
+          testprev_coeff <- testprev_lm$coefficients[2]
+          testnew_lm <- lm(rand_abund_ln ~ rand_day, data=datasub[b:x,])
+          testnew_pval <- summary(testnew_lm)$coefficients[2,4]
+          testnew_coeff <- testnew_lm$coefficients[2]
+          
+          # Continue extending the window
+          if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
+            next
+          }
+          
+          # No improvement
+          else if (testnew_pval > testprev_pval & testprev_coeff < 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
+            end <- x-1
+            death_est <- savefit(start, end, datasub, death_est) # where it tried to save but failed, think issue is in savefit function
+            stop <- TRUE
+          }
+          
+          # No more data pts to fit
+          else if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x == nrow(datasub)) { # improved but no more data
+            end <- x
+            death_est <- savefit(start, end, datasub, death_est)
+            stop <- TRUE
+          } 
+        }
+      }
+      
+      # No more data pts to fit
+      else if (test_pval <= 0.05 & test_coeff < 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
+        end <- e
+        sim_est <- savefit(start, end, datasub, sim_est)
+        stop <- TRUE
+      }
+    }
+  }
+}
+```
+
+# Remove "essentially perfect fits"
+
+```{r}
+# Remove "perfect" fits as precaution
+sim_noperf <- filter(sim_est, residuals >= 0.0001)
+nrow(sim_est)
+nrow(sim_noperf)
+```
+
+None were removed.
+
+# Select best fit for each time series
+
+* Smallest slope p-value
+
+```{r}
+# Best p-value for each curve
+sim_lowestp <- sim_noperf %>% 
+  group_by(simulation) %>% 
+  summarize(pval = min(pval)) %>% 
+  ungroup()
+
+sim_best <- semi_join(sim_noperf, sim_lowestp)
+
+nrow(sim_best)
+```
+
+False positive rates:
+
+```{r}
+# False positives
+a <- nrow(sim_best[sim_best$pval <= 0.05,])
+b <- nrow(sim_best[sim_best$pval <= 0.025,])
+c <- nrow(sim_best[sim_best$pval <= 0.01,])
+d <- nrow(sim_best[sim_best$pval <= 0.005,])
+e <- nrow(sim_best[sim_best$pval <= 0.001,])
+f <- nrow(sim_best[sim_best$pval <= 0.0005,])
+
+false_pos <- data.frame(c(0.05, 0.025, 0.01, 0.005, 0.001, 0.0005), c(a,b,c,d,e,f))
+colnames(false_pos)=c("pvalue","false")
+
+ggplot(false_pos, aes(x=pvalue, y=false)) +
+  geom_point() +
+  geom_smooth(method="lm", linetype=2) +
+  labs(title="Relationship between p-value and number of false positives", x="P-value", y="False positives") +
+  theme_test()
+```
+
+Find 5% false positive allowance p-value threshold
+
+* Using linear model to predict
+
+```{r}
+falsepos_lm <- lm(false ~ pvalue, data=false_pos)
+falsepos_lm
+
+slope <- summary(falsepos_lm)$coefficients[2,1]
+intercept <- summary(falsepos_lm)$coefficients[1,1]
+```
+
+To reflect growth estimates, filtering at 5% false positive rate:
+
+```{r}
+## 5% false positive allowance
+false5_pval <- (50 - intercept)/slope
+
+# ~5% false positives
+death_falsepos5 <- subset(death_best, pval <= false5_pval)
+nrow(death_falsepos5)
+```
+
+# Calculate death metrics
+
+### Calculate rate of death
+
+Need to look into a specific growth rate equivalent to death? For now, stick to the slope of the linear model.
+
+```{r}
+# Add metadata back
+meta <- select(norm_prepped, Label, Soil, Amendment, Replicate, ASV, Domain, Phylum, Class, Order, Family, Genus) %>% 
+  unique()
+
+death_metrics <- death_falsepos5 %>% 
+  inner_join(meta) %>% 
+  rename(death_rate = coeff)
+```
+
+### Start and end day, change in relational abundance
+
+```{r}
+# Convert start and end to actual day
+death_metrics2 <- data.frame()
+for (l in as.character(unique(death_metrics$Label))) {
+  # Isolate timeseries
+  norm_label <- norm_prepped %>%
+    filter(Label==l) %>% 
+    arrange(Day)
+  death_label <- filter(death_metrics, Label==l)
+  start <- death_label$start
+  end <- death_label$end
+  # Start and end day of death
+  start_day <- norm_label[start,]$Day
+  end_day <- norm_label[end,]$Day
+  # Starting and ending relational abundance
+  start_abund <- norm_label[start,]$norm_abund
+  end_abund <- norm_label[end,]$norm_abund
+  change_abund <- end_abund - start_abund
+  # Save output
+  this_row <- bind_cols(Label = as.character(death_label$Label), Soil = as.character(death_label$Soil),
+                        Amendment =  as.character(death_label$Amendment), Replicate =  as.character(death_label$Replicate),
+                        ASV = as.character(death_label$ASV), death_rate = death_label$death_rate,
+                        start_pt = death_label$start, end_pt = death_label$end,
+                        start_day = start_day, end_day = end_day, 
+                        start_abund = start_abund, end_abund = end_abund, change_abund = change_abund)
+  death_metrics2 <- bind_rows(death_metrics2, this_row)
+}
+```
+
+# Tidy up and save data
+
+Relational abundances:
+
+```{r}
+# Labels of estimated taxa
+est_labels <- as.character(death_metrics2$Label)
+
+# Extract from relational abundance table and clean up
+norm_tidy <- norm_prepped %>% 
+  filter(Label %in% est_labels) %>% 
+  select(Label, Soil, Amendment, Day, Replicate, ASV:Genus, norm_abund, abund_ln)
+```
+
+```{r, eval=FALSE}
+saveRDS(norm_tidy, file="../rdata.files/gr_norm_death_estimated_after.rds")
+```
+
+Death estimates:
+
+```{r}
+death_tidy <- death_metrics2 %>% 
+  as_tibble() %>% 
+  mutate(Replicate = as.double(Replicate))
+```
+
+```{r, eval=FALSE}
+saveRDS(death_tidy, file="../rdata.files/gr_death_estimates_after.rds")
+```
+
+# Plot death
+
+```{r}
+# For messing with graphs
+death_testing <- head(death_tidy)
+
+# Taxonomy
+tax <- select(norm_tidy, ASV, Domain:Genus) %>% unique()
+
+for (l in as.character(death_tidy$Label)) {
+  # Subset time series
+  death_label <- filter(death_tidy, Label==l)
+  norm_label <- filter(norm_tidy, Label==l) %>% 
+    arrange(Day)
+  # Title information
+  asv <- death_label$ASV
+  tax_info <- filter(tax, ASV == asv)
+  title <- paste0(as.character(tax_info$Phylum), ", ", as.character(tax_info$Genus))
+  # Graph with estimate
+  graph <- ggplot(norm_label, aes(x=Day, y=abund_ln)) +
+    geom_point(shape=1, size=2, color="#6F7378") +
+    geom_line(color="#6F7378") +
+    geom_smooth(method="lm", data=norm_label[death_label$start_pt:death_label$end_pt,], linetype=2, color="black") +
+    labs(title=title, x="Day", y="ln ARNIS ratio") +
+    theme_test() +
+    theme(title = element_text(size=18),
+        axis.title = element_text(size=16),
+        axis.text = element_text(size=14))
+  print(graph)
+}
+```
+

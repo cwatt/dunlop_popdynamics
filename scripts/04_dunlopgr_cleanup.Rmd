@@ -37,7 +37,7 @@ Microcosm samples
 
 ```{r}
 # Import microcosm data
-load("rdata.files/gr_microcosm.norm.tax.RData")
+load("../rdata.files/gr_microcosm.norm.tax.RData")
 
 # Clean up
 ucosm <- microcosm.norm.tax %>%
@@ -61,7 +61,7 @@ Field samples
 
 ```{r}
 # Import field data
-load("rdata.files/gr_field.norm.tax.RData")
+load("../rdata.files/gr_field.norm.tax.RData")
 field <- field.norm.tax
 
 # Clean up
@@ -77,14 +77,13 @@ field
 
 ```{r, eval=FALSE}
 # save
-saveRDS(ucosm, file="rdata.files/gr_ucosm.norm.clean.rds")
-saveRDS(field, file="rdata.files/gr_field.norm.clean.rds")
+saveRDS(ucosm, file="../rdata.files/gr_ucosm.norm.clean.rds")
+saveRDS(field, file="../rdata.files/gr_field.norm.clean.rds")
 ```
-
 
 # Growth estimation data
 
-Will inclued
+Will include
 
 * specific growth rate
 * generation time
@@ -97,7 +96,7 @@ Will inclued
 
 ```{r}
 # Estimated growth rates/window
-gr.est <- readRDS("rdata.files/gr_gr.final_rm0.rds")
+gr.est <- readRDS("../rdata.files/gr_gr.final_rm0.rds")
 
 # Clean up
 gr.est <- gr.est %>% 
@@ -136,9 +135,9 @@ PAPRICA estimates
 
 ```{r}
 # Import PAPRICA output
-pap.edge <- read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.edge_data.csv") %>% 
+pap.edge <- read_csv("../paprica_analysis/paprica0.5_results/growthrate.seqs.subset.bacteria.edge_data.csv") %>% 
   select(edge_num = X1, nedge, genome_size, n16S)
-pap.seqs <- read_csv("copynum_est/paprica0.5_results/growthrate.seqs.subset.bacteria.combined_16S.bacteria.tax.clean.unique.align.csv") %>% 
+pap.seqs <- read_csv("../paprika_analysis/paprica0.5_results/growthrate.seqs.subset.bacteria.combined_16S.bacteria.tax.clean.unique.align.csv") %>% 
   select(edge_num, ASV=name, distal_length, pendant_length)
 
 # Merge
@@ -157,9 +156,8 @@ gr.paprica.tax <- left_join(gr.paprica, ucosm.tax, by="ASV")
 ```
 
 ```{r, eval=FALSE}
-saveRDS(gr.paprica.tax, file="rdata.files/gr_gr.paprica.clean.rds")
+saveRDS(gr.paprica.tax, file="../rdata.files/gr_gr.paprica.clean.rds")
 ```
-
 
 **Evaluate distal lengths**
 
@@ -189,7 +187,6 @@ paprica.distal
 These distances look good. There may be ASVs that are much more distantly related to the reference genomes than the average, but for the most part these numbers suggest that the ASVs are well-represented by the reference genomes. Additionally, this is the distance to the furthest neighbor, not the nearest, so these numbers are over-inflated to begin with.
 
 Interestingly, the C-amended treatments typically have lower average distal lengths than the water-amended treatments. Reference genomes had to be cultured and isolated to be sequenced and it makes sense that more "culturable" ASVs might grow in a soil treatment that was amended with a lot of simple sugars and nutrients.
-
 
 # Phyloseq objects with normalized abundances
 
@@ -235,7 +232,6 @@ ucosm.norm.physeq <- phyloseq(otu_table(ucosm.count, taxa_are_rows = TRUE),
 ucosm.norm.physeq
 ```
 
-
 **Field**
 
 ```{r}
@@ -275,8 +271,8 @@ field.norm.physeq
 ```
 
 ```{r, eval=FALSE}
-saveRDS(ucosm.norm.physeq, "rdata.files/gr_physeq.ucosm.norm.rds")
-saveRDS(field.norm.physeq, "rdata.files/gr_physeq.field.norm.rds")
+saveRDS(ucosm.norm.physeq, "../rdata.files/gr_physeq.ucosm.norm.rds")
+saveRDS(field.norm.physeq, "../rdata.files/gr_physeq.field.norm.rds")
 ```
 
 

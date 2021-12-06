@@ -31,23 +31,28 @@ rm(list=ls())
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
+# Population level
+
+Average across replicates for each ASV in each treatment to produce growth parameters for each ASV.
 
 ```{r}
 # ASV averages
-growth.asv <- growth %>%
+growth_asv <- growth %>%
   group_by(Soil, Amendment, ASV, Phylum, Class, Order, Family, Genus) %>%
   summarize(start_day = mean(start_day),
             end_day = mean(end_day),
             start_abund = mean(start_abund),
             end_abund = mean(end_abund),
+            change_abund = mean(end_abund-start_abund),
+            start_abund_corr = mean(start_abund/n16S, na.rm=TRUE),
+            change_abund_corr = mean(change_abund/n16S, na.rm=TRUE),
             k = mean(k),
             g = mean(g),
             n16S = mean(n16S),
             genome_size = mean(genome_size))
 ```
 
-
-# Specific growth rate vs. 16S copy number
+### Specific growth rate vs. 16S copy number
 
 The 16S rRNA gene encodes the ribosomal RNA. Without ribosomes, growth isn't possible, and more copies of this gene has been correlated with faster maximal growth rates. Does this relationship hold in-situ?
 
@@ -57,12 +62,12 @@ Hypothesis: Positive correlation between 16S copy number and growth rate
 
 ```{r}
 # Visualize
-growth.asv %>% ggplot(aes(x=log(k), y=n16S)) +
+growth_asv %>% ggplot(aes(x=log(k), y=n16S)) +
   geom_point() +
   labs(title="All data") +
   theme_test()
 
-growth.asv %>% ggplot(aes(x=log(k), y=n16S)) +
+growth_asv %>% ggplot(aes(x=log(k), y=n16S)) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
   labs(title="By treatment") +
@@ -70,7 +75,6 @@ growth.asv %>% ggplot(aes(x=log(k), y=n16S)) +
 ```
 
 Not exactly what I expected. It appears that low copy number taxa are also capable of fast growth, but not vice-versa. It's true that low copy number taxa have been observed growing rapidly, if enough ribosomes have been produced. Could it be possible that these low copy number taxa were already growing at the start of the incubation and didn't have to produce ribosomes in response to the wet-up?
-
 
 **Statistics:**
 
@@ -99,19 +103,19 @@ spearman_permute = function(x, y) {
 }
 
 # Tests
-n16Sk.all.spearperm <- spearman_permute(growth.asv$n16S, growth.asv$k)
+n16Sk.all.spearperm <- spearman_permute(growth_asv$n16S, growth_asv$k)
 
-n16Sk.C3y.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="Y",]$n16S, 
-                                      log(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="Y",]$k))
+n16Sk.C3y.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$n16S, 
+                                      log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$k))
 
-n16Sk.C3n.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="N",]$n16S, 
-                                      log(growth.asv[growth.asv$Soil=="C3" & growth.asv$Amendment=="N",]$k))
+n16Sk.C3n.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="N",]$n16S, 
+                                      log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="N",]$k))
 
-n16Sk.S17y.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="Y",]$n16S, 
-                                       log(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="Y",]$k))
+n16Sk.S17y.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="Y",]$n16S, 
+                                       log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="Y",]$k))
 
-n16Sk.S17n.spearperm <- spearman_permute(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="N",]$n16S, 
-                                       log(growth.asv[growth.asv$Soil=="S17" & growth.asv$Amendment=="N",]$k))
+n16Sk.S17n.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="N",]$n16S, 
+                                       log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="N",]$k))
 
 # Multiple test correction
 n16Sk.spearperm.pvals <- c(n16Sk.all.spearperm[1], n16Sk.C3y.spearperm[1], n16Sk.C3n.spearperm[1], n16Sk.S17y.spearperm[1], n16Sk.S17n.spearperm[1])
@@ -126,10 +130,9 @@ n16Sk.spearperm.results <- data.frame(Soil = c("overall", rep("C3", 2), rep("S17
 n16Sk.spearperm.results
 ```
 
-There are week positive correlations for most treatments except cropped water.
+There are weak positive correlations for most treatments except cropped water.
 
-
-# n16S vs start of growth
+# n16S vs lag time
 
 If low copy number taxa were already growing at the start of the experiment, there is a good chance the growth window started early as well. Let's investigate.
 
@@ -139,12 +142,12 @@ Hypothesis: No relationship
 
 ```{r}
 # Visualize
-growth.asv %>% ggplot(aes(x=start_day, y=n16S)) +
+growth_asv %>% ggplot(aes(x=start_day, y=n16S)) +
   geom_point() +
   labs(title="All data") +
   theme_test()
 
-growth.asv %>% ggplot(aes(x=start_day, y=n16S)) +
+growth_asv %>% ggplot(aes(x=start_day, y=n16S)) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
   labs(title="By treatment") +
@@ -160,20 +163,18 @@ Might be able to fit an assymptotic model?
 ```{r}
 # Self starting asymptotic model
 # expression is Asym+(R0-Asym)*exp(-exp(lrc)*input)
-n16sstrt.fit <- nls(n16S ~ SSasymp(start_day, Asym, R0, lrc), data = growth.asv)
+n16sstrt.fit <- nls(n16S ~ SSasymp(start_day, Asym, R0, lrc), data = growth_asv)
 summary(n16sstrt.fit)
 ```
-
-Visualize
 
 ```{r, eval=FALSE}
 # BROKEN?
 
 # Predict values based on model
-growth.asv$predict_nls <- predict(n16sstrt.fit)
+growth_asv$predict_nls <- predict(n16sstrt.fit)
 
 # Plot with nonlinear model
-growth.asv %>%
+growth_asv %>%
   ggplot(aes(x=start_day, y=n16S)) +
   geom_point() +
   geom_line(aes(y=predict_nls)) +
@@ -193,7 +194,7 @@ Permutation approach:
 One way to try to establish that the pattern observed is non-random, ie show that the tail at the end is a real signal.
 
 ```{r}
-actual <- growth.asv %>%
+actual <- growth_asv %>%
   na.omit() %>%
   filter(start_day > 3) %>%
   group_by() %>%
@@ -202,7 +203,7 @@ actual <- growth.asv %>%
 # Permute
 perm.n16S <- c()
 for (i in 1:1000) {
-  dat <- growth.asv %>% na.omit()
+  dat <- growth_asv %>% na.omit()
   dat$n16S <- sample(dat$n16S, replace=FALSE) # shuffle 16S copy number column
   avg.n16S <- dat %>%
     filter(start_day > 3) %>%
@@ -222,15 +223,13 @@ Statistical evidence (P < 0.05) that the low value past day 3 isn't just due to 
 Spearman rank correlation:
 
 ```{r}
-cor.test(growth.asv$start_day, growth.asv$n16S, method="spearman")
+cor.test(growth_asv$start_day, growth_asv$n16S, method="spearman")
 ```
 
-
-
-# 16S copy number vs change in abundance
+### 16S copy number vs change in abundance
 
 ```{r}
-growth.asv %>%
+growth_asv %>%
   mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
   ggplot(aes(x=n16S, y=log(change_abund))) +
   geom_point() +
@@ -239,8 +238,44 @@ growth.asv %>%
   theme_test()
 ```
 
+16S copy number corrected:
 
-# Change in abundance vs specific growth rate
+```{r}
+growth_asv %>%
+  ggplot(aes(x=n16S, y=log(change_abund_corr))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Negative correlations? This totally changes the result. In this case, I think it is better to go with the corrected result, since we know that 16S copy number will affect measured abundances.
+
+**Statistics**
+
+```{r}
+# Treatments
+n16S_chabund_pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(growth_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data_sub$change_abund_corr), data_sub$n16S, method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    n16S_chabund_pcor <- bind_rows(n16S_chabund_pcor, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(n16S_chabund_pcor$pvalue, method="holm", n=4)
+n16S_chabund_pcor <- bind_cols(n16S_chabund_pcor, padj=padj)
+
+# Results
+n16S_chabund_pcor
+```
+
+### Change in abundance vs specific growth rate
+
+* Using corrected 16S copy number abundance
 
 Hypotheses:
 
@@ -248,9 +283,8 @@ Hypotheses:
 2. Positive correlation in cropped/C-amended trts, negative correlation in successional/water control
 
 ```{r}
-growth.asv %>%
-  mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
-  ggplot(aes(x=log(k), y=log(change_abund))) +
+growth_asv %>%
+  ggplot(aes(x=log(k), y=log(change_abund_corr))) +
   geom_point() +
   geom_smooth(method="lm") +
   facet_wrap(Soil~Amendment) +
@@ -264,121 +298,236 @@ Seems to be strong positive correlation in water control, C-amended less so.
 Pearson correlations with multiple test correction.
 
 ```{r}
-# Add change abundance data
-growth.asv <- growth.asv %>%
-  mutate(change_abund = end_abund - start_abund)
-
-# All data
-chabundk.all.pcor <- cor.test(log(growth.asv$k), log(growth.asv$change_abund),
-                        method="pearson")
-
 # Treatments
-chabundk.pcor <- data.frame()
+k_chabund_pcor <- data.frame()
 for (s in c("C3", "S17")) {
   for (a in c("Y", "N")) {
-    data.sub <- filter(growth.asv, Soil==s & Amendment==a)
-    pcor <- cor.test(log(data.sub$k), log(data.sub$change_abund), method="pearson")
-    newrow <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
-    chabundk.pcor <- bind_rows(chabundk.pcor, newrow)
+    data_sub <- filter(growth_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data_sub$change_abund_corr), log(data_sub$k), method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    k_chabund_pcor <- bind_rows(k_chabund_pcor, this_row)
   }
 }
 
 # Multiple test correction
-padj <- p.adjust(c(chabundk.pcor$pvalue, chabundk.all.pcor$p.value), method="holm", n=5)
+padj <- p.adjust(k_chabund_pcor$pvalue, method="holm", n=4)
+k_chabund_pcor <- bind_cols(k_chabund_pcor, padj=padj)
+
+# Results
+k_chabund_pcor
+```
+
+Possible interpretation: faster growing taxa are more competitive for flush of resources released by wetting and amendment, but when extra C is added, competition is decreased and slow growing taxa are able to have a slice of the pie, attenuating relationship. Interesting in light of change in abundance by treatment data from other script, this means that fast taxa aren't necessarily growing more, but than slow taxa are also growing more than they would, creating greater abundance changes overall.
+
+### Lag time vs specific growth rate
+
+Hypothesis: negative correlation, faster growers start earlier
+
+```{r}
+growth_asv %>%
+  ggplot(aes(x=log(k), y=start_day)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test() 
+```
+
+**Statistics**
+
+Pearson correlations with multiple test correction.
+
+```{r}
+# Treatments
+k_lag_pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(growth_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data_sub$change_abund_corr), data_sub$n16S, method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    k_lag_pcor <- bind_rows(k_lag_pcor, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(k_lag_pcor$pvalue, method="holm", n=4)
+k_lag_pcor <- bind_cols(k_lag_pcor, padj=padj)
+
+# Results
+k_lag_pcor
+```
+
+Overall negative correlation.
+
+### Length of growth vs specific growth rate
+
+Hypothesis: negative correlation, faster growers do so for a shorter duration than slower growers
+
+```{r}
+growth_asv %>%
+  mutate(length_days = end_day - start_day) %>% # calculate length of growth window
+  ggplot(aes(x=log(k), y=length_days)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test() 
+```
+
+**Statistics**
+
+Pearson correlations with multiple test correction.
+
+```{r}
+# Add groth length
+growth_asv <- growth_asv %>%
+  mutate(length_days = end_day - start_day)
+
+# All data
+lengthk.all.pcor <- cor.test(log(growth_asv$k), growth_asv$length_days,
+                        method="pearson")
+
+# Treatments
+lengthk.pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data.sub <- filter(growth_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data.sub$k), data.sub$length_days, method="pearson")
+    newrow <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    lengthk.pcor <- bind_rows(lengthk.pcor, newrow)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(c(lengthk.pcor$pvalue, lengthk.all.pcor$p.value), method="holm", n=5)
 
 # Make summary table
-chabundk.pcor <- chabundk.pcor %>%
+lengthk.pcor <- lengthk.pcor %>%
   bind_rows(data.frame("Soil"="both", "Amendment"="both", # add overall result
-                       "estimate"=chabundk.all.pcor$estimate, 
-                       "pvalue"=chabundk.all.pcor$p.value)) %>%
+                       "estimate"=lengthk.all.pcor$estimate, 
+                       "pvalue"=lengthk.all.pcor$p.value)) %>%
   bind_cols(padj) %>% # add adjusted p-values
   rename(padj=5) %>%
   select(everything(), -pvalue)
 
 # Results
-chabundk.pcor
+lengthk.pcor
 ```
-
-Possible interpretation: faster growing taxa are more competitive for flush of resources released by wetting and amendment, but when extra C is added, competition is decreased and slow growing taxa are able to have a slice of the pie, attenuating relationship. Interesting in light of change in abundance by treatment data from other script, this means that fast taxa aren't necessarily growing more, but than slow taxa are also growing more than they would, creating greater abundance changes overall.
-
 
 # Figures
 
 16S copy number vs growth rates
 
 ```{r}
-plot1 <- growth.asv %>%
-  ggplot(aes(x=log(k), y=n16S)) +
+plot1 <- growth_asv %>%
+  ggplot(aes(y=log(k), x=n16S)) +
   geom_point(shape=1, alpha= 0.3) +
-  labs(title = "Overall", x="ln(Specific growth rate)", y="rrn copy number") +
+  labs(title = "Overall", y=bquote('ln specific growth rate'~day^-1), x=expression(paste("Predicted ", italic("rrn" ), " copy number"))) +
   theme_classic() +
   theme(plot.title = element_text(size=9),
         text = element_text(size=9),
-        #axis.title.y = element_blank(),
-        axis.title.x = element_blank())
+        axis.title=element_blank())
 
-plot2 <- growth.asv %>%
+plot2 <- growth_asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
                                 'Successional, water' = "S17N", 'Successional, resources' = "S17Y"),
          Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
                                                  "Successional, water", "Successional, resources"))) %>%
-  ggplot(aes(x=log(k), y=n16S)) +
+  ggplot(aes(y=log(k), x=n16S)) +
   geom_point(shape=1, alpha= 0.35) +
   facet_wrap(~Treatment) +
-  labs(subtitle="Treatments", x="ln(Specific growth rate)", y="rrn copy number") +
+  labs(subtitle="Treatments", y="", x=expression(paste("Predicted ", italic("rrn" ), " copy number"))) +
   theme_test() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 9, hjust = 0),
         axis.line = element_line(colour = "black"),
-        #axis.title.y = element_blank(),
+        axis.title = element_blank(),
         strip.background = element_blank())
 
-figure <- plot_grid(plot1, plot2, cols=1, rel_heights = c(0.8,1))
-figure  
+figure <- plot_grid(plot1, plot2, ncol=2, rel_widths = c(0.8,1))
+figure
 
-ggsave(figure, filename = "../figures/fig_16Sgr.png", units="mm", width=90, height=120)
+ggsave(figure, filename = "../figures/fig_16Sxk.svg", units="mm", width=160, height=70, device="svg")
 ```
 
 Change in abundance vs specific growth rate
 
 ```{r}
-plot3 <- growth.asv %>%
+plot3 <- growth_asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
                                 'Successional, water' = "S17N", 'Successional, resources' = "S17Y"),
          Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
                                                  "Successional, water", "Successional, resources"))) %>%
-  ggplot(aes(x=log(k), y=log(change_abund))) +
+  ggplot(aes(x=log(k), y=log(change_abund_corr))) +
   geom_point(shape=1, alpha= 0.5) +
   geom_smooth(method="lm", linetype=2, color="black", alpha=0.8) +
   facet_wrap(~Treatment) +
-  labs(x="ln(Specific growth rate)", y="ln(Change in normalized read abundance)") +
+  #labs(x=bquote("ln specific growth rate"~day^-1), y=expression(~Delta*"N")) +
   theme_test() +
   theme(text = element_text(size=9),
         strip.text.x = element_text(size = 9, hjust = 0),
-        strip.background = element_blank())
+        strip.background = element_blank(),
+        axis.title = element_blank())
 plot3
   
-ggsave(plot3, filename = "../figures/fig_abundgr.png", units="mm", width=90, height=90)
+ggsave(plot3, filename = "../figures/fig_chabundxk.svg", units="mm", width=85, height=90, device="svg")
 ```
 
 Supplemental: rrn copy number vs start of growth
 
 ```{r}
-plot4 <- growth.asv %>% 
+plot4 <- growth_asv %>% 
   mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
                                Soil=="S17" & Amendment=="Y" ~ "Successional, resources",
                                Soil=="S17" & Amendment=="N" ~ "Successional, water")) %>%
-  ggplot(aes(x=start_day, y=n16S)) +
+  ggplot(aes(y=start_day, x=n16S)) +
   geom_point(shape=1, alpha=0.3) +
   facet_wrap(~treatment) +
-  labs(y="rrn copy number", x="Start of growth, day") +
-  theme_test()
+  #labs(x=expression(paste("Predicted ", italic("rrn" ), " copy number")), y="Lag time (days)") +
+  theme_test() +
+  theme(axis.title = element_blank())
 plot4
 
-ggsave(plot4, file="../figures/suppfig_rrnstart.png", units="mm", width=90, height=90)
+ggsave(plot4, file="../figures/suppfig_rrnxlag.svg", units="mm", width=85, height=85, device="svg")
 ```
 
+Supplemental: start of growth vs growth rate
 
+```{r}
+plot5 <- growth_asv %>% 
+  mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
+                               Soil=="C3" & Amendment=="N" ~ "Cropped, water",
+                               Soil=="S17" & Amendment=="Y" ~ "Successional, resources",
+                               Soil=="S17" & Amendment=="N" ~ "Successional, water")) %>%
+  ggplot(aes(y=log(k), x=start_day)) +
+  geom_point(shape=1, alpha=0.3) +
+  facet_wrap(~treatment) +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8) +
+  #labs(x="Lag time (days)", y=bquote('ln specific growth rate'~day^-1)) +
+  theme_test() +
+  theme(axis.title = element_blank())
+plot5
+
+ggsave(plot5, file="../figures/suppfig_kxlag.svg", units="mm", width=85, height=85, device="svg")
+```
+
+Supplemental: length of growth vs growth rate
+
+```{r}
+plot5 <- growth_asv %>% 
+  mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
+                               Soil=="C3" & Amendment=="N" ~ "Cropped, water",
+                               Soil=="S17" & Amendment=="Y" ~ "Successional, resources",
+                               Soil=="S17" & Amendment=="N" ~ "Successional, water")) %>%
+  ggplot(aes(y=log(k), x=length_days)) +
+  geom_point(shape=1, alpha=0.3) +
+  facet_wrap(~treatment) +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.8) +
+  #labs(x="Length of growth (days)", y=bquote('ln specific growth rate'~day^-1)) +
+  theme_test() +
+  theme(axis.title = element_blank())
+plot5
+
+ggsave(plot5, file="../figures/suppfig_kxlength.svg", units="mm", width=85, height=85, device="svg")
+```

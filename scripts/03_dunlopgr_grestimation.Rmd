@@ -45,14 +45,14 @@ sessionInfo()
 
 ```{r}
 # Import spike-in normalized data with individual taxa
-load("rdata.files/gr_microcosm.norm.tax.RData")
+load("../rdata.files/gr_microcosm.norm.tax.RData")
 ucosm.norm <- microcosm.norm.tax
 
 # Rename columns
 colnames(ucosm.norm)[1:7] <- c("ASV","SampleID","Amendment","Soil","TP","Day","abund")
 
 # Replicate info
-rep <- read.csv("replicate.metadata.csv")
+rep <- read.csv("../metadata/replicate.metadata.csv")
 
 # Remove Aquifex sequences (internal standard)
 aqui <- filter(ucosm.norm, ucosm.norm$Genus=="Aquifex")
@@ -91,21 +91,18 @@ I can't fit a linear model to less than 3 data points, so we'll remove time seri
 ucosm.zero <- filter(ucosm.norm, abund > 0)
 
 # Remove time series with < 3 tps remaining (can't fit a line)
-filter.df <- data.frame()
-for (l in unique(as.character(ucosm.zero$Label))) {
-  datasub <- ucosm.zero[ucosm.zero$Label==l,]
-  len <- nrow(datasub)
-  thisrow <- data.frame(l, len)
-  filter.df <- rbind(filter.df, thisrow)
-}
-filter.df <- filter(filter.df, len > 2)
-filter.labels <- filter.df$l
-ucosm.filter <- filter(ucosm.zero, Label %in% filter.labels)
+occurences <- ucosm.zero %>% 
+  group_by(Label) %>% 
+  summarize(occurs = n()) %>% 
+  filter(occurs > 2) %>% 
+  ungroup()
+
+ucosm.filter <- inner_join(ucosm.zero, occurences) %>% 
+  select(everything(), -occurs)
 
 # Natural log transform the data
 ucosm.log <- mutate(ucosm.filter, abund.log = log(abund))
 ```
-
 
 # Fit linear model to the data
 
@@ -214,7 +211,6 @@ for (label in as.character(unique(ucosm.log$Label))) {
 colnames(gr.est) <- c("label","Soil","Amendment","ASV","Replicate","Start","End","Length","Slope","Pvalue", "Residuals")
 ```
 
-
 # Remove "essentially perfect fits"
 
 I can't find any guidance on how to determine whether or not a fit is "perfect" but I know that the residuals are essentially equally to 0 for perfect fits. I'll use 0.0001 as a filtering threshold for removal.
@@ -225,7 +221,6 @@ gr.noperf <- filter(gr.est, Residuals >= 0.0001)
 nrow(gr.est)
 nrow(gr.noperf)
 ```
-
 
 # Select best fit for each time series
 
@@ -245,7 +240,6 @@ nrow(gr.best)
 ```
 
 Note: previously tried using smallest residual as selection criteria but it results in a uniform p-value distribution.
-
 
 # Estimation filter: False positive control
 
@@ -728,7 +722,6 @@ ggplot(reps55.df, aes(x=Day, y=abund.log, shape=Replicate)) +
 
 I'm happier with the 5% false positive rate data.
 
-
 # Calculate specific growth rate (k):
 
 Steps:
@@ -801,13 +794,27 @@ gr.final <- g.df
 saveRDS(gr.final, file="rdata.files/gr_gr.final_rm0.rds")
 ```
 
+```{r, eval=FALSE}
+# Save normalized abundance data for estimated taxa
+# This is a mess, but it's my mess
+library(tidyverse)
+
+gr.final <- readRDS("../rdata.files/gr_gr.final_rm0.rds") %>% 
+  rename(Label=label)
+
+norm_estimated <- semi_join(ucosm.log, gr.final, by="Label") %>% 
+  select(Label, Soil, Amendment, Day, Replicate, ASV, Domain:Genus, norm_abund=abund)
+
+saveRDS(norm_estimated, "../rdata.files/gr_norm_growth_estimated.rds")
+```
+
 ### Save list of ASVs with estimated growth rates
 
 This will be used to subset sequences for PAPRICA.
 
 ```{r, eval = FALSE}
 library(tidyverse)
-gr.final <- readRDS(gr.final, file="../rdata.files/gr_gr.final_rm0.rds")
+gr.final <- readRDS(file="../rdata.files/gr_gr.final_rm0.rds")
 gr.asvs <- gr.final %>% select(ASV) %>% unique()
 write.txt(gr.asvs, file="")
 ```
@@ -849,15 +856,14 @@ p1 <- ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(data = p1.data[p1.estimate$End,], color="black") +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p1.data[p1.estimate$Start:p1.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, alpha=0.5) +
-  labs(title=paste(unique(p1.data$Phylum), ", ", unique(p1.data$Genus), sep=""), y="ln normalized abundance") +
+  labs(title=paste("a. ", unique(p1.data$Phylum), ", ", unique(p1.data$Genus), sep=""), y="ln normalized abundance") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         title = element_text(size=9),
         #plot.title = element_text(vjust = -5.5, hjust = -0.2),
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
+        axis.title = element_blank(),
         axis.text = element_text(size = 9))
 p1
 
@@ -873,15 +879,14 @@ p2 <- ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(data = p2.data[p2.estimate$End,], color="black") +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p2.data[p2.estimate$Start:p2.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p2.data$Phylum), ", ", unique(p2.data$Genus), sep=""), y="Normalized abundance (ln)") +
+  labs(title=paste("b. ", unique(p2.data$Phylum), ", ", unique(p2.data$Genus), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         title = element_text(size=9),
         #plot.title = element_text(vjust = -6.5, hjust = 0.01),
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
+        axis.title = element_blank(),
         axis.text = element_text(size = 9))
 p2
 
@@ -897,15 +902,14 @@ p3 <- ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(data = p3.data[p3.estimate$End,], color="black") +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p3.data[p3.estimate$Start:p3.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p3.data$Phylum), ", ", unique(p3.data$Genus), sep=""), y="Normalized abundance (ln)") +
+  labs(title=paste("c. ", unique(p3.data$Phylum), ", ", unique(p3.data$Genus), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         title = element_text(size=9),
         #plot.title = element_text(vjust = -6.5, hjust = 0.01),
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
+        axis.title = element_blank(),
         axis.text = element_text(size = 9))
 p3
 
@@ -921,231 +925,19 @@ p4 <- ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
   geom_point(data = p4.data[p4.estimate$End,], color="black") +
   geom_line(color="#676366") +
   geom_smooth(method="lm", data=p4.data[p4.estimate$Start:p4.estimate$End,], color="black", fill="gray", linetype=2, size=0.7, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p4.data$Phylum), ", ", unique(p4.data$Family), sep=""), y="Normalized abundance (ln)") +
+  labs(title=paste("d. ", unique(p4.data$Phylum), ", ", unique(p4.data$Family), sep=""), y="Normalized abundance (ln)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         title = element_text(size=9),
         #plot.title = element_text(vjust = -6.5, hjust = 0.01),
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
+        axis.title = element_blank(),
         axis.text = element_text(size = 9))
 p4
 
 example.curves <- plot_grid(p1, p2, p3, p4)
 example.curves
 
-ggsave(example.curves, file="../figures/fig2_examplegrowth.png", units="mm", width=170, height=95)
-ggsave(example.curves, file="../figures/fig2_examplegrowth.pdf", units="mm", width=170, height=95)
-
+ggsave(example.curves, file="../figures/fig_examplegrowth.svg", units="mm", width=185, height=95, device = "svg")
 ```
-
-
-
-```{r, eval=FALSE, echo=FALSE}
-# for poster
-
-# Example 1: Burkholderia
-p1.estimate = gr.est %>%
-  filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
-p1.data = ucosm.clean %>%
-  filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
-
-p1 = ggplot(p1.data, aes(x=Day, y=log(norm_abund))) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p1.data[p1.estimate$start_tp:p1.estimate$end_tp,], color="black", fill="gray", linetype=2, alpha=0.7, size=0.6) +
-  labs(title=paste(unique(p1.data$Phylum), ", ", "Paraburkholderia", sep=""), y="Normalized abundance (ln)") + # substituted genus for shortened "paraburkholderia"
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=6),
-        #plot.title = element_text(vjust = -5.5, hjust = -0.2),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 6))
-p1
-
-# Example 2: Streptomyces
-p2.estimate = gr.est %>%
-  filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
-p2.data = ucosm.clean %>%
-  filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
-
-p2 = ggplot(p2.data, aes(x=Day, y=log(norm_abund))) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p2.data[p2.estimate$start_tp:p2.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.7, size=0.6) +
-  labs(title=paste(unique(p2.data$Phylum), ", ", unique(p2.data$Genus), sep=""), y="Normalized abundance (ln)") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        title = element_text(size=6),
-        #plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 6))
-p2
-
-# Example 3: Acidobacteria
-p3.estimate = gr.est %>%
-  filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
-p3.data = ucosm.clean %>%
-  filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
-
-p3 = ggplot(p3.data, aes(x=Day, y=log(norm_abund))) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p3.data[p3.estimate$start_tp:p3.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.7, size=0.6) +
-  labs(title=paste(unique(p3.data$Phylum), ", ", unique(p3.data$Genus), sep=""), y="Normalized abundance (ln)") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=6),
-        #plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 6))
-p3
-
-# Example 4: Planctomyces
-p4.estimate = gr.est %>%
-  filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
-p4.data = ucosm.clean %>%
-  filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
-
-p4 = ggplot(p4.data, aes(x=Day, y=log(norm_abund))) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p4.data[p4.estimate$start_tp:p4.estimate$end_tp,], color="black", fill="gray", linetype=2, fill="black", alpha=0.7, size=0.6) +
-  labs(title=paste(unique(p4.data$Phylum), ", ", unique(p4.data$Family), sep=""), y="Normalized abundance (ln)") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=6),
-        #plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 6))
-p4
-
-example.curves = plot_grid(p1, p2, p3, p4)
-example.curves
-
-# Save plots
-ggsave(plot = example.curves, file = "figures/fig_examplegrowth_poster.pdf", device=pdf, width=4.7, height=2.2, unit="in")
-```
-
-
-
-
-
-
-```{r, eval=FALSE, echo=FALSE}
-# Stored code to make plot with same y-axis across graphs
-
-# Example 1: Burkholderia
-p1.estimate = gr.final %>%
-  filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
-p1.data = ucosm.clean %>%
-  filter(ASV=="13e4a5f455c50b2e805e017ca450ade2", Soil=="S17", Amendment=="Y", Replicate==1)
-
-p1 = ggplot(p1.data, aes(x=Day, y=log.abund)) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p1.data[p1.estimate$Start:p1.estimate$End,], color="black", fill="gray", linetype=2, alpha=0.5) +
-  labs(title=paste(unique(p1.data$Phylum), ", ", unique(p1.data$Genus), sep=""), y="ln normalized abundance") +
-  scale_y_continuous(limits=c(-6,5)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=10),
-        plot.title = element_text(vjust = -5.5, hjust = -0.2),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 8),
-        axis.text.x = element_blank())
-p1
-
-# Example 2: Streptomyces
-p2.estimate = gr.final %>%
-  filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
-p2.data = ucosm.clean %>%
-  filter(ASV=="aecae9d790a63cf565c1b5cdbd02ebdd", Soil=="C3", Amendment=="Y", Replicate==3)
-
-p2 = ggplot(p2.data, aes(x=Day, y=log.abund)) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p2.data[p2.estimate$Start:p2.estimate$End,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p2.data$Phylum), ", ", unique(p2.data$Genus), sep=""), y="ln normalized abundance") +
-  scale_y_continuous(limits=c(-6,5)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        title = element_text(size=10),
-        plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank())
-p2
-
-# Example 3: Acidobacteria
-p3.estimate = gr.final %>%
-  filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
-p3.data = ucosm.clean %>%
-  filter(ASV=="692a26188cb2e4528d0add62ea0d77f1", Soil=="C3", Amendment=="N", Replicate==1)
-
-p3 = ggplot(p3.data, aes(x=Day, y=log.abund)) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p3.data[p3.estimate$Start:p3.estimate$End,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p3.data$Phylum), ", ", unique(p3.data$Genus), sep=""), y="ln normalized abundance") +
-  scale_y_continuous(limits=c(-6,5)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=10),
-        plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 8))
-p3
-
-# Example 4: Planctomyces
-p4.estimate = gr.final %>%
-  filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
-p4.data = ucosm.clean %>%
-  filter(ASV=="4b2544b81a01a3355506bfbba84889e1", Soil=="S17", Amendment=="Y", Replicate==3)
-
-p4 = ggplot(p4.data, aes(x=Day, y=log.abund)) +
-  geom_point(color="#676366", shape=1) +
-  geom_line(color="#676366") +
-  geom_smooth(method="lm", data=p4.data[p4.estimate$Start:p4.estimate$End,], color="black", fill="gray", linetype=2, fill="black", alpha=0.5) +
-  labs(title=paste(unique(p4.data$Phylum), ", ", unique(p4.data$Genus), sep=""), y="ln normalized abundance") +
-  scale_y_continuous(limits=c(-6,5)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        title = element_text(size=10),
-        plot.title = element_text(vjust = -6.5, hjust = 0.01),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_text(size = 8),
-        axis.text.y = element_blank())
-p4
-
-example.curves = plot_grid(p1, p2, p3, p4, labels=c("a","b","c","d"), label_size=10)
-example.curves
-```
-
-

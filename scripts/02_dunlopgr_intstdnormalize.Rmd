@@ -30,19 +30,17 @@ library("dplyr")
 sessionInfo()
 ```
 
-
 **Import rarefied data**
 
 ```{r}
 # Phyloseq objects created in 01_dunlopgr_rarefy.Rmd
-load("rdata.files/gr_physeq.rarefy.RData")
+load("../rdata.files/gr_physeq.rarefy.RData")
 
 # Pull data out of phyloseq
 count <- data.frame(otu_table(physeq.rarefy))
 tax <- data.frame(tax_table(physeq.rarefy))
 meta <- data.frame(sample_data(physeq.rarefy))
 ```
-
 
 **Identify internal standard ASV**
 
@@ -64,7 +62,6 @@ spikesum <- as.data.frame(spikesum)
 
 DADA2 seems to have split the internal standard into ~6 ASVs, but the read count abundance of the other 5 is minimal to none. Not sure what causes this behavior, but may be due to sequencing errors.
 
-
 **Calculate proportion of internal standard per sample**
 
 ```{r}
@@ -81,8 +78,11 @@ rownames(totalspikesum) <- totalspikesum[,1]
 totalspikesum <- merge(meta, totalspikesum, by=0)
 rownames(totalspikesum) <- totalspikesum[,1]
 totalspikesum <- totalspikesum[,-c(1,12)]
-```
 
+# Overall mean and sd
+mean(totalspikesum$percent)
+sd(totalspikesum$percent)
+```
 
 **Add aggregated spike abundance back into data**
 
@@ -97,14 +97,13 @@ count.trans.spike <- count.trans.spike[,-1]
 count.trans.spike <- count.trans.spike[,-33015]
 ```
 
-
 **Assess relationship between % spike and DNA yield**
 
 Should have negative relationship. The same amount of spike in more or less DNA should lead to a smaller or larger proportion of spike in the sample.
 
 ```{r}
 # Add dna conc. metadata
-dnaconc <- read.csv("growthrate_dnaext.csv")
+dnaconc <- read.csv("../metadata/growthrate_dnaext.csv")
 totalspikesum <- merge(totalspikesum, dnaconc, by=1)
 ```
 
@@ -229,7 +228,6 @@ dnaspike.spearperm
 
 Permuted spearman estimate agrees exactly with non-permuted.
 
-
 **Normalize ASV abundances by internal standard**
 
 Taxa reads / internal standard reads in the sample.
@@ -282,7 +280,6 @@ save(field.norm.tax, file="rdata.files/gr_field.norm.tax.RData")
 saveRDS(totalspikesum, file="rdata.files/gr_intstd.csv")
 ```
 
-
 # Figures
 
 ```{r}
@@ -301,37 +298,22 @@ intstd = totalspikesum %>%
 p1 = intstd %>%
   ggplot(aes(x=DNA_conc, y=log(spike_perc))) +
   geom_point(size=1, shape=1) +
-  labs(x="Sample DNA concentration (ng/\u03BCL)", y="ln(Internal standard, % reads)") +
+  labs(x="Sample DNA concentration (ng/\u03BCL)", y="ln internal standard (% reads)") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
-        axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
+        #axis.title = element_text(margin = unit(c(3, 0, 0, 0), "mm"), size=10),
+        #axis.title.y = element_text(margin = unit(c(0, 3, 0, 0), "mm"), size=10),
+        axis.title = element_blank(),
         axis.text = element_text(size = 8))
 p1
-
-# Box plot
-p2 = intstd %>%
-  ggplot(aes(x=DNA_conc, y=spike_perc)) +
-  geom_boxplot() +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks=element_blank())
-p2
 
 #dnaspike.plot = plot_grid(p1, p2, align="h", axis="b", rel_widths=c(1, 0.1), labels=c("a","b"), label_size=10)
 #dnaspike.plot
 ```
 
 ```{r, eval = FALSE}
-library(Cairo)
-#device=cairo_pdf,
-ggsave(p1, file = "../figures/suppfig_dnavsintstd.png", width = 90, height = 90, unit="mm")
+ggsave(p1, file = "../figures/suppfig_dnaxstd.svg", width = 85, height = 85, unit="mm", device="svg")
 ```
 

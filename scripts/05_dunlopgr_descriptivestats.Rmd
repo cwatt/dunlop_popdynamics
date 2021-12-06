@@ -34,7 +34,7 @@ rm(list=ls())
 
 ```{r}
 # Import phyloseq object
-load("rdata.files/gr_physeq.rarefy.RData")
+load("../rdata.files/gr_physeq.rarefy.RData")
 
 # Extract from phyloseq
 count <-  data.frame(otu_table(physeq.rarefy))
@@ -43,8 +43,8 @@ tax <- data.frame(tax_table(physeq.rarefy)) %>%
 meta <- data.frame(sam_data(physeq.rarefy))
 
 # Remove unused samples
-## Only microcosm and S17/C3 from field are relevant to this project
-meta.rm <- meta %>% subset(Soil == "C3" | Soil == "S17")
+## Only microcosm samples relevant
+meta.rm <- meta %>% filter(Experiment == "Microcosm")
 
 # Merge count and metadata
 count.meta <- count %>%

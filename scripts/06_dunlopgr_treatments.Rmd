@@ -45,14 +45,34 @@ growth.trt <- growth %>%
   group_by(Soil, Amendment, Replicate) %>%
   summarize(start_day = mean(start_day),
             end_day = mean(end_day),
-            start_abund = mean(start_abund),
-            end_abund = mean(end_abund),
+            start_abund_corr = mean(start_abund/n16S, na.rm=TRUE),
+            change_abund_corr = mean((end_abund-start_abund)/n16S, na.rm=TRUE),
             k = mean(k),
             g = mean(g),
-            n16S = mean(n16S, na.rm=TRUE)) # archaea have no 16S estimates in this version of PAPRICA
-
+            n16S = mean(n16S, na.rm=TRUE)) %>% # archaea have no 16S estimates in this version of PAPRICA
+  ungroup()
 ```
 
+Overall:
+
+```{r}
+growth_overall <- growth %>%
+  summarize(min_start_day = min(start_day),
+            max_start_day = max(start_day),
+            mean_start_day = mean(start_day),
+            sd_start_day = sd(start_day),
+            min_end_day = min(end_day),
+            max_end_day = max(end_day),
+            mean_end_day = mean(end_day),
+            sd_end_day = sd(end_day),
+            min_g = min(g),
+            max_g = max(g),
+            mean_g = mean(g),
+            sd_g = sd(g)) %>% 
+  ungroup()
+
+growth_overall
+```
 
 # Start of growth window
 
@@ -70,7 +90,6 @@ growth.trt %>%
   labs(title="Start of growth", y="Day") +
   theme_test()
 ```
-
 
 **Statistics**
 
@@ -124,7 +143,6 @@ strtday.trt.results
 
 Not enough power.
 
-
 # End of growth window
 
 Hypotheses:
@@ -141,7 +159,6 @@ growth.trt %>%
   theme_test()
 ```
 
-
 **Statistics**
 
 ANOVA
@@ -153,9 +170,7 @@ plot(predict(endday.trt.lm), resid(endday.trt.lm))
 anova(endday.trt.lm)
 ```
 
-
 End of growth is not affected by soil or amendment. Trends are similar to start of growth data, though.
-
 
 # Growth rate
 
@@ -172,7 +187,6 @@ growth.trt %>%
   theme_test()
 ```
 
-
 **Statistics**
 
 ANOVA
@@ -186,8 +200,9 @@ anova(k.trt.lm)
 
 Trends almost support second hypothesis, but data is too variable.
 
-
 # Change in abundance
+
+* 16S copy number corrected
 
 Competitive bacteria are able to increase there abundance more when they encounter substrate compared to competing bacteria. There are likely various strategies to be competitive. Some bacteria are likely more competitive and better able to grow under certain environmental or resource conditions but not others.
 
@@ -197,17 +212,12 @@ Hypotheses:
 1. Bacteria in C-amended soils will have greater change in abundance due to greater resource availability
 
 ```{r}
-# Calculate change in abundance
-growth.trt <- growth.trt %>%
-  mutate(change_abund = end_abund - start_abund)
-  
 growth.trt %>%
-  ggplot(aes(x=Soil, y=change_abund, color=Amendment)) +
+  ggplot(aes(x=Soil, y=change_abund_corr, color=Amendment)) +
   geom_point(alpha=0.5) +
   labs(title="Change in abundance", y="change in abundance") +
   theme_test()
 ```
-
 
 **Statistics**
 
@@ -216,14 +226,13 @@ ANOVA
 * log transformation improves heteroskedasticity
 
 ```{r}
-changeabund.trt.lm = lm(change_abund ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
+changeabund.trt.lm = lm(change_abund_corr ~ Soil + Amendment + Soil:Amendment, data=growth.trt)
 hist(resid(changeabund.trt.lm)) # check normality
 plot(predict(changeabund.trt.lm), resid(changeabund.trt.lm)) # check heteroskedasticity
 anova(changeabund.trt.lm)
 ```
 
 Data looks slightly non-normal, but ANOVA is typically robust to moderate deviation.
-
 
 Post hoc:
 
@@ -234,25 +243,24 @@ Try simple linear model and check residuals
 
 ```{r}
 # Cropped water vs C-amended
-test1 <- lm(change_abund ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",])
+test1 <- lm(change_abund_corr ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",])
 hist(resid(test1))
 plot(predict(test1), resid(test1))
 
 # log transform
-test2 <- lm(log(change_abund) ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",])
+test2 <- lm(log(change_abund_corr) ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",])
 hist(resid(test2))
 plot(predict(test2), resid(test2))
 ```
 
 Here, data is normalish but heteroskedastic. Log transform flips the problem. Conduct Welch's t-tests on untransformed data.
 
-
 ```{r}
 # Cropped water vs C-amended
-changeabund.trt.ph.welch1 <-  t.test(change_abund ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",], var.equal=FALSE)
+changeabund.trt.ph.welch1 <-  t.test(change_abund_corr ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",], var.equal=FALSE)
 
 # Successional water vs C-amended
-changeabund.trt.ph.welch2 <-  t.test(change_abund ~ Amendment, data=growth.trt[growth.trt$Soil=="S17",], var.equal=FALSE)
+changeabund.trt.ph.welch2 <-  t.test(change_abund_corr ~ Amendment, data=growth.trt[growth.trt$Soil=="S17",], var.equal=FALSE)
 
 # Adjust p-values
 changeabund.trt.ph.padj <- p.adjust(p <- c(changeabund.trt.ph.welch1$p.value, changeabund.trt.ph.welch2$p.value),
@@ -264,7 +272,6 @@ data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs
 ```
 
 Not enough power.
-
 
 # Predicted 16S copy number
 
@@ -292,47 +299,27 @@ plot(predict(growth.16s.lm), resid(growth.16s.lm)) # check heteroskedasticity
 anova(growth.16s.lm)
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Create figures
+# Create figure
 
 ```{r}
 plot <- growth.trt %>%
-  pivot_longer(c(start_day, change_abund, k, n16S), names_to = "growth_metric") %>%
+  pivot_longer(c(start_day, change_abund_corr, k, n16S), names_to = "growth_metric") %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_recode(Amendment, Resources = "Y", Water = "N"),
-         growth_metric = fct_relevel(growth_metric, c("start_day", "change_abund", "k", "n16S")),
-         growth_metric = fct_recode(growth_metric, 
-         'Start day' = "start_day", 
-         'Change in abundance' = "change_abund", 
-         'Specific growth rate' = "k",
-         'rrn copy number' = "n16S")) %>%
+         growth_metric = fct_relevel(growth_metric, c("start_day", "change_abund", "k", "n16S"))) %>%
   ggplot(aes(y=value, x=Soil)) +
   geom_jitter(aes(shape=Amendment), width=0.1) +
   scale_shape_manual(values=c(19,1)) +
   facet_wrap(~growth_metric, scales="free", nrow=1) +
   theme_classic() +
-  theme(axis.title = element_blank(),
+  theme(
+        axis.title = element_blank(),
         text = element_text(size=9),
         strip.text.x = element_text(size = 10, hjust = 0),
         legend.position = "bottom",
         strip.background = element_blank())
 plot
 
-ggsave(plot, filename="../figures/fig3_treatments.png", units="mm", width=180, height=60)
+ggsave(plot, filename="../figures/fig_growthparams_overall.svg", units="mm", width=180, height=60, device="svg")
 ```
 
