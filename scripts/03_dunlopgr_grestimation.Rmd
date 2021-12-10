@@ -823,6 +823,7 @@ write.txt(gr.asvs, file="")
 
 ```{r}
 # Import data (from script 04)
+rm(list=ls())
 
 # Microcosm data
 ucosm <- readRDS(file="../rdata.files/gr_ucosm.norm.clean.rds")
@@ -940,4 +941,17 @@ example.curves <- plot_grid(p1, p2, p3, p4)
 example.curves
 
 ggsave(example.curves, file="../figures/fig_examplegrowth.svg", units="mm", width=185, height=95, device = "svg")
+```
+
+```{r}
+# import tidied dataset
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
+
+growth_examples <- growth %>% 
+  filter((Soil=="S17" & Amendment=="Y" & Replicate == 1 & ASV=="13e4a5f455c50b2e805e017ca450ade2") |
+           (Soil=="C3" & Amendment=="Y" & Replicate == 3 & ASV=="aecae9d790a63cf565c1b5cdbd02ebdd") |
+           (Soil=="C3" & Amendment=="N" & Replicate == 1 & ASV=="692a26188cb2e4528d0add62ea0d77f1") |
+           (Soil=="S17" & Amendment=="Y" & Replicate == 3 & ASV=="4b2544b81a01a3355506bfbba84889e1")) %>% 
+  arrange(start_day) %>% 
+  mutate(change_abund = end_abund - start_abund)
 ```

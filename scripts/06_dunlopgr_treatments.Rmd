@@ -37,7 +37,9 @@ rm(list=ls())
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
-Average across ASVs to get a value for each replicate:
+Aggregate growth estimate parameters:
+
+Average across ASVs to get a value for each replicate
 
 ```{r}
 # Replicate averages
@@ -101,7 +103,6 @@ hist(resid(strtday.trt.lm)) # check normality
 plot(predict(strtday.trt.lm), resid(strtday.trt.lm)) # check heteroskedasticity
 anova(strtday.trt.lm)
 ```
-
 
 Post hoc:
 

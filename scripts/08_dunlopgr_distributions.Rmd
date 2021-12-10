@@ -43,9 +43,8 @@ growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 growth.asv <- growth %>%
   group_by(Soil, Amendment, ASV, Phylum, Class, Order, Family, Genus) %>%
   summarize(start_day = mean(start_day),
-            end_day = mean(end_day),
-            start_abund = mean(start_abund),
-            end_abund = mean(end_abund),
+            length = mean(end_day - start_day),
+            change_abund_corr = mean((end_abund-start_abund)/n16S),
             k = mean(k),
             g = mean(g),
             n16S = mean(n16S),
@@ -345,71 +344,48 @@ plot3
 ggsave(plot3, filename="../figures/suppfig_kbins.svg", units="mm", width=120, height=60, device="svg")
 ```
 
+```{r}
+plot4 <- growth.asv %>%
+  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
+         Amendment = fct_relevel(Amendment, c("N", "Y")),
+         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N"),
+         start_day_psuedo = start_day + 0.01) %>%
+  ggplot() +
+  geom_density(aes(x=log(start_day_psuedo), fill=Soil), alpha=0.5) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  facet_wrap(~Amendment, scales="fixed") +
+  #labs(y="Kernel density", x="Lag time (days)") +
+  theme_classic() +
+  theme(text = element_text(size=9),
+        axis.title = element_blank(),
+        strip.text.x = element_text(size = 10, hjust = 0),
+        legend.position = "right",
+        legend.justification = "top",
+        strip.background = element_blank())
+plot4
 
-
-# WIP extra distributions below
+ggsave(plot4, filename="../figures/suppfig_lagdistributions.svg", units="mm", width=180, height=60, device="svg")
+```
 
 ```{r}
-lag_dist <- growth.asv %>%
+plot5 <- growth.asv %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
          Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
   ggplot() +
-  geom_density(aes(x=start_day, fill=Soil), alpha=0.5) +
+  geom_density(aes(x=log(change_abund_corr), fill=Soil), alpha=0.5) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
   facet_wrap(~Amendment, scales="fixed") +
-  labs(y="Kernel density", x="Lag time (days)") +
+  #labs(y="Kernel density", x="Delta N") +
   theme_classic() +
   theme(text = element_text(size=9),
+        axis.title = element_blank(),
         strip.text.x = element_text(size = 10, hjust = 0),
         legend.position = "right",
         legend.justification = "top",
         strip.background = element_blank())
-lag_dist
+plot5
 
-#ggsave(plot, filename="../figures/fig_distributions.svg", units="mm", width=190, height=60, device="svg")
+ggsave(plot5, filename="../figures/suppfig_chabunddist.svg", units="mm", width=180, height=60, device="svg")
 ```
 
-```{r}
-lag_dist <- growth.asv %>%
-  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
-         Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N"),
-         change_abund = end_abund - start_abund) %>%
-  ggplot() +
-  geom_density(aes(x=change_abund, fill=Soil), alpha=0.5) +
-  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
-  facet_wrap(~Amendment, scales="fixed") +
-  labs(y="Kernel density", x="Delta N") +
-  theme_classic() +
-  theme(text = element_text(size=9),
-        strip.text.x = element_text(size = 10, hjust = 0),
-        legend.position = "right",
-        legend.justification = "top",
-        strip.background = element_blank())
-lag_dist
-
-#ggsave(plot, filename="../figures/fig_distributions.svg", units="mm", width=190, height=60, device="svg")
-```
-
-```{r}
-lag_dist <- growth.asv %>%
-  mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
-         Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N"),
-         length_growth = end_day - start_day) %>%
-  ggplot() +
-  geom_density(aes(x=length_growth, fill=Soil), alpha=0.5) +
-  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
-  facet_wrap(~Amendment, scales="fixed") +
-  labs(y="Kernel density", x="Length of growth (days)") +
-  theme_classic() +
-  theme(text = element_text(size=9),
-        strip.text.x = element_text(size = 10, hjust = 0),
-        legend.position = "right",
-        legend.justification = "top",
-        strip.background = element_blank())
-lag_dist
-
-#ggsave(plot, filename="../figures/fig_distributions.svg", units="mm", width=190, height=60, device="svg")
-```
