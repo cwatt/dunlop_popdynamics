@@ -198,7 +198,6 @@ death_phyla_log <- growth_death_log %>%
 death_phyla_log
 ```
 
-
 Linear:
 
 ```{r}
@@ -219,53 +218,31 @@ death_phyla_lin
 
 Overview of soil treatment affects on measured community overall.
 
-### Number of taxa that grew then died vs just grew
+### Proportion of taxa that grew then died vs just grew
 
 ```{r}
-# Tally
-count_growth_death <- growth_death %>% 
+count_growth <- growth %>% 
   group_by(Soil, Amendment, Replicate) %>% 
-  summarize(count = n()) %>% 
+  summarize(growth_count = n()) %>% 
   ungroup()
 
-count_growth_death
+count_death <- death %>% 
+  group_by(Soil, Amendment, Replicate) %>% 
+  summarize(death_count = n()) %>% 
+  ungroup()
+
+# Proportion
+prop_death <- inner_join(count_growth, count_death) %>% 
+  mutate(prop =death_count/growth_count)
 
 # Graph
-count_growth_death %>% 
-  ggplot(aes(x=Soil, y=count, color=Amendment)) +
+prop_death %>% 
+  ggplot(aes(x=Soil, y=prop, color=Amendment)) +
   geom_point() +
   theme_test()
 ```
 
-General trend of more estimated death in amended compared to unamended?
-
-**Statistics**
-
-Linear model:
-
-```{r}
-growth_death_count_lm <- lm(count ~ Soil + Amendment + Soil*Amendment, data=count_growth_death)
-hist(resid(growth_death_count_lm))
-plot(predict(growth_death_count_lm), resid(growth_death_count_lm))
-```
-
-Unequal variances, will use Welch's t-test to test amendment effect in each soil.
-
-Welch's t-test:
-
-* Untransformed data
-
-```{r}
-# Cropped
-agg_count_C3_welch <- t.test(count ~ Amendment, data=filter(count_growth_death, Soil=="C3"), var.equal=FALSE) 
-agg_count_C3_welch
-
-# Successional
-agg_count_S17_welch <- t.test(count ~ Amendment, data=filter(count_growth_death, Soil=="S17"), var.equal=FALSE) 
-agg_count_S17_welch
-```
-
-Not significant.
+Highly variable.
 
 ```{r}
 # Aggregate parameters (logarithmic only)
