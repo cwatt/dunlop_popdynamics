@@ -26,12 +26,12 @@ sessionInfo()
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds") %>% 
   rename(growth_start_day=start_day, growth_end_day=end_day,
          growth_start_abund=start_abund, growth_end_abund=end_abund) %>% 
-    mutate(Label = paste0(Soil, Amendment, Replicate, ASV),
+  mutate(Label = paste0(Soil, Amendment, Replicate, ASV),
          growth_change_abund = growth_end_abund - growth_start_abund,
          growth_length = growth_end_day - growth_start_day)
 
 death <- readRDS("../rdata.files/gr_death_estimates.rds") %>% 
-  select(everything(), -start_pt, -end_pt) %>% 
+  select(everything(), -c(start_pt, end_pt, Domain:Genus)) %>% 
   rename(death_start_day=start_day, death_end_day=end_day, death_length = length_days,
          death_start_abund=start_abund, death_end_abund=end_abund, death_change_abund = change_abund)
 
@@ -45,77 +45,179 @@ norm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds") %>%
 growth_death <- inner_join(growth, death) %>% 
   select(Label, Soil, Amendment, Replicate, Domain:Genus, ASV,
          k, g, growth_start_day, growth_end_day, growth_start_abund, growth_end_abund, growth_change_abund, growth_length,
-         death_rate, death_start_day, death_end_day, death_start_abund, death_end_abund, death_change_abund, death_length,
+         death_rate, death_start_day, death_end_day, death_start_abund, death_end_abund, death_change_abund, death_length, decay,
          edge_num:n16S)
 ```
 
-How many death estimates in total?
+# Descriptive stats
+
+### How many death estimates?
+
+Total:
 
 ```{r}
 nrow(growth_death)
 ```
 
-# Graph growth and death estimates
+Logarithmic:
 
 ```{r}
-# For messing with graphs
-testing <- head(growth_death)
-
-# Taxonomy
-tax <- select(growth_death, ASV, Domain:Genus) %>% unique()
-
-# Plot all
-for (l in as.character(growth_death$Label)) {
-  # Subset time series
-  est_label <- filter(growth_death, Label==l)
-  norm_label <- filter(norm, Label==l) %>% 
-    arrange(Day)
-  # Title information
-  asv <- est_label$ASV
-  tax_info <- filter(tax, ASV == asv)
-  title <- paste0(as.character(tax_info$Phylum), ", ", as.character(tax_info$Genus))
-  # Graph with estimate
-  graph <- ggplot(norm_label, aes(x=Day, y=log(norm_abund))) +
-    geom_point(shape=1, size=2, color="#6F7378") +
-    geom_line(color="#6F7378") +
-    # Growth estimate
-    geom_smooth(method="lm", data=filter(norm_label, Day >= est_label$growth_start_day & Day <= est_label$growth_end_day),
-                linetype=2, color="green") +
-    # Death estimate
-    geom_smooth(method="lm", data=filter(norm_label, Day >= est_label$death_start_day & Day <= est_label$death_end_day),
-                linetype=2, color="red") +
-    # Formatting
-    labs(title=title, x="Day", y="ln ARNIS ratio") +
-    theme_test() +
-    theme(title = element_text(size=18),
-        axis.title = element_text(size=16),
-        axis.text = element_text(size=14))
-  print(graph)
-}
-
+growth_death_log <- filter(growth_death, decay=="logarithmic")
+nrow(growth_death_log)
 ```
 
-Due to sparser sampling towards end of incubations, death estimates are much less certain/patchy compared to growth estimates. Less data was used for death estimates as well, which means the false positive rate was lower and the p-value threshold higher.
+Linear:
+
+```{r}
+growth_death_lin <- filter(growth_death, decay=="linear")
+nrow(growth_death_lin)
+```
+
+### Number of estimates per treatment
+
+Overall:
+
+```{r}
+death_count <- growth_death %>% 
+  group_by(Soil, Amendment) %>% 
+  summarize(num_est = n()) %>%
+  ungroup()
+  
+death_count
+```
+
+Logarithmic:
+
+```{r}
+death_count_log <- growth_death_log %>%
+  group_by(Soil, Amendment) %>% 
+  summarize(num_est = n()) %>%
+  ungroup()
+  
+death_count_log
+```
+
+Linear:
+
+```{r}
+death_count_lin <- growth_death_lin %>% 
+  group_by(Soil, Amendment) %>% 
+  summarize(num_est = n()) %>%
+  ungroup()
+  
+death_count_lin
+```
+
+### Death start, end, length
+
+Overall:
+
+```{r}
+death_days <- growth_death %>%
+  group_by() %>% 
+  summarize(death_start_day_min = min(death_start_day),
+            death_start_day_max = max(death_start_day),
+            death_start_day_mean = mean(death_start_day),
+            death_start_day_sd = sd(death_start_day),
+            death_end_day_min = min(death_end_day),
+            death_end_day_max = max(death_end_day),
+            death_end_day_mean = mean(death_end_day),
+            death_end_day_sd = sd(death_end_day)) %>%
+  ungroup()
+  
+death_days
+```
+
+Logarithmic:
+
+```{r}
+death_days_log <- growth_death_log %>%
+  group_by() %>% 
+  summarize(death_start_day_min = min(death_start_day),
+            death_start_day_max = max(death_start_day),
+            death_start_day_mean = mean(death_start_day),
+            death_start_day_sd = sd(death_start_day),
+            death_end_day_min = min(death_end_day),
+            death_end_day_max = max(death_end_day),
+            death_end_day_mean = mean(death_end_day),
+            death_end_day_sd = sd(death_end_day)) %>%
+  ungroup()
+
+death_days_log
+```
+
+Linear:
+
+```{r}
+death_days_lin <- growth_death_lin %>%
+  group_by() %>% 
+  summarize(death_start_day_min = min(death_start_day),
+            death_start_day_max = max(death_start_day),
+            death_start_day_mean = mean(death_start_day),
+            death_start_day_sd = sd(death_start_day),
+            death_end_day_min = min(death_end_day),
+            death_end_day_max = max(death_end_day),
+            death_end_day_mean = mean(death_end_day),
+            death_end_day_sd = sd(death_end_day)) %>%
+  ungroup()
+
+death_days_lin
+```
+
+### Phyla represented
+
+Overall:
+
+```{r}
+# Number of phyla
+length(unique(as.character(growth_death$Phylum)))
+
+# Which phyla
+death_phyla <- growth_death %>% 
+  group_by(Phylum) %>% 
+  summarize(num_est = n()) %>%
+  ungroup() %>% 
+  arrange(desc(num_est))
+  
+death_phyla
+```
+
+Logarithmic:
+
+```{r}
+# Number of phyla
+length(unique(as.character(growth_death_log$Phylum)))
+
+# Which phyla
+death_phyla_log <- growth_death_log %>% 
+  group_by(Phylum) %>% 
+  summarize(num_est = n()) %>%
+  ungroup() %>% 
+  arrange(desc(num_est))
+  
+death_phyla_log
+```
+
+
+Linear:
+
+```{r}
+# Number of phyla
+length(unique(as.character(growth_death_lin$Phylum)))
+
+# Which phyla
+death_phyla_lin <- growth_death_lin %>% 
+  group_by(Phylum) %>% 
+  summarize(num_est = n()) %>%
+  ungroup() %>% 
+  arrange(desc(num_est))
+  
+death_phyla_lin
+```
 
 # Aggregate parameters
 
 Overview of soil treatment affects on measured community overall.
-
-```{r}
-growth_death_agg <- growth_death %>% 
-  group_by(Soil, Amendment, Replicate) %>% 
-    summarize(k = mean(k), g = mean(g),
-            growth_start_day = mean(growth_start_day), growth_end_day = mean(growth_end_day), 
-            growth_length = mean(growth_length),
-            growth_start_abund_corr = mean(growth_start_abund/n16S, na.rm = TRUE), # 16S copy num correction
-            growth_change_abund_corr = mean(growth_change_abund/n16S, na.rm = TRUE), # 16S copy num correction
-            death_rate = mean(death_rate),
-            death_start_day = mean(death_start_day), death_end_day = mean(death_end_day), 
-            death_length = mean(death_length),
-            death_start_abund_corr = mean(death_start_abund/n16S, na.rm = TRUE), # 16S copy num correction
-            death_change_abund_corr = mean(death_change_abund/n16S, na.rm = TRUE)) %>% # 16S copy num correction
-  ungroup() 
-```
 
 ### Number of taxa that grew then died vs just grew
 
@@ -139,7 +241,7 @@ General trend of more estimated death in amended compared to unamended?
 
 **Statistics**
 
-Linear model
+Linear model:
 
 ```{r}
 growth_death_count_lm <- lm(count ~ Soil + Amendment + Soil*Amendment, data=count_growth_death)
@@ -149,7 +251,7 @@ plot(predict(growth_death_count_lm), resid(growth_death_count_lm))
 
 Unequal variances, will use Welch's t-test to test amendment effect in each soil.
 
-Welch's t-test
+Welch's t-test:
 
 * Untransformed data
 
@@ -165,10 +267,27 @@ agg_count_S17_welch
 
 Not significant.
 
-### Death rate
+```{r}
+# Aggregate parameters (logarithmic only)
+growth_death_agg_log <- growth_death_log %>% 
+  group_by(Soil, Amendment, Replicate) %>% 
+    summarize(k = mean(k), g = mean(g),
+            growth_start_day = mean(growth_start_day), growth_end_day = mean(growth_end_day), 
+            growth_length = mean(growth_length),
+            growth_start_abund_corr = mean(growth_start_abund/n16S, na.rm = TRUE), # 16S copy num correction
+            growth_change_abund_corr = mean(growth_change_abund/n16S, na.rm = TRUE), # 16S copy num correction
+            death_rate = mean(death_rate),
+            death_start_day = mean(death_start_day), death_end_day = mean(death_end_day), 
+            death_length = mean(death_length),
+            death_start_abund_corr = mean(death_start_abund/n16S, na.rm = TRUE), # 16S copy num correction
+            death_change_abund_corr = mean(death_change_abund/n16S, na.rm = TRUE)) %>% # 16S copy num correction
+  ungroup() 
+```
+
+### Death rate (logarithmic only)
 
 ```{r}
-growth_death_agg %>% 
+growth_death_agg_log %>%
   ggplot(aes(x=Soil, y=death_rate, color=Amendment)) +
   geom_point() +
   theme_test()
@@ -176,10 +295,10 @@ growth_death_agg %>%
 
 Highly variable, not seeing a trend.
 
-### Death change abundance
+### Death change abundance (logarithmic only)
 
 ```{r}
-growth_death_agg %>% 
+growth_death_agg_log %>% 
   ggplot(aes(x=Soil, y=abs(death_change_abund_corr), color=Amendment)) +
   geom_point() +
   theme_test()
@@ -189,24 +308,24 @@ Seems like trend of greater changes in abundance due to death in amended soils?
 
 **Statistics**
 
-Linear model
+Linear model:
 
 ```{r}
-chabund_agg_lm <- lm(abs(death_change_abund_corr) ~ Soil + Amendment + Soil*Amendment, data=growth_death_agg)
-hist(resid(chabund_agg_lm))
-plot(predict(chabund_agg_lm), resid(chabund_agg_lm))
+chabund_agg_log_lm <- lm(abs(death_change_abund_corr) ~ Soil + Amendment + Soil*Amendment, data=growth_death_agg_log)
+hist(resid(chabund_agg_log_lm))
+plot(predict(chabund_agg_log_lm), resid(chabund_agg_log_lm))
 ```
 
 I don't like the unequal variance here, even with a log transform. I'll use a Welch's t-test to test amendment.
 
-Welch's t-test
+Welch's t-test:
 
 * Non-transformed data
 
 ```{r}
 # Cropped
-chabund_agg_welch <- t.test(abs(death_change_abund_corr) ~ Amendment, data=growth_death_agg, var.equal=FALSE)
-chabund_agg_welch
+chabund_agg_log_welch <- t.test(abs(death_change_abund_corr) ~ Amendment, data=growth_death_agg_log, var.equal=FALSE)
+chabund_agg_log_welch
 ```
 
 Significant.
@@ -217,7 +336,7 @@ Average each ASV across replicates to get a parameter estimate for each taxa in 
 
 ```{r}
 # Average growth estimates for each ASV
-growth_asv <- growth %>% 
+growth_asv <- growth %>%
   group_by(ASV, Soil, Amendment) %>% 
   summarize(k = mean(k), g = mean(g),
             growth_start_day = mean(growth_start_day), growth_end_day = mean(growth_end_day), 
@@ -228,7 +347,8 @@ growth_asv <- growth %>%
   ungroup()
 
 # Average death estimates for each ASV
-death_asv <- death %>% 
+# Logarithmic only
+death_asv_log <- death %>% 
   group_by(ASV, Soil, Amendment) %>% 
   summarize(death_rate = mean(death_rate),
             death_start_day = mean(death_start_day), death_end_day = mean(death_end_day), 
@@ -237,9 +357,9 @@ death_asv <- death %>%
             death_change_abund = mean(death_change_abund)) %>% 
   ungroup()
 
-# Combined
-growth_death_asv <- growth_death %>% 
-  group_by(ASV, Soil, Amendment) %>% 
+# Both growth and death
+growth_death_asv <- growth_death %>%
+  group_by(ASV, Soil, Amendment, decay) %>% 
   summarize(k = mean(k), g = mean(g),
             growth_start_day = mean(growth_start_day), growth_end_day = mean(growth_end_day), 
             growth_length = mean(growth_length),
@@ -254,24 +374,24 @@ growth_death_asv <- growth_death %>%
   ungroup()
 ```
 
+### Growth rate vs did death happen at all
+
+Hypothesis: Taxa with faster growth rates more likely to experience death afterwards
+* boom/bust lifestyle
+* didn't sample enough/long enough to capture slower grower death
+
 ```{r}
 # Presence/absence of death in growing ASVs
-only_growth_asv <- anti_join(growth_asv, death_asv, by=c("ASV", "Soil", "Amendment")) %>% 
+no_death_asv <- anti_join(growth_asv, death_asv_log, by=c("ASV", "Soil", "Amendment")) %>% 
   add_column(died ="no")
 
 growth_death_asv <- growth_death_asv %>% 
   add_column(died="yes")
 
 # Include ASVs without detected death after growth
-all_asv <- bind_rows(only_growth_asv, growth_death_asv) %>% 
+all_asv <- bind_rows(no_death_asv, growth_death_asv) %>% 
   mutate()
 ```
-
-### Growth rate vs death yes/no
-
-Hypothesis: Taxa with faster growth rates more likely to experience death afterwards
-* boom/bust lifestyle
-* didn't sample enough/long enough to capture slower grower death
 
 ```{r}
 # Graph
@@ -284,6 +404,18 @@ all_asv %>%
 ```
 
 Greater variability and sample size of taxa that did not have estimated death after growth. Dificult to say whether this difference in variation/growth rate is real or due to undersampling.
+
+### Growth rate vs logarithmic or linear growth detected
+
+```{r}
+growth_death_asv %>% 
+  ggplot(aes(x=decay, y=log(k))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.5) +
+  theme_test()
+```
+
+Not much to say here.
 
 ### Growth change abundance vs death yes/no
 
@@ -305,12 +437,15 @@ Same interpretation. If there are any trends, they are slight.
 
 ### Growth rate vs death rate
 
+Logarithmic only
+
 Hypothesis: Taxa with faster growth rate more likely to experience faster death
 * boom/bust lifestyle
 
 ```{r}
 # Graph
 growth_death_asv %>% 
+  mutate(decay=="logarithmic") %>% 
   ggplot(aes(x=k, y=log(abs(death_rate)))) +
   geom_smooth(method="lm", linetype=2, alpha=0.5) +
   geom_point(alpha=0.5) +
@@ -322,9 +457,12 @@ Perhaps a trend of slight positive relationship but too slight/variable to confi
 
 ### Growth rate vs death change in abundance
 
+Logarithmic only
+
 ```{r}
 # Graph
 growth_death_asv %>% 
+  mutate(decay=="logarithmic") %>% 
   ggplot(aes(x=k, y=log(abs(death_change_abund_corr)))) +
   geom_smooth(method="lm", linetype=2, alpha=0.5) +
   geom_point(alpha=0.5) +
@@ -332,7 +470,9 @@ growth_death_asv %>%
   theme_test()
 ```
 
-# Growth change in abundance vs death rate
+### Growth change in abundance vs death rate
+
+Logarithmic only
 
 Hypothesis: Taxa that grew more more likely to experience faster death
 * boom/bust lifestyle
@@ -340,6 +480,7 @@ Hypothesis: Taxa that grew more more likely to experience faster death
 ```{r}
 # Graph
 growth_death_asv %>% 
+  mutate(decay=="logarithmic") %>% 
   ggplot(aes(x=log(growth_change_abund_corr), y=log(abs(death_rate)))) + # cannot take ln of negative number
   geom_point(alpha=0.5) +
   geom_smooth(method="lm", linetype=2, alpha=0.5) +
@@ -358,7 +499,7 @@ Pearson correlations with multiple test correction
 grchabund_deathrate_pcor_trts <- data.frame()
 for (s in c("C3", "S17")) {
   for (a in c("Y", "N")) {
-    data_sub <- filter(growth_death_asv, Soil==s & Amendment==a)
+    data_sub <- filter(growth_death_asv, Soil==s & Amendment==a & decay=="logarithmic")
     pcor <- cor.test(log(data_sub$growth_change_abund_corr), log(abs(data_sub$death_rate)), method="pearson")
     this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
     grchabund_deathrate_pcor_trts <- bind_rows(grchabund_deathrate_pcor_trts, this_row)
@@ -375,14 +516,17 @@ grchabund_deathrate_pcor_trts
 
 No significance.
 
-# Growth change in abundance vs death change in abundance
+### Growth change in abundance vs death change in abundance
+
+Logarithmic only
 
 Hypothesis: Taxa that accumulated more biomass during growth can and will lose more biomass to death
 * boom/bust lifestyle
 
 ```{r}
 # Graph
-growth_death_asv %>% 
+growth_death_asv %>%
+  mutate(decay=="logarithmic") %>% 
   filter(died=="yes") %>%
   ggplot(aes(x=log(growth_change_abund_corr), y=log(abs(death_change_abund_corr)))) +
   geom_point(alpha=0.5) +
@@ -402,7 +546,7 @@ Pearson correlations with multiple test correction
 chabund_growth_death_pcor <- data.frame()
 for (s in c("C3", "S17")) {
   for (a in c("Y", "N")) {
-    data_sub <- filter(growth_death_asv, Soil==s & Amendment==a)
+    data_sub <- filter(growth_death_asv, Soil==s & Amendment==a & decay=="logarithmic")
     pcor <- cor.test(log(data_sub$growth_change_abund_corr), log(abs(data_sub$death_change_abund_corr)), method="pearson")
     this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
     chabund_growth_death_pcor <- bind_rows(chabund_growth_death_pcor, this_row)

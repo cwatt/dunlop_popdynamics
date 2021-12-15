@@ -215,7 +215,7 @@ See: http://varianceexplained.org/statistics/interpreting-pvalue-histogram/
 
 I'm choosing to use a permutation approach where I use my growth estimating algorhithm on randomly generated data with characteristics of the real data. I'll use this false positive information to filter my real estimates. Traditional false positive control methods are far too conservative for my dataset.
 
-### Simulate random data
+**Simulate random data**
 
 Completely random data designed to reflect actual data, if we detect "significant" growth rate estimates from this, we must control for that, because the same thing can happen in our actual data.
 
@@ -248,7 +248,7 @@ hist(num_tps$num_points)
 
 Simulate random time series:
 
-```{r}
+```{r, eval=FALSE}
 set.seed(2021)
 
 # Set time points, remove anything below day 0.667 (minimum window of growth)
@@ -292,6 +292,14 @@ while (cont == TRUE) {
 }
 colnames(sim_data)[1] <- "simulation"
 
+# Save simulated data for reproducibility
+saveRDS(sim_data, file="../rdata.files/gr_deathsimulation.rds")
+```
+
+```{r}
+# Load simulated data
+sim_data <- readRDS("../rdata.files/gr_deathsimulation.rds")
+
 # Compare simulation to actual data
 # Abundances
 hist(sim_data$rand_abund_ln)
@@ -312,7 +320,7 @@ Save simulated data:
 * for reproducibility
 
 ```{r, eval=FALSE}
-saveRDS(sim_data, file="../rdata.files/gr_deathsimulation.rds")
+
 ```
 
 View some simulated time series:
@@ -526,7 +534,7 @@ for (label in as.character(unique(norm_prepped$Label))) {
 }
 ```
 
-Remove essentially perfect fits:
+### Remove essentially perfect fits
 
 ```{r}
 # Remove "perfect" fits as precaution
@@ -611,7 +619,7 @@ nrow(death_falsepos5_long)
 
 None removed.
 
-# Compare estimated slopes between methods
+# Compare long and window death estimates
 
 We've decided that if the slope estimates between methods is indistinguishable, we will go with the long fit. If they are different, we will go with the window-fit to reflect possible oscillatory patterns of growth and death.
 
@@ -640,19 +648,314 @@ death_window_overlap <- filter(death_long, Label %in% overlap_labels) %>%
 
 These overlapping estimates fit the same data window, no point in comparisons.
 
+# Linear death estimates
+
+The prior estimates were on natural log-transformed data fit to a linear model, and so modeled logarithmic decay. Death may not happen this way in all circumstances. We might expect logarithmic decay on populations that are being predated or outcompeted by an logarithmicly-growing organism, but not in other cases? I want to see if death can be estimated on data that has not been transformed to model linear death.
+
+Estimate death:
+
+```{r}
+# Save estimate function
+savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
+  est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(norm_abund ~ Day, data=datasub[start:end,])
+  coeff <- est$coefficients[2]
+  resids <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  thisrow <- bind_cols(Label=label, start=start, end=end, coeff=coeff, pval=pval, residuals=resids, row.names <- NULL)
+  output <- bind_rows(output, thisrow)
+  return(output)
+}
+
+# Fit linear model with sliding window
+death_linear <- data.frame()
+for (label in as.character(unique(norm_prepped$Label))) {
+  # Subset one time series
+  datasub <- data.frame()
+  datasub <- norm_prepped[norm_prepped$Label==label,] %>%  # subset growth curve
+    arrange(Day)
+  stop <- FALSE
+  # Save time series info
+  label <- NULL
+  label <- as.character(unique(datasub$Label))
+  
+  # Sliding window
+  for (b in 1:(nrow(datasub)-2)) { # start of window
+    #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    for (e in (b+2):nrow(datasub)) { # end of window
+      if (stop == TRUE) {break} # stop extending the window if a solution is found
+   
+      # Fit linear model to window
+      test_lm <- NULL; test_pval <- NULL; test_coeff <- NULL
+      test_lm <- lm(norm_abund ~ Day, data=datasub[b:e,])
+      test_pval <- summary(test_lm)$coefficients[2,4]
+      test_coeff <- test_lm$coefficients[2]
+
+      # Extend the window
+      if (test_pval <= 0.05 & test_coeff < 0 & e < nrow(datasub)) { # good fit, but more data might improve?
+        for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
+          if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
+          testprev_lm <- NULL; testprev_pval <- NULL; testprev_coeff <- NULL; testnew_lm <- NULL; testnew_pval <- NULL; testnew_coeff <- NULL
+          testprev_lm <- lm(norm_abund ~ Day, data=datasub[b:(x-1),])
+          testprev_pval <- summary(testprev_lm)$coefficients[2,4]
+          testprev_coeff <- testprev_lm$coefficients[2]
+          testnew_lm <- lm(norm_abund ~ Day, data=datasub[b:x,])
+          testnew_pval <- summary(testnew_lm)$coefficients[2,4]
+          testnew_coeff <- testnew_lm$coefficients[2]
+          
+          # Continue extending the window
+          if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
+            next
+          }
+          
+          # No improvement
+          else if (testnew_pval > testprev_pval & testprev_coeff < 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
+            end <- x-1
+            death_est <- savefit(start, end, datasub, death_est) # where it tried to save but failed, think issue is in savefit function
+            stop <- TRUE
+          }
+          
+          # No more data pts to fit
+          else if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x == nrow(datasub)) { # improved but no more data
+            end <- x
+            death_est <- savefit(start, end, datasub, death_est)
+            stop <- TRUE
+          } 
+        }
+      }
+      
+      # No more data pts to fit
+      else if (test_pval <= 0.05 & test_coeff < 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
+        end <- e
+        death_linear <- savefit(start, end, datasub, death_linear)
+        stop <- TRUE
+      }
+    }
+  }
+}
+```
+
+### Remove essentially perfect fits
+
+```{r}
+# Remove "perfect" fits as precaution
+death_linear_noperf <- filter(death_linear, residuals >= 0.0001)
+nrow(death_linear)
+nrow(death_linear_noperf)
+```
+
+### Select best fit for each time series
+
+* Smallest slope p-value
+
+```{r}
+# Best p-value for each curve
+death_linear_lowestp <- death_linear_noperf %>% 
+  group_by(Label) %>% 
+  summarize(pval = min(pval)) %>% 
+  ungroup()
+
+death_linear_best <- semi_join(death_linear_noperf, death_linear_lowestp)
+
+nrow(death_linear_best)
+```
+
+### False positive control
+
+* Using the previously-generated simulation data
+
+Un-log transform the data
+
+```{r}
+sim_data_linear <- mutate(sim_data, rand_abund = e^rand_abund_ln)
+```
+
+Estimate "death" on simulated data:
+
+```{r}
+# Save estimate function
+savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
+  est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
+  est <- lm(rand_abund ~ rand_day, data=datasub[start:end,])
+  coeff <- est$coefficients[2]
+  resids <- sum(abs(resid(est)))
+  pval <- summary(est)$coefficients[2,4]
+  thisrow <- bind_cols(simulation=s, start=start, end=end, coeff=coeff, pval=pval, residuals=resids, row.names <- NULL)
+  output <- bind_rows(output, thisrow)
+  return(output)
+}
+
+# Fit linear model with sliding window
+sim_linear <- data.frame()
+for (s in as.character(unique(sim_data_linear$simulation))) {
+  # Subset one time series
+  datasub <- data.frame()
+  datasub <- sim_data_linear[sim_data_linear$simulation==s,] %>%  # subset growth curve
+    arrange(rand_day)
+  stop <- FALSE
+  # Save time series info
+  simulation <- NULL
+  simulation <- s
+  
+  # Sliding window
+  for (b in 1:(nrow(datasub)-2)) { # start of window
+    #if (stop == TRUE) {break} this would stop the loop after the first solution is found, but we decided to consider all windows instead
+    start <- b
+    stop <- FALSE # this ensures all windows are considered (for each new b/window, stop is reset to false)
+    for (e in (b+2):nrow(datasub)) { # end of window
+      if (stop == TRUE) {break} # stop extending the window if a solution is found
+   
+      # Fit linear model to window
+      test_lm <- NULL; test_pval <- NULL; test_coeff <- NULL
+      test_lm <- lm(rand_abund ~ rand_day, data=datasub[b:e,])
+      test_pval <- summary(test_lm)$coefficients[2,4]
+      test_coeff <- test_lm$coefficients[2]
+
+      # Extend the window
+      if (test_pval <= 0.05 & test_coeff < 0 & e < nrow(datasub)) { # good fit, but more data might improve?
+        for (x in ((e+1):nrow(datasub))) { # extend this window to see if it improves
+          if (stop == TRUE) {break} # stop extending if the solution improves or if hit end of time series
+          testprev_lm <- NULL; testprev_pval <- NULL; testprev_coeff <- NULL; testnew_lm <- NULL; testnew_pval <- NULL; testnew_coeff <- NULL
+          testprev_lm <- lm(rand_abund ~ rand_day, data=datasub[b:(x-1),])
+          testprev_pval <- summary(testprev_lm)$coefficients[2,4]
+          testprev_coeff <- testprev_lm$coefficients[2]
+          testnew_lm <- lm(rand_abund ~ rand_day, data=datasub[b:x,])
+          testnew_pval <- summary(testnew_lm)$coefficients[2,4]
+          testnew_coeff <- testnew_lm$coefficients[2]
+          
+          # Continue extending the window
+          if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x < nrow(datasub)) { # if adding data improved (or didn't hurt) the estimate, keep extending
+            next
+          }
+          
+          # No improvement
+          else if (testnew_pval > testprev_pval & testprev_coeff < 0 & x < nrow(datasub)) { # if adding data did not improve the estimate, stop
+            end <- x-1
+            death_est <- savefit(start, end, datasub, death_est) # where it tried to save but failed, think issue is in savefit function
+            stop <- TRUE
+          }
+          
+          # No more data pts to fit
+          else if (testnew_pval <= testprev_pval & testnew_coeff < 0 & x == nrow(datasub)) { # improved but no more data
+            end <- x
+            death_est <- savefit(start, end, datasub, death_est)
+            stop <- TRUE
+          } 
+        }
+      }
+      
+      # No more data pts to fit
+      else if (test_pval <= 0.05 & test_coeff < 0 & e==nrow(datasub)) { # meets threshold but no remaining points to extend
+        end <- e
+        sim_linear <- savefit(start, end, datasub, sim_linear)
+        stop <- TRUE
+      }
+    }
+  }
+}
+```
+
+Remove "essentially perfect fits":
+
+```{r}
+# Remove "perfect" fits as precaution
+sim_linear_noperf <- filter(sim_linear, residuals >= 0.0001)
+nrow(sim_linear)
+nrow(sim_linear_noperf)
+```
+
+None were removed.
+
+Select best fit for each time series:
+
+* Smallest slope p-value
+
+```{r}
+# Best p-value for each curve
+sim_linear_lowestp <- sim_linear_noperf %>% 
+  group_by(simulation) %>% 
+  summarize(pval = min(pval)) %>% 
+  ungroup()
+
+sim_linear_best <- semi_join(sim_linear_noperf, sim_linear_lowestp)
+
+nrow(sim_linear_best)
+```
+
+False positive rates:
+
+```{r}
+# False positives
+a <- nrow(sim_linear_best[sim_linear_best$pval <= 0.05,])
+b <- nrow(sim_linear_best[sim_linear_best$pval <= 0.025,])
+c <- nrow(sim_linear_best[sim_linear_best$pval <= 0.01,])
+d <- nrow(sim_linear_best[sim_linear_best$pval <= 0.005,])
+e <- nrow(sim_linear_best[sim_linear_best$pval <= 0.001,])
+f <- nrow(sim_linear_best[sim_linear_best$pval <= 0.0005,])
+
+false_pos <- data.frame(c(0.05, 0.025, 0.01, 0.005, 0.001, 0.0005), c(a,b,c,d,e,f))
+colnames(false_pos)=c("pvalue","false")
+
+ggplot(false_pos, aes(x=pvalue, y=false)) +
+  geom_point() +
+  geom_smooth(method="lm", linetype=2) +
+  labs(title="Relationship between p-value and number of false positives", x="P-value", y="False positives") +
+  theme_test()
+```
+
+Find 5% false positive allowance p-value threshold
+
+* Using linear model to predict
+
+```{r}
+falsepos_lm <- lm(false ~ pvalue, data=false_pos)
+falsepos_lm
+
+slope <- summary(falsepos_lm)$coefficients[2,1]
+intercept <- summary(falsepos_lm)$coefficients[1,1]
+```
+
+To reflect growth estimates, filtering at 5% false positive rate:
+
+```{r}
+## 5% false positive allowance
+false5_pval <- (50 - intercept)/slope
+
+# ~5% false positives
+death_linear_falsepos5 <- subset(death_linear_best, pval <= false5_pval)
+nrow(death_linear_falsepos5)
+```
+
+None removed.
+
+# Compare linear and logarithmic death estimates
+
+Is there any overlap?
+
+```{r}
+est_overlap <- inner_join(death_window, death_linear_falsepos5)
+dim(est_overlap)
+```
+
+Nope. No comparison or decision-making needed.
+
 # Calculate death parameters
 
-### Death rate
+### Death rates
 
 Need to look into a specific growth rate equivalent to death? For now, stick to the slope of the linear model.
+
+Are linear and logarithmic death estimates comparable in some way?
 
 ### Start and end day, change in relational abundance
 
 ```{r}
-test <- bind_rows(head(death_window), tail(death_window))
-
 # Convert start and end to actual day
-death_metrics <- data.frame()
+
+# Non-linear estimates
+death_metrics_exp <- data.frame()
 for (l in as.character(unique(death_window$Label))) {
   # Isolate
   norm_label <- norm_prepped %>%
@@ -681,9 +984,48 @@ for (l in as.character(unique(death_window$Label))) {
                         start_pt = start_pt, end_pt = end_pt,
                         death_rate = death_label$coeff,
                         start_day = start_day, end_day = end_day, length_days = length_days,
-                        start_abund = start_abund, end_abund = end_abund, change_abund = change_abund)
-  death_metrics <- bind_rows(death_metrics, this_row)
+                        start_abund = start_abund, end_abund = end_abund, change_abund = change_abund,
+                        decay = "logarithmic")
+  death_metrics_exp <- bind_rows(death_metrics_exp, this_row)
 }
+
+# Linear estimates
+death_metrics_linear <- data.frame()
+for (l in as.character(unique(death_linear_falsepos5$Label))) {
+  # Isolate
+  norm_label <- norm_prepped %>%
+    filter(Label==l) %>% 
+    arrange(Day)
+  death_label <- filter(death_linear_falsepos5, Label==l)
+  # Set start and end based on model fit
+  if (is.na(death_label$start)) {
+    start_pt <- as.numeric(1)
+    end_pt <- as.numeric(nrow(norm_label))
+  } 
+  else {
+    start_pt <- death_label$start
+    end_pt <- death_label$end
+  }
+  # Start and end days, length
+  start_day <- norm_label[start_pt,]$Day
+  end_day <- norm_label[end_pt,]$Day
+  length_days <- end_day - start_day
+  # Starting and ending abundances, change
+  start_abund <- norm_label[start_pt,]$norm_abund
+  end_abund <- norm_label[end_pt,]$norm_abund
+  change_abund <- end_abund - start_abund
+  # Save output
+  this_row <- bind_cols(Label = as.character(death_label$Label),
+                        start_pt = start_pt, end_pt = end_pt,
+                        death_rate = death_label$coeff,
+                        start_day = start_day, end_day = end_day, length_days = length_days,
+                        start_abund = start_abund, end_abund = end_abund, change_abund = change_abund,
+                        decay = "linear")
+  death_metrics_linear <- bind_rows(death_metrics_linear, this_row)
+}
+
+# Combine
+death_metrics <- bind_rows(death_metrics_exp, death_metrics_linear)
 ```
 
 # Tidy up and save data
@@ -726,7 +1068,7 @@ Death estimates:
 death_tidy <- death_metrics %>% 
   left_join(meta, by="Label") %>% 
   left_join(tax) %>% 
-  select(Label, Soil, Amendment, Replicate, ASV, start_pt:length_days, start_abund:change_abund, Domain:Genus) %>% 
+  select(Label, Soil, Amendment, Replicate, ASV, start_pt:length_days, start_abund:decay, Domain:Genus) %>% 
   mutate(Replicate = as.numeric(Replicate))
 ```
 
@@ -736,14 +1078,15 @@ saveRDS(death_tidy, file="../rdata.files/gr_death_estimates.rds")
 
 # Plot death
 
-```{r}
-# For messing with graphs
-testing <- head(death_tidy)
+logarithmic:
 
-# Plot all
-for (l in as.character(death_tidy$Label)) {
+```{r}
+death_exp <- filter(death_tidy, decay=="logarithmic")
+
+# Plot logarithmic death
+for (l in as.character(death_exp$Label)) {
   # Subset time series
-  est_label <- filter(death_tidy, Label==l)
+  est_label <- filter(death_exp, Label==l)
   norm_label <- filter(norm_tidy, Label==l) %>% 
     arrange(Day)
   # Title information
@@ -765,5 +1108,36 @@ for (l in as.character(death_tidy$Label)) {
         axis.text = element_text(size=14))
   print(graph)
 }
+```
 
+Linear:
+
+```{r}
+death_linear <- filter(death_tidy, decay=="linear")
+
+# Plot logarithmic death
+for (l in as.character(death_linear$Label)) {
+  # Subset time series
+  est_label <- filter(death_linear, Label==l)
+  norm_label <- filter(norm_tidy, Label==l) %>% 
+    arrange(Day)
+  # Title information
+  asv <- est_label$ASV
+  tax_info <- filter(tax, ASV == asv)
+  title <- paste0(as.character(tax_info$Phylum), ", ", as.character(tax_info$Genus))
+  # Graph with estimate
+  graph <- ggplot(norm_label, aes(x=Day, y=log(norm_abund))) +
+    geom_point(shape=1, size=2, color="#6F7378") +
+    geom_line(color="#6F7378") +
+    # Death estimate
+    geom_smooth(method="lm", data=filter(norm_label, Day >= est_label$start_day & Day <= est_label$end_day),
+                linetype=2, color="red") +
+    # Formatting
+    labs(title=title, x="Day", y="ln ARNIS ratio") +
+    theme_test() +
+    theme(title = element_text(size=18),
+        axis.title = element_text(size=16),
+        axis.text = element_text(size=14))
+  print(graph)
+}
 ```
