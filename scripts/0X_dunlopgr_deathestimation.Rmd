@@ -943,11 +943,52 @@ Nope. No comparison or decision-making needed.
 
 # Calculate death parameters
 
-### Death rates
+### Death rate
 
-Need to look into a specific growth rate equivalent to death? For now, stick to the slope of the linear model.
+Logarithmic only.
 
-Are linear and logarithmic death estimates comparable in some way?
+Calculating specific growth rate in reverse. I'm using the absolute value of the slope instead.
+
+Formula: k=(log10(b)-log10(B))*2.303/t
+
+Where k is specific growth rate, B is abundance at beginning, b is abundance at end, and t is the time interval.
+
+See 03_dunlopgr_grestimation.Rmd
+
+```{r}
+# Starting with 1 individuals (B)
+B <- 1
+# Three day time window (t)
+t <- 3
+
+death_k <- data.frame()
+for (l in as.character(unique(death_window$Label))) {
+  death_label <- filter(death_window, Label==l)
+  slope <- abs(death_label$coeff)
+  b <- (slope*t) + B # predict number of taxa three days later
+  k <- (log10(b) - log10(B)) * (2.303/t) # calculate specific "growth" rate
+  this_row <- bind_cols(death_label, k=k)
+  death_k <- bind_rows(death_k, this_row)
+}
+```
+
+Calculate anti-doubling time (g)
+
+Formula: g = ln2/k
+
+Where g is generation or doubling time and k is specific growth rate (per day).
+
+```{r}
+# Calculate doubling time based on k
+death_g <- data.frame()
+for (l in as.character(unique(death_k$Label))) {
+        death_label <- filter(death_k, Label==l)
+        k <- death_label$k
+        g <- log(2)/k
+        this_row <- bind_cols(death_label, g=g)
+        death_g <- rbind(death_g, this_row)
+}
+```
 
 ### Start and end day, change in relational abundance
 
@@ -955,13 +996,13 @@ Are linear and logarithmic death estimates comparable in some way?
 # Convert start and end to actual day
 
 # Non-linear estimates
-death_metrics_exp <- data.frame()
-for (l in as.character(unique(death_window$Label))) {
+death_metrics_log <- data.frame()
+for (l in as.character(unique(death_g$Label))) {
   # Isolate
   norm_label <- norm_prepped %>%
     filter(Label==l) %>% 
     arrange(Day)
-  death_label <- filter(death_window, Label==l)
+  death_label <- filter(death_g, Label==l)
   # Set start and end based on model fit
   if (is.na(death_label$start)) {
     start_pt <- as.numeric(1)
@@ -982,15 +1023,15 @@ for (l in as.character(unique(death_window$Label))) {
   # Save output
   this_row <- bind_cols(Label = as.character(death_label$Label),
                         start_pt = start_pt, end_pt = end_pt,
-                        death_rate = death_label$coeff,
+                        death_rate = death_label$k, half_time = death_label$g,
                         start_day = start_day, end_day = end_day, length_days = length_days,
                         start_abund = start_abund, end_abund = end_abund, change_abund = change_abund,
                         decay = "logarithmic")
-  death_metrics_exp <- bind_rows(death_metrics_exp, this_row)
+  death_metrics_log <- bind_rows(death_metrics_log, this_row)
 }
 
 # Linear estimates
-death_metrics_linear <- data.frame()
+death_metrics_lin <- data.frame()
 for (l in as.character(unique(death_linear_falsepos5$Label))) {
   # Isolate
   norm_label <- norm_prepped %>%
@@ -1017,15 +1058,15 @@ for (l in as.character(unique(death_linear_falsepos5$Label))) {
   # Save output
   this_row <- bind_cols(Label = as.character(death_label$Label),
                         start_pt = start_pt, end_pt = end_pt,
-                        death_rate = death_label$coeff,
+                        death_rate = death_label$coeff, half_time = 0, # these are not comparible to logarithmic estimates, 0 is placeholder for missing value
                         start_day = start_day, end_day = end_day, length_days = length_days,
                         start_abund = start_abund, end_abund = end_abund, change_abund = change_abund,
                         decay = "linear")
-  death_metrics_linear <- bind_rows(death_metrics_linear, this_row)
+  death_metrics_lin <- bind_rows(death_metrics_lin, this_row)
 }
 
 # Combine
-death_metrics <- bind_rows(death_metrics_exp, death_metrics_linear)
+death_metrics <- bind_rows(death_metrics_log, death_metrics_lin)
 ```
 
 # Tidy up and save data
@@ -1078,7 +1119,7 @@ saveRDS(death_tidy, file="../rdata.files/gr_death_estimates.rds")
 
 # Plot death
 
-logarithmic:
+Logarithmic:
 
 ```{r}
 death_exp <- filter(death_tidy, decay=="logarithmic")

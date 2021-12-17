@@ -1,0 +1,188 @@
+---
+title: "Dunlop - death parameters analyses"
+author: "Cassandra Wattenburger"
+date: "12/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+```
+
+```{r}
+rm(list=ls())
+
+library("tidyverse")
+
+sessionInfo()
+```
+
+# Import data
+
+* Death estimates
+* 16S copy number
+
+Only analyzing logarithmic estimates.
+
+```{r}
+death <- readRDS("../rdata.files/gr_death_estimates.rds") %>% 
+  filter(decay=="logarithmic") %>% 
+  select(everything(), -c(start_pt, end_pt, Domain:Genus)) %>% 
+  rename(death_start_day=start_day, death_end_day=end_day, death_length = length_days,
+         death_start_abund=start_abund, death_end_abund=end_abund, death_change_abund = change_abund)
+
+copynum <- readRDS("../rdata.files/gr_gr.paprica.clean.rds") %>% 
+  select(ASV, n16S) %>% 
+  unique()
+```
+
+Calculate ASV-level parameters
+
+```{r}
+death_asv <- death %>% 
+  left_join(copynum) %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(death_rate = mean(death_rate),
+            half_time = mean(half_time),
+            death_start_day = mean(death_start_day),
+            death_end_day = mean(death_end_day),
+            death_length = mean(death_length),
+            death_start_abund = mean(death_start_abund/n16S), # 16S copy number correction for abundances
+            death_end_abund = mean(death_end_abund/n16S),
+            death_change_abund = mean(death_change_abund/n16S),
+            n16S = mean(n16S)) %>% 
+  ungroup()
+```
+
+# Death rate vs death change abundance
+
+Prediction: Taxa that die at a faster rate tend to lose more biomass overall.
+
+Boom-bust dynamics.
+
+```{r}
+death_asv %>% 
+  ggplot(aes(x=log(death_rate), y=log(abs(death_change_abund)))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Looks like a positive trend
+
+**Statistics**
+
+Pearson correlations with multiple test correction
+
+```{r}
+# Treatments
+ratexchabund_pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(death_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(log(data_sub$death_rate), log(abs(data_sub$death_change_abund)), method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    ratexchabund_pcor <- bind_rows(ratexchabund_pcor, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(ratexchabund_pcor$pvalue, method="holm", n=4)
+ratexchabund_pcor <- bind_cols(ratexchabund_pcor, padj=padj)
+
+# Results
+ratexchabund_pcor
+```
+
+No significance.
+
+# Death start vs death change abundance
+
+Prediction: Taxa that started death earlier more likely to lose more biomass.
+
+Part of boom-bust population with higher churn.
+
+```{r}
+death_asv %>% 
+  ggplot(aes(x=death_start_day, y=log(abs(death_change_abund)))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+No clear trends.
+
+**Statistics**
+
+Pearson correlations with multiple test correction
+
+```{r}
+# Treatments
+startdayxchabund_pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(death_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(data_sub$death_start_day, log(abs(data_sub$death_change_abund)), method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    startdayxchabund_pcor <- bind_rows(startdayxchabund_pcor, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(startdayxchabund_pcor$pvalue, method="holm", n=4)
+startdayxchabund_pcor <- bind_cols(startdayxchabund_pcor, padj=padj)
+
+# Results
+startdayxchabund_pcor
+```
+
+No significance.
+
+# Death start vs death rate
+
+Prediction: Taxa that started death earlier more likely to be dying at a faster rate.
+
+Part of boom-bust population with higher churn.
+
+```{r}
+death_asv %>% 
+  ggplot(aes(x=death_start_day, y=log(death_rate))) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  facet_wrap(Soil~Amendment) +
+  theme_test()
+```
+
+Negative trend, particularly in unamended soils.
+
+**Statistics**
+
+Pearson correlations with multiple test correction
+
+```{r}
+# Treatments
+startdayxrate_pcor <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(death_asv, Soil==s & Amendment==a)
+    pcor <- cor.test(data_sub$death_start_day, log(data_sub$death_rate), method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    startdayxrate_pcor <- bind_rows(startdayxrate_pcor, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(startdayxrate_pcor$pvalue, method="holm", n=4)
+startdayxrate_pcor <- bind_cols(startdayxrate_pcor, padj=padj)
+
+# Results
+startdayxrate_pcor
+```
+
+Only one significant.
+
+

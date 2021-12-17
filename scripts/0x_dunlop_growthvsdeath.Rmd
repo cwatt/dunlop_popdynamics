@@ -45,7 +45,7 @@ norm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds") %>%
 growth_death <- inner_join(growth, death) %>% 
   select(Label, Soil, Amendment, Replicate, Domain:Genus, ASV,
          k, g, growth_start_day, growth_end_day, growth_start_abund, growth_end_abund, growth_change_abund, growth_length,
-         death_rate, death_start_day, death_end_day, death_start_abund, death_end_abund, death_change_abund, death_length, decay,
+         death_rate, half_time, death_start_day, death_end_day, death_start_abund, death_end_abund, death_change_abund, death_length, decay,
          edge_num:n16S)
 ```
 
@@ -73,47 +73,39 @@ growth_death_lin <- filter(growth_death, decay=="linear")
 nrow(growth_death_lin)
 ```
 
-### Number of estimates per treatment
-
-Overall:
-
-```{r}
-death_count <- growth_death %>% 
-  group_by(Soil, Amendment) %>% 
-  summarize(num_est = n()) %>%
-  ungroup()
-  
-death_count
-```
+### How many ASVs with estimated death?
 
 Logarithmic:
 
 ```{r}
-death_count_log <- growth_death_log %>%
-  group_by(Soil, Amendment) %>% 
-  summarize(num_est = n()) %>%
-  ungroup()
-  
-death_count_log
+length(as.character(unique(growth_death_log$ASV)))
 ```
 
 Linear:
 
 ```{r}
-death_count_lin <- growth_death_lin %>% 
-  group_by(Soil, Amendment) %>% 
-  summarize(num_est = n()) %>%
-  ungroup()
-  
-death_count_lin
+length(as.character(unique(growth_death_lin$ASV)))
 ```
 
-### Death start, end, length
+### Number of ASVs per treatment
 
-Overall:
+Logarithmic:
 
 ```{r}
-death_days <- growth_death %>%
+death_asvs_log <- growth_death_log %>%
+  group_by(Soil, Amendment) %>% 
+  summarize(num_est = length(unique(ASV))) %>%
+  ungroup()
+  
+death_asvs_log
+```
+
+### Overall descriptive stats
+
+Start, end, and length of death:
+
+```{r}
+death_overall <- growth_death %>%
   group_by() %>% 
   summarize(death_start_day_min = min(death_start_day),
             death_start_day_max = max(death_start_day),
@@ -125,7 +117,7 @@ death_days <- growth_death %>%
             death_end_day_sd = sd(death_end_day)) %>%
   ungroup()
   
-death_days
+death_overall
 ```
 
 Logarithmic:
@@ -164,23 +156,21 @@ death_days_lin <- growth_death_lin %>%
 death_days_lin
 ```
 
-### Phyla represented
-
-Overall:
+Halving times (logarithmic only)
 
 ```{r}
-# Number of phyla
-length(unique(as.character(growth_death$Phylum)))
+death_g_log <- growth_death_log %>% 
+  group_by() %>% 
+  summarize(half_time_min = min(half_time),
+            half_time_max = max(half_time),
+            half_time_mean = mean(half_time),
+            half_time_sd = sd(half_time)) %>% 
+  ungroup()
 
-# Which phyla
-death_phyla <- growth_death %>% 
-  group_by(Phylum) %>% 
-  summarize(num_est = n()) %>%
-  ungroup() %>% 
-  arrange(desc(num_est))
-  
-death_phyla
+death_g_log
 ```
+
+### Phyla represented
 
 Logarithmic:
 
@@ -423,14 +413,40 @@ Hypothesis: Taxa with faster growth rate more likely to experience faster death
 # Graph
 growth_death_asv %>% 
   mutate(decay=="logarithmic") %>% 
-  ggplot(aes(x=k, y=log(abs(death_rate)))) +
+  ggplot(aes(x=log(k), y=log(abs(death_rate)))) +
   geom_smooth(method="lm", linetype=2, alpha=0.5) +
   geom_point(alpha=0.5) +
   facet_wrap(Soil~Amendment) +
   theme_test()
 ```
 
-Perhaps a trend of slight positive relationship but too slight/variable to confirm.
+Perhaps a trend of slight positive relationship.
+
+**Statistics**
+
+Pearson correlations with multiple test correction
+
+```{r}
+# Treatments
+growthrate_deathrate_pcor_trts <- data.frame()
+for (s in c("C3", "S17")) {
+  for (a in c("Y", "N")) {
+    data_sub <- filter(growth_death_asv, Soil==s & Amendment==a & decay=="logarithmic")
+    pcor <- cor.test(data_sub$k, abs(data_sub$death_rate), method="pearson")
+    this_row <-  data.frame("Soil"=s, "Amendment"=a, "estimate"=pcor$estimate, "pvalue"=pcor$p.value)
+    growthrate_deathrate_pcor_trts <- bind_rows(growthrate_deathrate_pcor_trts, this_row)
+  }
+}
+
+# Multiple test correction
+padj <- p.adjust(growthrate_deathrate_pcor_trts$pvalue, method="holm", n=4)
+growthrate_deathrate_pcor_trts <- bind_cols(growthrate_deathrate_pcor_trts, padj=padj)
+
+# Results
+growthrate_deathrate_pcor_trts
+```
+
+No significance.
 
 ### Growth rate vs death change in abundance
 
@@ -440,7 +456,7 @@ Logarithmic only
 # Graph
 growth_death_asv %>% 
   mutate(decay=="logarithmic") %>% 
-  ggplot(aes(x=k, y=log(abs(death_change_abund_corr)))) +
+  ggplot(aes(x=log(k), y=log(abs(death_change_abund_corr)))) +
   geom_smooth(method="lm", linetype=2, alpha=0.5) +
   geom_point(alpha=0.5) +
   facet_wrap(Soil~Amendment) +
@@ -539,5 +555,58 @@ chabund_growth_death_pcor
 ```
 
 Positive correlation between growth and death change in abundance in amended but not unamended soil. More growth means more potential for losses to death?
+
+# Figures
+
+Aggregate death change in abundance
+
+```{r}
+plot <- growth_death_agg_log %>% 
+   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
+          Amendment = as_factor(Amendment),
+         Amendment = fct_recode(Amendment, Resources = "Y", Water = "N"),
+         Amendment = fct_relevel(Amendment, c("Resources", "Water"))) %>% 
+  ggplot(aes(x=Soil, y=abs(death_change_abund_corr))) +
+  geom_jitter(aes(shape=Amendment), width=0.1) +
+  scale_shape_manual(values=c(19,1)) +
+  theme_classic() +
+  theme(axis.title = element_blank(),
+        text = element_text(size=9),
+        strip.text.x = element_text(size = 10, hjust = 0),
+        legend.position = "bottom",
+        strip.background = element_blank())
+plot
+```
+
+```{r, eval=FALSE}
+ggsave(plot, filename="../figures/suppfig_deathchabund_aggregate.svg", units="mm", width=70, height=60, device="svg")
+```
+
+Growth vs death change in abundance
+
+```{r}
+plot <- growth_death_asv %>%
+  mutate(Treatment = paste0(Soil, Amendment),
+         Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
+                                'Successional, water' = "S17N", 'Successional, resources' = "S17Y"),
+         Treatment = factor(Treatment, levels=c("Cropped, water", "Cropped, resources",
+                                                 "Successional, water", "Successional, resources"))) %>%
+  mutate(decay=="logarithmic") %>% 
+  filter(died=="yes") %>%
+  ggplot(aes(x=log(growth_change_abund_corr), y=log(abs(death_change_abund_corr)))) +
+  geom_point(shape=1, alpha= 0.5) +
+  geom_smooth(method="lm", linetype=2, color="black", alpha=0.5) +
+  facet_wrap(~Treatment) +
+  theme_test() +
+  theme(text = element_text(size=9),
+        strip.text.x = element_text(size = 9, hjust = 0),
+        strip.background = element_blank(),
+        axis.title = element_blank())
+plot
+```
+
+```{r, eval=FALSE}
+ggsave(plot, filename = "../figures/fig_growthxdeathchabund.svg", units="mm", width=85, height=90, device="svg")
+```
 
 

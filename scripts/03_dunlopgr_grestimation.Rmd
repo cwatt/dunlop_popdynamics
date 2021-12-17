@@ -735,7 +735,7 @@ Formula: k=(log10(b)-log10(B))*2.303/t
 
 Where k is specific growth rate, B is abundance at beginning, b is abundance at end, and t is the time interval.
 
-I found this guide helpful: http://miller-lab.net/MillerLab/protocols/general-bacteriology/calculating-growth-rate/
+I found this guide helpful: http://web.archive.org/web/20200704105815/http://miller-lab.net/MillerLab/protocols/general-bacteriology/calculating-growth-rate/
 
 ```{r}
 # Generate abundances over time interval based on estimated slope
@@ -760,7 +760,6 @@ for (s in as.character(unique(gr.falsepos5$Soil))) {
   }
 }
 ```
-
 
 # Calculate doubling time
 
