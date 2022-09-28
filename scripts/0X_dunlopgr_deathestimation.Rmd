@@ -291,10 +291,16 @@ while (cont == TRUE) {
   }
 }
 colnames(sim_data)[1] <- "simulation"
+```
 
+Save simulated data:
+
+```{r, eval=FALSE}
 # Save simulated data for reproducibility
 saveRDS(sim_data, file="../rdata.files/gr_deathsimulation.rds")
 ```
+
+Compare simulated data properties to real data properties:
 
 ```{r}
 # Load simulated data
@@ -314,14 +320,6 @@ hist(sim_num_points$num_pts)
 ```
 
 Looks pretty comparable to actual data properties.
-
-Save simulated data:
-
-* for reproducibility
-
-```{r, eval=FALSE}
-
-```
 
 View some simulated time series:
 
@@ -506,6 +504,7 @@ To reflect growth estimates, filtering at 5% false positive rate:
 ```{r}
 ## 5% false positive allowance
 false5_pval <- (50 - intercept)/slope
+false5_pval
 
 # ~5% false positives
 death_falsepos5 <- subset(death_best, pval <= false5_pval)

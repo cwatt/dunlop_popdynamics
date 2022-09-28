@@ -290,7 +290,7 @@ plot <- growth.asv %>%
   ggplot() +
   geom_density(aes(x=log(k), fill=Soil), alpha=0.5) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
-  facet_wrap(~Amendment, scales="fixed") +
+  facet_wrap(~Amendment, nrow=2, scales="fixed") +
   #labs(y="Kernel density", x=bquote('ln specific growth rate'~day^-1)) +
   theme_classic() +
   theme(axis.title = element_blank(),
@@ -301,7 +301,7 @@ plot <- growth.asv %>%
         strip.background = element_blank())
 plot
 
-ggsave(plot, filename="../figures/fig_kdistributions.svg", units="mm", width=185, height=60, device="svg")
+ggsave(plot, filename="../figures/fig_kdistributions.svg", units="mm", width=100, height=85, device="svg")
 ```
 
 ```{r}

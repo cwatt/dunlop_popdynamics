@@ -573,13 +573,13 @@ plot <- growth_death_agg_log %>%
   theme(axis.title = element_blank(),
         text = element_text(size=9),
         strip.text.x = element_text(size = 10, hjust = 0),
-        legend.position = "bottom",
+        legend.position = "none",
         strip.background = element_blank())
 plot
 ```
 
 ```{r, eval=FALSE}
-ggsave(plot, filename="../figures/suppfig_deathchabund_aggregate.svg", units="mm", width=70, height=60, device="svg")
+ggsave(plot, filename="../figures/fig_sample_deathchabund.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 Growth vs death change in abundance
@@ -606,7 +606,7 @@ plot
 ```
 
 ```{r, eval=FALSE}
-ggsave(plot, filename = "../figures/fig_growthxdeathchabund.svg", units="mm", width=85, height=90, device="svg")
+ggsave(plot, filename = "../figures/fig_growthxdeathchabund.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 
