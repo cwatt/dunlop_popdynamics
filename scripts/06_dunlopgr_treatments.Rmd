@@ -306,7 +306,7 @@ anova(growth.16s.lm)
 plot <- growth.trt %>%
   pivot_longer(c(start_day, change_abund_corr, k, n16S), names_to = "growth_metric") %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
-         Amendment = fct_recode(Amendment, Resources = "Y", Water = "N"),
+         Amendment = fct_recode(Amendment, `Water + Resources` = "Y", `Water only`= "N"),
          growth_metric = fct_relevel(growth_metric, c("start_day", "change_abund", "k", "n16S"))) %>%
   ggplot(aes(y=value, x=Soil)) +
   geom_jitter(aes(shape=Amendment), width=0.1) +
@@ -318,6 +318,7 @@ plot <- growth.trt %>%
         text = element_text(size=9),
         strip.text.x = element_text(size = 10, hjust = 0),
         legend.position = "bottom",
+        legend.title=element_blank(),
         strip.background = element_blank())
 plot
 

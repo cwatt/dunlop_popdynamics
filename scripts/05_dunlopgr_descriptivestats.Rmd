@@ -82,10 +82,14 @@ length(whole.phyla)
 
 ```{r}
 # Import normalized microcosm data
-ucosm <- readRDS("rdata.files/gr_ucosm.norm.clean.rds")
+ucosm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds")
+```
 
+```{r, eval=False}
 # Import normalized field data
-field <- readRDS("rdata.files/gr_field.norm.clean.rds")
+field <- readRDS("../rdata.files/gr_field.norm.clean.rds") %>% 
+  filter(norm_abund != "AsIs") %>% 
+  mutate(norm_abund = as.numeric(norm_abund))
 
 # total ASVs (not including 0 abundance)
 ucosm %>% bind_rows(field) %>% 
@@ -95,7 +99,6 @@ ucosm %>% bind_rows(field) %>%
 ```
 
 Agrees with above.
-
 
 **Most abundant phyla**
 
@@ -115,7 +118,7 @@ ucosm %>%
 
 In field:
 
-```{r}
+```{r, eval=FALSE}
 # Field
 field %>% 
   group_by(Replicate, Phylum) %>% 
@@ -128,12 +131,11 @@ field %>%
 
 Not sure why that didn't reorder correctly.
 
-
-# In situ growth
+# Growth
 
 ```{r}
 # Import data
-growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
 Total ASVs with estimates:
@@ -159,9 +161,18 @@ Number of estimates per phylum:
 ```{r}
 # Number of estimates per phylum
 growth %>% 
-  mutate(Phylum = str_remove(Phylum, "putative ")) %>% # roll putative into the phylum
+  mutate(Phylum = str_remove(Class, "putative ")) %>% # roll putative into the phylum
   distinct(ASV, Phylum) %>%
   group_by(Phylum) %>%
+  summarize(total = n()) %>%
+  arrange(-total)
+
+# Proteobacteria by class
+growth %>% 
+  filter(Phylum=="Proteobacteria") %>% 
+  mutate(Class = str_remove(Class, "putative ")) %>% # roll putative into the class
+  distinct(ASV, Class) %>%
+  group_by(Class) %>%
   summarize(total = n()) %>%
   arrange(-total)
 ```
@@ -186,6 +197,33 @@ growth %>%
   group_by(Soil, Amendment) %>%
   distinct(ASV) %>%
   summarize(total = n())
+```
+
+# Death
+
+```{r}
+# Import data
+death <- readRDS("../rdata.files/gr_death_estimates.rds")
+```
+
+
+```{r}
+# Number of estimates per phylum
+death %>% 
+  mutate(Phylum = str_remove(Phylum, "putative ")) %>% # roll putative into the phylum
+  distinct(ASV, Phylum) %>%
+  group_by(Phylum) %>%
+  summarize(total = n()) %>%
+  arrange(-total)
+
+# Proteobacteria by class
+death %>% 
+  filter(Phylum=="Proteobacteria" | Phylum=="unclassified Proteobacteria") %>% 
+  mutate(Class = str_remove(Class, "putative ")) %>% # roll putative into the phylum
+  distinct(ASV, Class) %>%
+  group_by(Class) %>%
+  summarize(total = n()) %>%
+  arrange(-total)
 ```
 
 

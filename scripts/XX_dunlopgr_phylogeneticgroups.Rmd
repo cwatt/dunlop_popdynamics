@@ -1,0 +1,371 @@
+---
+title: "XX_dunlopgr_phylogeneticgroups.Rmd"
+author: "Cassandra Wattenburger"
+date: "11/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import and prepare data
+
+```{r}
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
+death <- readRDS("../rdata.files/gr_death_estimates.rds")
+```
+
+# Growth
+
+## Phylum level
+
+Who grew:
+
+```{r}
+growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  ggplot(aes(y=reorder(Phylum, desc(log(k))), x=log(k), color=Amendment)) +
+  geom_point() +
+  geom_boxplot() +
+  facet_wrap(~Soil) +
+  labs(title="Phyla", y="") +
+  theme_test()
+```
+
+Number of estimates per group:
+
+```{r}
+growth_phyla_totals <- growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  group_by(Phylum) %>% 
+  summarize(total=n()) %>% 
+  ungroup() %>% 
+  arrange(desc(total))
+growth_phyla_totals
+```
+
+```{r}
+growth_phyla_totals %>%
+  ggplot(aes(x=reorder(Phylum, desc(total)), y=total)) +
+  geom_point() +
+  geom_text(aes(label=total)) +
+  theme_test()
+```
+
+Sparcity filter and rarefy data:
+
+* Remove phyla with less than 20 representative ASVs
+* Rarefy all phyla to 20 ASVs
+
+```{r}
+# Sparsity filter
+growth_phyla <- growth_phyla_totals %>% 
+  filter(total >= 20) %>% 
+  select(Phylum)
+
+growth_phyla <- growth_phyla$Phylum
+
+growth_filt <- growth %>% 
+  filter(Phylum %in% growth_phyla) %>% 
+  mutate(Phylum = as.character(Phylum)) # unfactor phylum for test
+
+# Rarefy (choose 20 ASVs randomly per group)
+set.seed(2)
+growth_rare <- data.frame()
+for (p in unique(growth_filt$Phylum)) {
+      data_sub <- filter(growth_filt, Phylum==p)
+      # Randomly subsample without replacement 20 times
+      data_rare <- sample_n(data_sub, 20, replace=FALSE)
+      growth_rare <- bind_rows(growth_rare, data_rare)
+}
+```
+
+```{r}
+growth_rare %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  ggplot(aes(y=reorder(Phylum, desc(log(k))), x=log(k))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Phyla rarefied", y="") +
+  theme_test()
+```
+
+Statistics:
+
+```{r}
+# ANOVA
+phyla_lm <- lm(log(k) ~ Phylum, data=growth_rare)
+hist(resid(phyla_lm)) # not normal, log still not normal
+
+# Switching to Kruskal Wallis
+kruskal.test(k ~ Phylum, growth_rare)
+```
+
+By treatment:
+
+```{r}
+growth_trt_totals <- growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  group_by(Phylum, Soil, Amendment) %>% 
+  summarize(total=n()) %>% 
+  ungroup() %>% 
+  arrange(desc(total))
+growth_trt_totals
+```
+
+```{r}
+growth_trt_totals %>%
+  ggplot(aes(x=reorder(Phylum, desc(total)), y=total)) +
+  geom_point() +
+  geom_text(aes(label=total)) +
+  theme_test()
+```
+
+Sparcity filter and rarefy data:
+
+* Remove phyla with less than 10 representative ASVs
+* Rarefy all phyla to 10 ASVs
+
+```{r}
+# Sparsity filter
+growth_phyla_trt <- growth_trt_totals %>% 
+  filter(total >= 10) %>% 
+  select(Soil, Amendment, Phylum)
+
+growth_filt_trt <- growth %>% 
+  inner_join(growth_phyla_trt)
+
+# Rarefy
+growth_rare_trt <- data.frame()
+for (s in unique(growth_filt_trt$Soil)) {
+  for (a in unique(growth_filt_trt$Amendment)) {
+    for (p in unique(growth_filt_trt$Phylum[growth_filt_trt$Soil==s & growth_filt_trt$Amendment==a])) { # problem here
+      data_sub <- filter(growth_filt_trt, Phylum==p & Soil==s & Amendment==a)
+      # Randomly subsample without replacement 10 times
+      data_rare <- sample_n(data_sub, 10, replace=FALSE)
+      growth_rare_trt <- bind_rows(growth_rare_trt, data_rare)
+    }
+  }
+}
+```
+
+Statistics:
+
+Succesional resources + water:
+
+```{r}
+S17y_lm <- lm(log(k) ~ Phylum, data=filter(growth_rare_trt, Soil=="S17" & Amendment=="Y"))
+hist(resid(S17y_lm)) # not normal, log doesn't help
+plot(predict(S17n_lm), resid(S17n_lm)) # variance OK
+
+# Switching to Kruskal Wallis
+kruskal.test(k ~ Phylum, data=filter(growth_rare_trt, Soil=="S17" & Amendment=="Y"))
+```
+
+Successional water only:
+
+```{r}
+S17n_lm <- lm(log(k) ~ Phylum, data=filter(growth_rare_trt, Soil=="S17" & Amendment=="N"))
+hist(resid(S17n_lm)) # normalish
+plot(predict(S17n_lm), resid(S17n_lm)) # variance OK
+anova(S17n_lm)
+```
+
+Cropped resources + water:
+
+```{r}
+# C3 y
+C3y_lm <- lm(log(k) ~ Phylum, data=filter(growth_rare_trt, Soil=="C3" & Amendment=="Y"))
+hist(resid(C3y_lm)) # normal
+plot(predict(C3y_lm), resid(C3y_lm)) # variance OK
+anova(C3y_lm)
+```
+
+Cropped water only:
+
+```{r}
+# C3 n
+C3n_lm <- lm(k ~ Phylum, data=filter(growth_rare_trt, Soil=="C3" & Amendment=="N"))
+hist(resid(C3n_lm)) # normal
+plot(predict(S17y_lm), resid(S17y_lm)) # variance OK
+anova(C3n_lm)
+```
+
+## Genus level
+
+### Proteobacteria
+
+```{r}
+growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Proteobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(k))), x=log(k))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Proteobacteria genera", y="") +
+  theme_test()
+```
+
+### Actinobacteria
+
+```{r}
+growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Actinobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(k))), x=log(k))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Actinobacteria genera", y="") +
+  theme_test()
+```
+
+### Acidobacteria
+
+```{r}
+growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Acidobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(k))), x=log(k))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Acidobacteria genera", y="") +
+  theme_test()
+```
+
+### Verrucomicrobia
+
+```{r}
+growth %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Verrucomicrobia") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(k))), x=log(k))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Verrucomicrobia genera", y="") +
+  theme_test()
+```
+
+# Death
+
+## Phylum level
+
+Who died:
+
+```{r}
+death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  ggplot(aes(y=reorder(Phylum, desc(log(death_rate))), x=log(abs(death_rate)))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Phyla", y="") +
+  theme_test()
+```
+
+Number of estimates per group:
+
+```{r}
+death_phyla_totals <- death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum)) %>% # group putatives with non-putatives
+  group_by(Phylum) %>% 
+  summarize(total=n()) %>% 
+  ungroup() %>% 
+  arrange(desc(total))
+death_phyla_totals
+```
+
+```{r}
+death_phyla_totals %>%
+  ggplot(aes(x=reorder(Phylum, desc(total)), y=total)) +
+  geom_point() +
+  geom_text(aes(label=total)) +
+  theme_test()
+```
+
+## Genus level
+
+### Proteobacteria
+
+```{r}
+death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Proteobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(death_rate))), x=log(abs(death_rate)))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Proteobacteria genera", y="") +
+  theme_test()
+```
+
+### Actinobacteria
+
+```{r}
+death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Actinobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(death_rate))), x=log(abs(death_rate)))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Actinobacteria genera", y="") +
+  theme_test()
+```
+
+### Acidobacteria
+
+```{r}
+death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Acidobacteria") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(death_rate))), x=log(abs(death_rate)))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Acidobacteria genera", y="") +
+  theme_test()
+```
+
+### Verrucomicrobia
+
+```{r}
+death %>% 
+  mutate(Phylum = gsub("putative", "", Phylum),
+         Genus = gsub("putative", "", Genus),
+         Genus = gsub("unclassified", "", Genus),
+         Genus = gsub("_Incertae_Sedis", "", Genus)) %>% # group putatives with non-putatives
+  filter(Phylum=="Verrucomicrobia") %>% 
+  ggplot(aes(y=reorder(Genus, desc(log(death_rate))), x=log(abs(death_rate)))) +
+  geom_point() +
+  geom_boxplot() +
+  labs(title="Verrucomicrobia genera", y="") +
+  theme_test()
+```

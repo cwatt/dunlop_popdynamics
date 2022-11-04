@@ -33,9 +33,9 @@ sessionInfo()
 * normalized abundances
 
 ```{r}
-ucosm <- readRDS("rdata.files/gr_ucosm.norm.clean.rds")
+ucosm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds")
 
-growth <- readRDS("rdata.files/gr_gr.paprica.clean.rds")
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 
 # Merge
 ucosm.growth <- inner_join(ucosm, growth)
@@ -45,7 +45,6 @@ ucosm.growth.asv = ucosm.growth %>%
   group_by(Soil, Amendment, ASV, Domain, Phylum, Class, Order, Family, Genus) %>%
   summarise(k = mean(k))
 ```
-
 
 # Growth rates by phyla
 
@@ -126,7 +125,6 @@ ucosm.growth.asv %>%
   theme_test()
 ```
 
-
 **Zoom in**
 
 * Proteobacteria
@@ -171,7 +169,7 @@ Import phyloseq object of normalized microcosm data
 # Old messy script, couldn't be bothered to clean up
 
 # Import normalized data
-physeq <- readRDS("rdata.files/gr_physeq.ucosm.norm.rds")
+physeq <- readRDS("../rdata.files/gr_physeq.ucosm.norm.rds")
 ```
 
 Calculate phylogenetic distances and correlate
@@ -214,23 +212,23 @@ for (s in c("S17","C3")) {
     
     # Save results
     filename = paste0("rdata.files/", s, a, ".mantelcorrelog.rds")
-    saveRDS(gr.phylo.crlg, file=filename)
+    #saveRDS(gr.phylo.crlg, file=filename)
   }
 }
 ```
 
 ```{r}
 # Read in mantel correlogs
-S17y.growth.crlg <- data.frame(readRDS("rdata.files/S17Y.mantelcorrelog.rds")$mantel.res) %>%
+S17y.growth.crlg <- data.frame(readRDS("../rdata.files/archive/S17Y.mantelcorrelog.rds")$mantel.res) %>%
   mutate(Soil="Successional", Amend="Y")
 
-S17n.growth.crlg <- data.frame(readRDS("rdata.files/S17N.mantelcorrelog.rds")$mantel.res) %>% 
+S17n.growth.crlg <- data.frame(readRDS("../rdata.files/archive/S17N.mantelcorrelog.rds")$mantel.res) %>% 
   mutate(Soil="Successional", Amend="N")
 
-C3y.growth.crlg <- data.frame(readRDS("rdata.files/C3Y.mantelcorrelog.rds")$mantel.res) %>% 
+C3y.growth.crlg <- data.frame(readRDS("../rdata.files/archive/C3Y.mantelcorrelog.rds")$mantel.res) %>% 
   mutate(Soil="Cropped", Amend="Y")
 
-C3n.growth.crlg <- data.frame(readRDS("rdata.files/C3N.mantelcorrelog.rds")$mantel.res) %>% 
+C3n.growth.crlg <- data.frame(readRDS("../rdata.files/archive/C3N.mantelcorrelog.rds")$mantel.res) %>% 
   mutate(Soil="Cropped", Amend="N")
 
 # Merge into one data frame
