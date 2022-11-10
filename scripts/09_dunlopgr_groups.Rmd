@@ -79,7 +79,7 @@ growth.asv %>%
 
 ```{r}
 # Subset
-S17n <- growth.asv %>% 
+S17n <- growth.paprica.asv %>% 
   filter(Soil=="S17" & Amendment=="N")
 
 # Fit univariate gaussian mixture model
@@ -110,7 +110,7 @@ S17n.class %>%
 
 ```{r}
 # Subset
-C3n <- growth.asv %>% 
+C3n <- growth.paprica.asv %>% 
   filter(Soil=="C3" & Amendment=="N")
 
 # Fit univariate gaussian mixture model
@@ -141,7 +141,7 @@ C3n.class %>%
 
 ```{r}
 # Subset
-S17y <- growth.asv %>% 
+S17y <- growth.paprica.asv %>% 
   filter(Soil=="S17" & Amendment=="Y")
 
 # Fit univariate gaussian mixture model
@@ -171,7 +171,7 @@ S17y.class %>%
 
 ```{r}
 # Subset
-C3y <- growth.asv %>% 
+C3y <- growth.paprica.asv %>% 
   filter(Soil=="C3" & Amendment=="Y")
 
 # Fit univariate gaussian mixture model
@@ -215,28 +215,302 @@ growth_clusters <- bind_rows(S17n_clusters, S17y_clusters) %>%
   bind_rows(C3y_clusters)
 ```
 
-## Growth traits
-
-* lag time, 16S copy #, change in abundance
-
-```{r}
-
+```{r, eval=FALSE}
+saveRDS(growth_clusters, "../rdata.files/gr_growth_clusters.rds")
 ```
 
-## Shift vs replacement
+## Specific growth rate
+
+Visualize:
 
 ```{r}
+# Soil
+growth_clusters %>% 
+  ggplot(aes(x=cluster, y=log(k))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  theme_test()
 
+# Amendment
+growth_clusters %>% 
+  ggplot(aes(x=cluster, y=log(k))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Amendment) +
+  theme_test()
+
+# All
+growth_clusters %>% 
+  ggplot(aes(x=cluster, y=log(k), fill=Amendment)) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  theme_test()
 ```
 
-## Diversity
+Statistics:
+
+1. slow in successional resources vs water
+2. fast in successional resources vs water
+3. slow vs intermediate in cropped
+4. fast vs intermediate in cropped
+5. slow in water amendment, cropped vs successional
+6. fast in water amendment, cropped vs successional
+7. intermediate vs fast in resources, cropped vs successional
+8. intermediate vs slow in resources, cropped vs successional
+
+Will do multiple test correction once appropriate tests are applied to each.
 
 ```{r}
-#kernel density graphs?
+# Effect of amendment on clusters
+
+# Slow successional water vs resources
+lm1 <- lm(log(k) ~ Amendment, filter(growth_clusters_stat, cluster=="slow" & Soil=="S17"))
+hist(resid(lm1)) # normal 
+plot(predict(lm1), resid(lm1)) # variance OK w/log transform
+pval1 <- anova(lm1)$`Pr(>F)`[1]
+
+# Fast successional water vs resources
+lm2 <- lm(log(k) ~ Amendment, filter(growth_clusters_stat, cluster=="fast" & Soil=="S17"))
+hist(resid(lm2)) # normal 
+plot(predict(lm2), resid(lm2)) # variance OK w/log transform
+pval2 <- anova(lm2)$`Pr(>F)`[1]
+
+# Slow vs intermediate cropped
+lm3 <- lm(log(k) ~ cluster, filter(growth_clusters, (cluster=="slow" | cluster=="intermediate") & Soil=="C3"))
+hist(resid(lm3)) # normal 
+plot(predict(lm3), resid(lm3)) # variance bad w/ or w/o log
+# Switch to welch t-test (unequal variances)
+wt3 <- t.test(log(k) ~ cluster, filter(growth_clusters, (cluster=="slow" | cluster=="intermediate") & Soil=="C3"))
+pval3 <- wt3$p.value
+
+# Fast vs intermediate cropped
+lm4 <- lm(k ~ cluster, filter(growth_clusters, 
+                        (cluster=="fast" | cluster=="intermediate") & Soil=="C3"))
+hist(resid(lm4)) # very right tailed w/o log
+plot(predict(lm4), resid(lm4)) # variance OK w/o log
+# I'll take non-parametric data over unequal variances
+# Switch to kruskal wallis (non-parametric)
+kw4 <- kruskal.test(k ~ cluster, filter(growth_clusters, (cluster=="fast" | cluster=="intermediate") & Soil=="C3"))
+pval4 <- kw4$p.value
+
+# Effect of soil history on clusters?
+
+# Cropped vs successional, slow water
+lm5 <- lm(log(k) ~ Soil, filter(growth_clusters, Amendment=="N" & cluster=="slow"))
+hist(resid(lm5)) # normal w/ or w/o log 
+plot(predict(lm5), resid(lm5)) # variance bad w/or w/o log
+# Switch to Welch's t-test (unequal variances)
+wt5 <- t.test(k ~ Soil, filter(growth_clusters, Amendment=="N" & cluster=="slow"))
+pval5 <- wt5$p.value
+
+# Cropped vs successional, fast water
+lm6 <- lm(log(k) ~ Soil, filter(growth_clusters, Amendment=="N" & cluster=="fast"))
+hist(resid(lm6)) # normal w/log
+plot(predict(lm6), resid(lm6)) # variance bad w/ or w/o log
+# switch to welch's t-test (unequal variances)
+wt6 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="N" & cluster=="fast"))
+pval6 <- wt6$p.value
+
+# Multiple test correction
+pvals_df <- data.frame(test=c(1, 2, 3, 4, 5, 6), pval=c(pval1, pval2, pval3, pval4, pval5, pval6))
+pvals_adj <- p.adjust(pvals_df$pval, method="BH", n=6)
+pvals_df <- bind_cols(pvals_df, pvals_adj=pvals_adj)
+pvals_df %>% 
+  mutate(sig = if_else(pvals_adj < 0.05, "*", "n.s."))
+```
+
+```{r, eval=FALSE, echo=FALSE}
+# Uncertain how comparable these are
+
+# Cropped vs successional, slow resources
+lm7 <- lm(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="slow" | cluster=="intermediate")))
+hist(resid(lm7)) # normalish w/log 
+plot(predict(lm7), resid(lm7)) # variance BAD
+# Switch to Welch's t-test (unequal variances)
+wt7 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="slow" | cluster=="intermediate")))
+pval7 <- wt7$p.value
+
+# Cropped vs successional, fast resources
+lm8 <- lm(k ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="fast" | cluster=="intermediate")))
+hist(resid(lm8)) # normalish w/log 
+plot(predict(lm8), resid(lm8)) # variance bad w/ or w/o log
+# Switch to Welch's t-test (unequal variances)
+wt8 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="fast" | cluster=="intermediate")))
+pval8 <- wt8$p.value
 ```
 
 
+## Others
 
+* Lag time
+* Change in abundance
+* n16S
+
+Visualize:
+
+```{r}
+# Lag time
+growth_clusters %>% 
+  mutate(start_day = start_day+0.0001) %>% # add small amount to all times to allow log
+  ggplot(aes(x=cluster, y=log(start_day), color=Amendment)) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  theme_test()
+
+# Change in abundance
+growth_clusters %>% 
+  mutate(change_abund_corr = (end_abund-start_abund)/n16S) %>% # change in abundance copy number corrected
+  ggplot(aes(x=cluster, y=log(change_abund_corr), color=Amendment)) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  theme_test()
+
+# 16S copy number
+growth_clusters %>% 
+  ggplot(aes(x=cluster, y=log(n16S), color=Amendment)) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  facet_wrap(~Soil) +
+  theme_test()
+```
+
+Remove intermediate cluster because not sure how comparable it is to fast or slow clusters.
+
+```{r}
+# Prep data for stats
+growth_clusters_stat <- growth_clusters %>% 
+  mutate(start_day = start_day+0.0001, # add small amount to all times to allow log
+         change_abund_corr = (end_abund-start_abund)/n16S) %>% # change in abundance copy number corrected
+  filter(cluster %in% c("fast", "slow")) # remove intermediate cluster from comparisons
+```
+
+```{r}
+# Lag time
+lag_lm <- lm(log(start_day) ~cluster, growth_clusters_stat)
+hist(resid(lag_lm)) # not normal w/ or w/o log
+plot(predict(lag_lm), resid(lag_lm)) # variance is ok with log
+
+# Use Kruskal Wallis
+kruskal.test(log(start_day) ~ cluster, growth_clusters_stat)
+
+# Change in abundance
+chabund_lm <- lm(log(change_abund_corr) ~ cluster, growth_clusters_stat)
+hist(resid(chabund_lm)) # normal with log transform
+plot(predict(chabund_lm), resid(chabund_lm)) # variance OK
+anova(chabund_lm)
+
+# n16S
+n16S_lm <- lm(log(n16S) ~ cluster, growth_clusters_stat)
+hist(resid(n16S_lm)) # not normal w/ or w/o log transform
+plot(predict(n16S_lm), resid(n16S_lm)) # variance good w/log transform
+
+# Use Kruskal Wallis test
+kruskal.test(log(n16S) ~ cluster, growth_clusters_stat)
+```
+
+Visualize stats comparisons:
+
+```{r}
+# Lag time
+growth_clusters %>% 
+  filter(cluster %in% c("fast", "slow")) %>% 
+  mutate(start_day = start_day+0.0001) %>% # add small amount to all times to allow log
+  ggplot(aes(x=cluster, y=log(start_day))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  #facet_wrap(~Soil) +
+  theme_test()
+
+# Change in abundance
+growth_clusters %>% 
+  filter(cluster %in% c("fast", "slow")) %>% 
+  mutate(change_abund_corr = (end_abund-start_abund)/n16S) %>% # change in abundance copy number corrected
+  ggplot(aes(x=cluster, y=log(change_abund_corr))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  #facet_wrap(~Soil) +
+  theme_test()
+
+# 16S copy number
+growth_clusters %>% 
+  filter(cluster %in% c("fast", "slow")) %>% 
+  ggplot(aes(x=cluster, y=log(n16S))) +
+  geom_boxplot() +
+  geom_jitter(alpha=0.2) +
+  #facet_wrap(~Soil) +
+  theme_test()
+```
+
+# Replacement vs shift
+
+Dan: The ‘replacement’ hypothesis makes the prediction that if we observe the same slow ASV in multiple soils, its growth rate will not vary much. The ‘shift’ hypothesis predicts that if we observe the same slow ASV in multiple soils it will be slower in the low resource soils and faster in the high resource soils. If we can find a minimal set of ASVs that co-occur, and if these ASVs do or do not change their growth rate in response to resources, then we can determine whether ‘shift’ or replacement is the more likely explaination.
+
+```{r}
+# Identify overlapping ASVs in growth estimates between treatments across amendment levels
+
+# Successional
+S17y <- filter(growth_clusters, Soil=="S17", Amendment=="Y") %>% 
+  select(ASV)
+S17n <- filter(growth_clusters, Soil=="S17", Amendment=="N") %>% 
+  select(ASV)
+S17_overlap_asvs <- inner_join(S17y, S17n)
+S17_overlap_asvs <- as.character(S17_overlap_asvs$ASV)
+length(S17_overlap_asvs)
+
+S17_growth_overlap <- growth_clusters %>% 
+  filter(Soil=="S17" & ASV %in% S17_overlap_asvs) 
+
+# Cropped
+C3y <- filter(growth_clusters, Soil=="C3", Amendment=="Y") %>% 
+  select(ASV)
+C3n <- filter(growth_clusters, Soil=="C3", Amendment=="N") %>% 
+  select(ASV)
+C3_overlap_asvs <- inner_join(C3y, C3n)
+C3_overlap_asvs <- as.character(C3_overlap_asvs$ASV)
+length(C3_overlap_asvs)
+
+C3_growth_overlap <- growth_clusters %>% 
+  filter(Soil=="C3" & ASV %in% C3_overlap_asvs) 
+```
+
+Did k increase with amendment?
+
+```{r}
+S17_growth_overlap %>% 
+  mutate(Amendment = as_factor(Amendment),
+         Amendment = fct_relevel(Amendment, "N", "Y")) %>% 
+  ggplot(aes(x=Amendment, y=k, color=cluster)) +
+  geom_point() +
+  geom_line(aes(group=ASV)) +
+  labs(title="Successional") +
+  theme_test()
+
+C3_growth_overlap %>% 
+  mutate(Amendment = as_factor(Amendment),
+         Amendment = fct_relevel(Amendment, "N", "Y")) %>% 
+  ggplot(aes(x=Amendment, y=k, color=cluster)) +
+  geom_point() +
+  geom_line(aes(group=ASV)) +
+  labs(title="Cropped") +
+  theme_test()
+  
+```
+
+Statistics:
+
+Paired t-tests
+
+```{r}
+# Successional
+t.test(k ~ Amendment, S17_growth_overlap, paired=TRUE)
+
+# Cropped
+t.test(k ~ Amendment, C3_growth_overlap, paired=TRUE)
+```
 
 # Figures
 
@@ -360,6 +634,33 @@ figure
 ggsave(figure, filename="../figures/fig_groups.svg", units="mm", width=85, height=85, device="svg")
 ```
 
+## Slow and fast shift in successional
+
+```{r}
+plot_clusterk <- growth_clusters %>%
+  mutate(Soil = if_else(Soil=="S17", "Successional", "Cropped"),
+         Amendment = if_else(Amendment=="Y", "Resources + water", "Water only")) %>% 
+  ggplot(aes(x=cluster, y=log(k), fill=Amendment)) +
+  geom_boxplot() +
+  facet_wrap(~Soil) +
+  scale_fill_manual(values = c("#676366", "#FFFFFF")) +
+  theme_test() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size=10),
+        text = element_text(size=9),
+        strip.text.x = element_text(size = 11, hjust = 0),
+        legend.title = element_blank(),
+        legend.position = "right",
+        legend.justification = "top",
+        legend.text = element_text(size=10),
+        strip.background = element_blank())
+plot_clusterk
+```
+
+```{r, eval=FALSE}
+ggsave(plot_clusterk, filename = "../figures/suppfig_clusterk.svg", units="mm", width=140, height=100, device="svg")
+```
+
 ## BIC values
 
 ```{r}
@@ -390,7 +691,9 @@ plot_bic <- all.bic %>%
   scale_x_continuous(breaks = seq(1, 9, by = 1)) +
   theme_test()
 plot_bic
+```
 
+```{r, eval=FALSE}
 ggsave(plot_bic, filename = "../figures/suppfig_bic.svg", units="mm", width=140, height=100, device="svg")
 ```
 
@@ -411,7 +714,7 @@ S17y.boot.mean <- S17y.boot$mean %>% as.data.frame()
 colnames(S17y.boot.mean) <- c("slow", "fast")
 S17y.boot.mean <- S17y.boot.mean %>% 
   add_column(Soil="Successional",
-             Amendment="Resources + Water",
+             Amendment="Resources + water",
              intermediate=NA) %>% 
   select(Soil, Amendment, slow, fast, intermediate)
 
@@ -429,7 +732,7 @@ C3y.boot.mean <- C3y.boot$mean %>% as.data.frame()
 colnames(C3y.boot.mean) <- c("intermediate")
 C3y.boot.mean <- C3y.boot.mean %>% 
   add_column(Soil="Cropped",
-             Amendment="Resources + Water",
+             Amendment="Resources + water",
              fast=NA,
              slow=NA) %>% 
   select(Soil, Amendment, slow, fast, intermediate)

@@ -940,6 +940,15 @@ dim(est_overlap)
 
 Nope. No comparison or decision-making needed.
 
+Number of linear vs logarithmic death estimates:
+
+```{r}
+nrow(death_window) # logarithmic
+nrow(death_linear_falsepos5) # linear
+```
+
+Logarithmic death fit many more estimates, we'll use that.
+
 # Calculate death parameters
 
 ### Death rate
@@ -1065,7 +1074,7 @@ for (l in as.character(unique(death_linear_falsepos5$Label))) {
 }
 
 # Combine
-death_metrics <- bind_rows(death_metrics_log, death_metrics_lin)
+#death_metrics <- bind_rows(death_metrics_log, death_metrics_lin)
 ```
 
 # Tidy up and save data
@@ -1089,7 +1098,7 @@ Relational abundances:
 
 ```{r}
 # Labels of estimated taxa
-est_labels <- as.character(death_metrics$Label)
+est_labels <- as.character(death_metrics_log$Label)
 
 # Extract from relational abundance table and clean up
 norm_tidy <- norm_prepped %>% 
@@ -1105,7 +1114,7 @@ Death estimates:
 
 ```{r}
 # Add metadata and taxonomic info
-death_tidy <- death_metrics %>% 
+death_tidy <- death_metrics_log %>% 
   left_join(meta, by="Label") %>% 
   left_join(tax) %>% 
   select(Label, Soil, Amendment, Replicate, ASV, start_pt:length_days, start_abund:decay, Domain:Genus) %>% 
@@ -1181,3 +1190,5 @@ for (l in as.character(death_linear$Label)) {
   print(graph)
 }
 ```
+
+These look iffy to me anyway.

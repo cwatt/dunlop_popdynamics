@@ -31,15 +31,15 @@ sessionInfo()
 ```{r}
 # import count table, taxonomy table, tree, metadata
 # growthrate.counts.finalv2.tsv is the same as the original, but I fixe a # in the header that screwed things up
-otu <- read.table(file="/home/cassi/growthrate2018/output/growthrate.counts.finalv2.tsv", sep = '\t', header=TRUE)
-tax <- read.table(file="/home/cassi/growthrate2018/output/growthrate.taxonomy.final.tsv", sep = '\t', header=TRUE)
-meta <- read.table(file="growthrate_metadata.tsv", sep = '\t', header=TRUE)
-tree <- read_tree("/home/cassi/growthrate2018/output/growthrate.tree.final.nwk")
+otu <- read.table(file="/home/cassi/dunlop_popdynamics/output/growthrate.counts.finalv2.tsv", sep = '\t', header=TRUE)
+tax <- read.table(file="/home/cassi/dunlop_popdynamics/output/growthrate.taxonomy.final.tsv", sep = '\t', header=TRUE)
+meta <- read.table(file="../metadata/growthrate_metadata.tsv", sep = '\t', header=TRUE)
+tree <- read_tree("/home/cassi/dunlop_popdynamics/output/growthrate.tree.final.nwk")
 ```
 
 ```{r}
 # time point info for microcosm data
-tp <- read.csv("growthrate_timepoint_metadata.csv")
+tp <- read.csv("../metadata/growthrate_timepoint_metadata.csv")
 meta <- merge(meta, tp, by=1)
 
 # experiment metadata (field sample or microcosm sample?)

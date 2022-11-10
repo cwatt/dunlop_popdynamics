@@ -282,6 +282,8 @@ Cropped water control vs. C-amended signficiant.
 
 # Figures
 
+## Kernel density k
+
 ```{r}
 plot <- growth.asv %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
@@ -300,9 +302,13 @@ plot <- growth.asv %>%
         legend.justification = "top",
         strip.background = element_blank())
 plot
+```
 
+```{r, eval=FALSE}
 ggsave(plot, filename="../figures/fig_kdistributions.svg", units="mm", width=100, height=85, device="svg")
 ```
+
+## Raw histograms k
 
 ```{r}
 plot2 <- growth.asv %>%
@@ -322,40 +328,48 @@ plot2 <- growth.asv %>%
         legend.position = "right",
         legend.justification = "top")
 plot2
+```
 
+
+```{r, eval=FALSE}
 ggsave(plot2, filename="../figures/suppfig_khist.svg", units="mm", width=85, height=60, device="svg")
 ```
+
+## Fisher bins k
 
 ```{r}
 plot3 <- bin.data %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resources' = "Y", 'Water' = "N")) %>%
+         Amendment = fct_recode(Amendment, 'Resources + water' = "Y", 'Water only' = "N")) %>%
   ggplot() +
   geom_boxplot(aes(x=Bin, y=bin_freq, fill=Amendment)) +
   facet_wrap(~Soil) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
-  #labs(x="Bins (slow to fast)", y="ASV count") +
   theme_test() +
-  theme(axis.title = element_blank())
-  
+  theme(axis.title = element_blank(),
+        legend.title = element_blank())
 plot3
+```
 
+```{r, eval=FALSE}
 ggsave(plot3, filename="../figures/suppfig_kbins.svg", units="mm", width=120, height=60, device="svg")
 ```
+
+## Kernel density lag
 
 ```{r}
 plot4 <- growth.asv %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N"),
+         Amendment = fct_recode(Amendment, 'Resources + water' = "Y", 'Water only' = "N"),
          start_day_psuedo = start_day + 0.01) %>%
   ggplot() +
   geom_density(aes(x=log(start_day_psuedo), fill=Soil), alpha=0.5) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
   facet_wrap(~Amendment, scales="fixed") +
   #labs(y="Kernel density", x="Lag time (days)") +
-  theme_classic() +
+  theme_test() +
   theme(text = element_text(size=9),
         axis.title = element_blank(),
         strip.text.x = element_text(size = 10, hjust = 0),
@@ -363,7 +377,9 @@ plot4 <- growth.asv %>%
         legend.justification = "top",
         strip.background = element_blank())
 plot4
+```
 
+```{r, eval=FALSE}
 ggsave(plot4, filename="../figures/suppfig_lagdistributions.svg", units="mm", width=180, height=60, device="svg")
 ```
 
@@ -371,13 +387,13 @@ ggsave(plot4, filename="../figures/suppfig_lagdistributions.svg", units="mm", wi
 plot5 <- growth.asv %>%
   mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
          Amendment = fct_relevel(Amendment, c("N", "Y")),
-         Amendment = fct_recode(Amendment, 'Resource amendment' = "Y", 'Water amendment' = "N")) %>%
+         Amendment = fct_recode(Amendment, 'Resources + water' = "Y", 'Water only' = "N")) %>%
   ggplot() +
   geom_density(aes(x=log(change_abund_corr), fill=Soil), alpha=0.5) +
   scale_fill_manual(values = c("#676366", "#FFFFFF")) +
   facet_wrap(~Amendment, scales="fixed") +
   #labs(y="Kernel density", x="Delta N") +
-  theme_classic() +
+  theme_test() +
   theme(text = element_text(size=9),
         axis.title = element_blank(),
         strip.text.x = element_text(size = 10, hjust = 0),
@@ -385,7 +401,9 @@ plot5 <- growth.asv %>%
         legend.justification = "top",
         strip.background = element_blank())
 plot5
+```
 
+```{r, eval=FALSE}
 ggsave(plot5, filename="../figures/suppfig_chabunddist.svg", units="mm", width=180, height=60, device="svg")
 ```
 

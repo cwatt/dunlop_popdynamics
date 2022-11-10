@@ -138,14 +138,14 @@ Not sure why that didn't reorder correctly.
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
-Total ASVs with estimates:
+## Total ASVs with estimates
 
 ```{r}
 # Estimated growth rates
 growth %>% distinct(ASV) %>% nrow() # total ASVs with estimates
 ```
 
-Total phyla with estimated representative(s):
+## Total phyla with estimated representative(s)
 
 * Putative/unclassified taxa rolled into nearest related phylum
 
@@ -189,7 +189,7 @@ growth %>%
   theme_test()
 ```
 
-Number of estimates per treatment:
+## Number of estimates per treatment
 
 ```{r}
 # Number of estimates per treatment
@@ -199,6 +199,33 @@ growth %>%
   summarize(total = n())
 ```
 
+## Overlapping ASVs
+
+```{r}
+growth_asv <- growth %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(total=n()) %>% 
+  ungroup()
+
+# Successional
+S17y <- filter(growth_asv, Soil=="S17", Amendment=="Y") %>% 
+  select(ASV)
+S17n <- filter(growth_asv, Soil=="S17", Amendment=="N") %>% 
+  select(ASV)
+S17_overlap <- inner_join(S17y, S17n)
+S17_overlap_asvs <- as.character(S17_overlap$ASV)
+length(S17_overlap_asvs)
+
+# Cropped
+C3y <- filter(growth_asv, Soil=="C3", Amendment=="Y") %>% 
+  select(ASV)
+C3n <- filter(growth_asv, Soil=="C3", Amendment=="N") %>% 
+  select(ASV)
+C3_overlap <- inner_join(C3y, C3n)
+C3_overlap_asvs <- as.character(C3_overlap$ASV)
+length(C3_overlap_asvs)
+```
+
 # Death
 
 ```{r}
@@ -206,11 +233,12 @@ growth %>%
 death <- readRDS("../rdata.files/gr_death_estimates.rds")
 ```
 
+# double check
 
 ```{r}
 # Number of estimates per phylum
 death %>% 
-  mutate(Phylum = str_remove(Phylum, "putative ")) %>% # roll putative into the phylum
+  mutate(Phylum = str_remove(Phylum, "putative")) %>% # roll putative into the phylum
   distinct(ASV, Phylum) %>%
   group_by(Phylum) %>%
   summarize(total = n()) %>%
@@ -218,6 +246,7 @@ death %>%
 
 # Proteobacteria by class
 death %>% 
+  mutate(Phylum = str_remove(Phylum, "putative")) %>% # roll putative into the phylum
   filter(Phylum=="Proteobacteria" | Phylum=="unclassified Proteobacteria") %>% 
   mutate(Class = str_remove(Class, "putative ")) %>% # roll putative into the phylum
   distinct(ASV, Class) %>%
@@ -226,7 +255,32 @@ death %>%
   arrange(-total)
 ```
 
+## Overlapping ASVs
 
+```{r}
+death_asv <- death %>% 
+  group_by(Soil, Amendment, ASV) %>% 
+  summarize(total=n()) %>% 
+  ungroup()
+
+# Successional
+S17y <- filter(death, Soil=="S17", Amendment=="Y") %>% 
+  select(ASV)
+S17n <- filter(death, Soil=="S17", Amendment=="N") %>% 
+  select(ASV)
+S17_overlap <- inner_join(S17y, S17n)
+S17_overlap_asvs <- as.character(S17_overlap$ASV)
+length(S17_overlap_asvs)
+
+# Cropped
+C3y <- filter(death, Soil=="C3", Amendment=="Y") %>% 
+  select(ASV)
+C3n <- filter(death, Soil=="C3", Amendment=="N") %>% 
+  select(ASV)
+C3_overlap <- inner_join(C3y, C3n)
+C3_overlap_asvs <- as.character(C3_overlap$ASV)
+length(C3_overlap_asvs)
+```
 
 
 
