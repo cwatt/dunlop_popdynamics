@@ -414,7 +414,7 @@ lengthk.pcor
 
 # Figures
 
-Change in abundance vs specific growth rate
+## Change in abundance vs specific growth rate
 
 ```{r}
 plot3 <- growth_asv %>%
@@ -434,8 +434,10 @@ plot3 <- growth_asv %>%
         strip.background = element_blank(),
         axis.title = element_blank())
 plot3
-  
-ggsave(plot3, filename = "../figures/fig_chabundxk.svg", units="mm", width=85, height=90, device="svg")
+```
+
+```{r, eval=FALSE}
+ggsave(plot3, filename = "../figures/fig_chabundxk.svg", units="mm", width=85, height=100, device="svg")
 ```
 
 16S copy number vs growth rates
@@ -492,7 +494,10 @@ plot2 <- growth_asv %>%
         axis.title = element_blank(),
         strip.background = element_blank())
 plot2
+```
 
+
+```{r, eval=FALSE}
 ggsave(plot2, filename = "../figures/fig_rrnxk.svg", units="mm", width=85, height=85, device="svg")
 ```
 

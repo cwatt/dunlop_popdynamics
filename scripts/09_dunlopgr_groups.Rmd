@@ -207,7 +207,7 @@ C3n_clusters <- C3n %>%
 
 C3y_clusters <- C3y %>% 
   add_column(cluster=C3y.mclust$classification) %>% 
-  mutate(cluster = "intermediate")
+  mutate(cluster = "fast")
 
 # Combine
 growth_clusters <- bind_rows(S17n_clusters, S17y_clusters) %>% 
@@ -253,46 +253,45 @@ Statistics:
 
 1. slow in successional resources vs water
 2. fast in successional resources vs water
-3. slow vs intermediate in cropped
-4. fast vs intermediate in cropped
+4. fast vs fast in cropped
 5. slow in water amendment, cropped vs successional
 6. fast in water amendment, cropped vs successional
-7. intermediate vs fast in resources, cropped vs successional
-8. intermediate vs slow in resources, cropped vs successional
 
 Will do multiple test correction once appropriate tests are applied to each.
+
+Remove intermediate cluster because not sure how comparable it is to fast or slow clusters.
+
+```{r}
+# Prep data for stats
+growth_clusters_stat <- growth_clusters %>% 
+  mutate(start_day = start_day+0.0001, # add small amount to all times to allow log
+         change_abund_corr = (end_abund-start_abund)/n16S) %>% # change in abundance copy number corrected
+  filter(cluster %in% c("fast", "slow")) # remove intermediate cluster from comparisons
+```
 
 ```{r}
 # Effect of amendment on clusters
 
 # Slow successional water vs resources
-lm1 <- lm(log(k) ~ Amendment, filter(growth_clusters_stat, cluster=="slow" & Soil=="S17"))
+lm1 <- lm(log(k) ~ Amendment, filter(growth_clusters, cluster=="slow" & Soil=="S17"))
 hist(resid(lm1)) # normal 
 plot(predict(lm1), resid(lm1)) # variance OK w/log transform
 pval1 <- anova(lm1)$`Pr(>F)`[1]
 
 # Fast successional water vs resources
-lm2 <- lm(log(k) ~ Amendment, filter(growth_clusters_stat, cluster=="fast" & Soil=="S17"))
+lm2 <- lm(log(k) ~ Amendment, filter(growth_clusters, cluster=="fast" & Soil=="S17"))
 hist(resid(lm2)) # normal 
 plot(predict(lm2), resid(lm2)) # variance OK w/log transform
 pval2 <- anova(lm2)$`Pr(>F)`[1]
 
-# Slow vs intermediate cropped
-lm3 <- lm(log(k) ~ cluster, filter(growth_clusters, (cluster=="slow" | cluster=="intermediate") & Soil=="C3"))
-hist(resid(lm3)) # normal 
-plot(predict(lm3), resid(lm3)) # variance bad w/ or w/o log
-# Switch to welch t-test (unequal variances)
-wt3 <- t.test(log(k) ~ cluster, filter(growth_clusters, (cluster=="slow" | cluster=="intermediate") & Soil=="C3"))
-pval3 <- wt3$p.value
-
 # Fast vs intermediate cropped
-lm4 <- lm(k ~ cluster, filter(growth_clusters, 
-                        (cluster=="fast" | cluster=="intermediate") & Soil=="C3"))
+# Intermediate has much more overlap with fast cluster ASVs in water only trt
+lm4 <- lm(k ~ Amendment, filter(growth_clusters, cluster=="fast" & Soil=="C3"))
 hist(resid(lm4)) # very right tailed w/o log
 plot(predict(lm4), resid(lm4)) # variance OK w/o log
 # I'll take non-parametric data over unequal variances
 # Switch to kruskal wallis (non-parametric)
-kw4 <- kruskal.test(k ~ cluster, filter(growth_clusters, (cluster=="fast" | cluster=="intermediate") & Soil=="C3"))
+kw4 <- kruskal.test(k ~ Amendment, filter(growth_clusters, (cluster=="fast" & Soil=="C3")))
 pval4 <- kw4$p.value
 
 # Effect of soil history on clusters?
@@ -314,33 +313,12 @@ wt6 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="N" & cluster=="
 pval6 <- wt6$p.value
 
 # Multiple test correction
-pvals_df <- data.frame(test=c(1, 2, 3, 4, 5, 6), pval=c(pval1, pval2, pval3, pval4, pval5, pval6))
-pvals_adj <- p.adjust(pvals_df$pval, method="BH", n=6)
+pvals_df <- data.frame(test=c(1, 2, 3, 4, 5), pval=c(pval1, pval2, pval4, pval5, pval6))
+pvals_adj <- p.adjust(pvals_df$pval, method="holm", n=5)
 pvals_df <- bind_cols(pvals_df, pvals_adj=pvals_adj)
 pvals_df %>% 
   mutate(sig = if_else(pvals_adj < 0.05, "*", "n.s."))
 ```
-
-```{r, eval=FALSE, echo=FALSE}
-# Uncertain how comparable these are
-
-# Cropped vs successional, slow resources
-lm7 <- lm(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="slow" | cluster=="intermediate")))
-hist(resid(lm7)) # normalish w/log 
-plot(predict(lm7), resid(lm7)) # variance BAD
-# Switch to Welch's t-test (unequal variances)
-wt7 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="slow" | cluster=="intermediate")))
-pval7 <- wt7$p.value
-
-# Cropped vs successional, fast resources
-lm8 <- lm(k ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="fast" | cluster=="intermediate")))
-hist(resid(lm8)) # normalish w/log 
-plot(predict(lm8), resid(lm8)) # variance bad w/ or w/o log
-# Switch to Welch's t-test (unequal variances)
-wt8 <- t.test(log(k) ~ Soil, filter(growth_clusters, Amendment=="Y" & (cluster=="fast" | cluster=="intermediate")))
-pval8 <- wt8$p.value
-```
-
 
 ## Others
 
@@ -376,16 +354,6 @@ growth_clusters %>%
   geom_jitter(alpha=0.2) +
   facet_wrap(~Soil) +
   theme_test()
-```
-
-Remove intermediate cluster because not sure how comparable it is to fast or slow clusters.
-
-```{r}
-# Prep data for stats
-growth_clusters_stat <- growth_clusters %>% 
-  mutate(start_day = start_day+0.0001, # add small amount to all times to allow log
-         change_abund_corr = (end_abund-start_abund)/n16S) %>% # change in abundance copy number corrected
-  filter(cluster %in% c("fast", "slow")) # remove intermediate cluster from comparisons
 ```
 
 ```{r}
@@ -445,9 +413,7 @@ growth_clusters %>%
   theme_test()
 ```
 
-# Replacement vs shift
-
-Dan: The ‘replacement’ hypothesis makes the prediction that if we observe the same slow ASV in multiple soils, its growth rate will not vary much. The ‘shift’ hypothesis predicts that if we observe the same slow ASV in multiple soils it will be slower in the low resource soils and faster in the high resource soils. If we can find a minimal set of ASVs that co-occur, and if these ASVs do or do not change their growth rate in response to resources, then we can determine whether ‘shift’ or replacement is the more likely explaination.
+# Ovelap between amendments
 
 ```{r}
 # Identify overlapping ASVs in growth estimates between treatments across amendment levels
@@ -477,7 +443,7 @@ C3_growth_overlap <- growth_clusters %>%
   filter(Soil=="C3" & ASV %in% C3_overlap_asvs) 
 ```
 
-Did k increase with amendment?
+Did k increase with amendment among overlapping taxa?
 
 ```{r}
 S17_growth_overlap %>% 
@@ -510,6 +476,16 @@ t.test(k ~ Amendment, S17_growth_overlap, paired=TRUE)
 
 # Cropped
 t.test(k ~ Amendment, C3_growth_overlap, paired=TRUE)
+```
+
+## Intermediate cluster
+
+```{r}
+inter_cluster <- growth_clusters %>% 
+  filter(Soil=="C3")
+
+
+  
 ```
 
 # Figures
@@ -557,7 +533,7 @@ C3y.clusters <- data.frame(x = seq(-5,0.5,0.01),
 plot2 <- growth.asv %>%
   filter(Soil=="C3", Amendment=="Y") %>%
   ggplot() +
-  geom_polygon(data=C3y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="purple") +
+  geom_polygon(data=C3y.clusters, aes(x=x, y=cl1), linetype=2, alpha=0.6, color="black", fill="red") +
   geom_density(aes(x=log(k))) +
   labs(title="Cropped, resources", y="Kernel density", x="Specific growth rate (units), ln") +
   ylim(0,1) +
@@ -630,7 +606,9 @@ plot4
 library(cowplot)
 figure <- plot_grid(plot1, plot2, plot3, plot4)
 figure
+```
 
+```{r, eval=FALSE}
 ggsave(figure, filename="../figures/fig_groups.svg", units="mm", width=85, height=85, device="svg")
 ```
 
@@ -658,7 +636,7 @@ plot_clusterk
 ```
 
 ```{r, eval=FALSE}
-ggsave(plot_clusterk, filename = "../figures/suppfig_clusterk.svg", units="mm", width=140, height=100, device="svg")
+ggsave(plot_clusterk, filename = "../figures/fig_clusterk.svg", units="mm", width=140, height=100, device="svg")
 ```
 
 ## BIC values
