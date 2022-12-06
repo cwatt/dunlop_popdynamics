@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rate - descriptive statistics"
+title: "Dunlop - descriptive statistics"
 author: "Cassandra Wattenburger"
 date: "2/13/2021"
 output: github_document
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(results = "show")
 ```
-
-**Goal of this script:** Explore the properties of the data and descriptive statistics of in-situ growth rates.
 
 # Import libraries
 

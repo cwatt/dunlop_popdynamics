@@ -21,6 +21,7 @@ temp/
 appfiles/
 .ipynb_checpoints/
 field_comparison/
+scripts/archive/
 
 # Files
 *.csv

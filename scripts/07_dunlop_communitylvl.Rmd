@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - Growth metrics by treatment"
+title: "Dunlop - Growth metrics by treatment"
 author: "Cassandra Wattenburger"
 date: "2/13/2021"
 output: github_document
@@ -11,10 +11,6 @@ knitr::opts_chunk$set(results = "show")
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
-
-
-**Goal of this script:** Investigate the effects of soil habitat on in-situ growth dynamics.
-
 
 # Import libraries
 
@@ -37,7 +33,7 @@ rm(list=ls())
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
-Aggregate growth estimate parameters:
+# Calculate community-level parameters:
 
 Average across ASVs to get a value for each replicate
 
@@ -55,7 +51,7 @@ growth.trt <- growth %>%
   ungroup()
 ```
 
-Overall:
+Description:
 
 ```{r}
 growth_overall <- growth %>%
@@ -79,11 +75,6 @@ growth_overall
 # Start of growth window
 
 The day of the start of the growth window is being used as a proxy for lag time. The later a growth window starts, the longer lag the bacteria experienced before starting growth.
-
-Hypotheses:
-
-1. Bacteria in cropped soils will start growth sooner than those in successional, due to more frequent disturbances (tillage, low plant cover) and/or higher nutrient availability (fertilizers)
-1. Bacteria in C-amended soils will start growth sooner than those in the water control due to having more resources available to ramp up growth
 
 ```{r}
 growth.trt %>%
@@ -120,8 +111,6 @@ hist(resid(strtday.trt.lm1)) # check normality
 plot(predict(strtday.trt.lm1), resid(strtday.trt.lm1)) # check heteroskedasticity
 ```
 
-In this contrast, residuals appear normal, but data has heteroskedasticity. Log transform corrects heteroskedasticity, but makes residuals non-normal. I'll conduct Welch's t-tests on the untransformed data.
-
 ```{r}
 # Welch's t-tests
 strtday.trt.welch1 <- t.test(start_day ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",], var.equal = FALSE)
@@ -142,15 +131,7 @@ strtday.trt.results <- data.frame(contrast = c("Cropped, water vs C-amended",
 strtday.trt.results
 ```
 
-Not enough power.
-
 # End of growth window
-
-Hypotheses:
-
-1. Bacteria will end growth sooner in the water control compared to C-amended because less resources are available to sustain growth
-1. Toss up on effect of soil habitat, cropped soil disturbances could promote growth that ends sooner due to heightened competition, or longer because greater N and other nutrient availability
-1. Null: end growth follows start growth patterns because delayed growth results in later end of growth
 
 ```{r}
 growth.trt %>%
@@ -174,11 +155,6 @@ anova(endday.trt.lm)
 End of growth is not affected by soil or amendment. Trends are similar to start of growth data, though.
 
 # Growth rate
-
-Hypotheses:
-
-1. Bacteria in cropped soils will have faster growth rates, because of more frequent disturbances that lead to boom-bust lifestyle and/or increased nutrient availability from fertilization
-1. Bacteria in C-amended soils will have greater growth rates, because more fuel for growth available
 
 ```{r}
 growth.trt %>%
@@ -205,13 +181,6 @@ Trends almost support second hypothesis, but data is too variable.
 
 * 16S copy number corrected
 
-Competitive bacteria are able to increase there abundance more when they encounter substrate compared to competing bacteria. There are likely various strategies to be competitive. Some bacteria are likely more competitive and better able to grow under certain environmental or resource conditions but not others.
-
-Hypotheses:
-
-1. Cropped soils will have greater change in abundance due to boom-bust/more nutrients available to lift limitations on growth
-1. Bacteria in C-amended soils will have greater change in abundance due to greater resource availability
-
 ```{r}
 growth.trt %>%
   ggplot(aes(x=Soil, y=change_abund_corr, color=Amendment)) +
@@ -233,8 +202,6 @@ plot(predict(changeabund.trt.lm), resid(changeabund.trt.lm)) # check heteroskeda
 anova(changeabund.trt.lm)
 ```
 
-Data looks slightly non-normal, but ANOVA is typically robust to moderate deviation.
-
 Post hoc:
 
 * Cropped water vs C-amended
@@ -254,8 +221,6 @@ hist(resid(test2))
 plot(predict(test2), resid(test2))
 ```
 
-Here, data is normalish but heteroskedastic. Log transform flips the problem. Conduct Welch's t-tests on untransformed data.
-
 ```{r}
 # Cropped water vs C-amended
 changeabund.trt.ph.welch1 <-  t.test(change_abund_corr ~ Amendment, data=growth.trt[growth.trt$Soil=="C3",], var.equal=FALSE)
@@ -272,13 +237,7 @@ data.frame("Contrast" = c("Cropped, water vs C-amended", "Successional, water vs
            "p_value" = changeabund.trt.ph.padj)
 ```
 
-Not enough power.
-
 # Predicted 16S copy number
-
-Typically, average 16S copy nunmber decreases with succession. This measurement is taken from whole communities, not just actively, growing members as in my study.
-
-Hypothesis: Decrease in average 16S copy number among actively growing taxa in successional and water treatments compared to cropped and resource-amended treatments.
 
 ```{r}
 # Visualize
@@ -300,7 +259,7 @@ plot(predict(growth.16s.lm), resid(growth.16s.lm)) # check heteroskedasticity
 anova(growth.16s.lm)
 ```
 
-# Create figure
+# Figures
 
 ```{r}
 plot <- growth.trt %>%

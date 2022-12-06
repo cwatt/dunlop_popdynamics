@@ -1,10 +1,9 @@
 ---
-title: "Dunlop growth rates - SOM and pH"
+title: "Dunlop - SOM and pH"
 author: "Cassandra Wattenburger"
 date: "2/16/2021"
 output: html_document
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -12,8 +11,6 @@ knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(results = "show")
 ```
-
-**Goal of this script:** Compare soil organic matter and pH from cropped and successional plots.
 
 # Import libraries
 
@@ -24,7 +21,6 @@ sessionInfo()
 
 rm(list=ls())
 ```
-
 
 # Soil organic matter
 
@@ -53,9 +49,6 @@ som %>%
   theme_test()
 ```
 
-Strong block effect.
-
-
 **Statistics**
 
 Simple linear model:
@@ -69,9 +62,6 @@ hist(resid(som.lm))
 plot(predict(som.lm), resid(som.lm))
 anova(som.lm)
 ```
-
-Overall significant effect of soil, strong interactive effect with block.
-
 
 # pH
 
@@ -99,9 +89,6 @@ ph %>%
   theme_test()
 ```
 
-Also looks like there is a strong, strange block effect here.
-
-
 **Statistics**
 
 Simple linear model
@@ -116,9 +103,6 @@ plot(predict(ph.lm), resid(ph.lm)) # check variances
 
 anova(ph.lm)
 ```
-
-There is a significant soil, block, and interaction between block and soil for pH.
-
 
 ### Make table of results
 

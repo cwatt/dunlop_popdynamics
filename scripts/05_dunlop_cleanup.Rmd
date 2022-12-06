@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - clean up data"
+title: "Dunlop - clean up data"
 author: "Cassandra Wattenburger"
 date: "2/12/2021"
 output: github_document
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(results = "show")
 ```
-
-**Goal of this script:** Put all the data into one place, in a standardized format for easier analysis.
 
 # Import libraries
 

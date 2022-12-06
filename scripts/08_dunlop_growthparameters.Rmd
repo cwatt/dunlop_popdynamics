@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - correlations"
+title: "Dunlop - ASV-level correlations"
 author: "Cassandra Wattenburger"
 date: "2/13/2021"
 output: html_document
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(results = "show")
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
-
-**Goal of this script:** Investigate relationships between variables relevant to bacterial growth.
 
 # Import libraries
 

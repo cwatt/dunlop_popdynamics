@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rate - internal standard normalization"
+title: "Dunlop - internal standard normalization"
 author: "Cassi Wattenburger"
 date: "2/22/2019"
 output: github_document
@@ -12,9 +12,7 @@ knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
 
-**Goal of this script:** Normalize rarefied data by internal standard read count.
-
-**Import libraries**
+# Import libraries
 
 ```{r}
 rm(list=ls())

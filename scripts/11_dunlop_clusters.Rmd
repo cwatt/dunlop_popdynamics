@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - groups"
+title: "Dunlop - clusters"
 author: "Cassandra Wattenburger"
 date: "3/8/2021"
 output: html_document
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(results = "show")
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
-
-**Goal of this script:** Growth rate distributions seem bimodal. See if groups can be explicitly modeled and explore relationships with other variables.
 
 # Import libraries
 
@@ -60,7 +58,6 @@ growth.paprica.asv <- growth %>%
             genome_size = mean(genome_size)) %>% 
   ungroup()
 ```
-
 
 Visualize distributions:
 
@@ -135,7 +132,6 @@ C3n.class %>%
   geom_histogram() +
   theme_test()
 ```
-
 
 ### Successional C-amended
 
@@ -476,16 +472,6 @@ t.test(k ~ Amendment, S17_growth_overlap, paired=TRUE)
 
 # Cropped
 t.test(k ~ Amendment, C3_growth_overlap, paired=TRUE)
-```
-
-## Intermediate cluster
-
-```{r}
-inter_cluster <- growth_clusters %>% 
-  filter(Soil=="C3")
-
-
-  
 ```
 
 # Figures

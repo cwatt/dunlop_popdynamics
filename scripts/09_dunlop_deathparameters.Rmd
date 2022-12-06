@@ -124,7 +124,7 @@ death_phyla <- growth_death %>%
 death_phyla
 ```
 
-# Aggregate parameters
+# Community level
 
 Overview of soil treatment affects on measured community overall.
 
@@ -152,8 +152,6 @@ prop_death %>%
   theme_test()
 ```
 
-Highly variable.
-
 ```{r}
 # Aggregate parameters
 growth_death_agg <- growth_death %>% 
@@ -180,8 +178,6 @@ growth_death_agg %>%
   theme_test()
 ```
 
-Highly variable, not seeing a trend.
-
 ### Death change abundance
 
 ```{r}
@@ -202,8 +198,6 @@ chabund_agg_lm <- lm(abs(de_change_abund_corr) ~ Soil + Amendment + Soil*Amendme
 hist(resid(chabund_agg_lm)) # normal enough
 plot(predict(chabund_agg_lm), resid(chabund_agg_lm)) # unequal variance, log transform makes worse
 ```
-
-I don't like the unequal variance here, even with a log transform. I'll use a Welch's t-test to test amendment.
 
 Welch's t-test:
 
@@ -261,10 +255,6 @@ growth_death_asv <- growth_death %>%
 
 ### Growth rate vs did death happen at all
 
-Hypothesis: Taxa with faster growth rates more likely to experience death afterwards
-* boom/bust lifestyle
-* didn't sample enough/long enough to capture slower grower death
-
 ```{r}
 # Presence/absence of death in growing ASVs
 no_death_asv <- anti_join(growth_asv, death_asv_log, by=c("ASV", "Soil", "Amendment")) %>% 
@@ -287,8 +277,6 @@ all_asv %>%
   facet_wrap(Soil~Amendment) +
   theme_test()
 ```
-
-Greater variability and sample size of taxa that did not have estimated death after growth. Dificult to say whether this difference in variation/growth rate is real or due to undersampling.
 
 ### Growth change abundance vs death yes/no
 
@@ -347,11 +335,7 @@ growthrate_deathrate_pcor_trts <- bind_cols(growthrate_deathrate_pcor_trts, padj
 growthrate_deathrate_pcor_trts
 ```
 
-No significance.
-
 ### Growth rate vs death change in abundance
-
-Logarithmic only
 
 ```{r}
 # Graph
@@ -366,7 +350,6 @@ growth_death_asv %>%
 ### Growth change in abundance vs death rate
 
 Hypothesis: Taxa that grew more more likely to experience faster death
-* boom/bust lifestyle
 
 ```{r}
 # Graph
@@ -377,8 +360,6 @@ growth_death_asv %>%
   facet_wrap(Soil~Amendment) +
   theme_test()
 ```
-
-Possibly slight positive correlation in amended soils but negative in unamended? This would mean that in unamended soils, as the change in growth biomass increased, the death rate tended to be lower, but in the amended soils, the opposite was true.
 
 **Statistics**
 
@@ -404,12 +385,9 @@ grchabund_deathrate_pcor_trts <- bind_cols(grchabund_deathrate_pcor_trts, padj=p
 grchabund_deathrate_pcor_trts
 ```
 
-No significance.
-
 ### Growth change in abundance vs death change in abundance
 
 Hypothesis: Taxa that accumulated more biomass during growth can and will lose more biomass to death
-* boom/bust lifestyle
 
 ```{r}
 # Graph
@@ -421,8 +399,6 @@ growth_death_asv %>%
   facet_wrap(Soil~Amendment) +
   theme_test()
 ```
-
-Positive correlation between change in abundance due to death and growth? If a taxa grew more, it died more. There also seems to be a treatment effect but this could be due to undersampling things that grew then died in the unammended soil.
 
 **Statistics**
 

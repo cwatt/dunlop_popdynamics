@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - estimate growth rates"
+title: "Dunlop - growth estimation"
 author: "Cassandra Wattenburger"
 date: "11/15/2020"
 output: github_document
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(results = "show")
 knitr::opts_chunk$set(message = FALSE)
 ```
 
-**Goal of this script:** Estimate in-situ growth rates from time series.
-
 Steps:
 
 1. Remove 0s from dataset
@@ -23,7 +21,6 @@ Steps:
 6. Choose "best" growth rate estimate based on smallest p-value
 7. Control for false positives (simulation)
 8. Calculate specific growth rate and generation time
-
 
 # Import libraries
 
@@ -39,7 +36,6 @@ library("ggplot2")
 
 sessionInfo()
 ```
-
 
 # Import data and reformat
 

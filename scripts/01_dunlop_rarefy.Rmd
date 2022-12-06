@@ -1,5 +1,5 @@
 ---
-title: "Dunlop growth rates - Rarefy"
+title: "Dunlop - rarefy"
 author: "Cassi Wattenburger"
 date: "2/12/2019"
 output: github_document
@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(results = "show")
 knitr::opts_chunk$set(message = FALSE)
 ```
-
-**Goal of this script:** Remove non-prokaryotic ASVs and rarefy data to reduce sequencing-depth bias.
 
 # Import libraries
 
