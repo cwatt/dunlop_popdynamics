@@ -1,6 +1,7 @@
 # I'm only using git to track changes to scripts, data will not be included
 
 # Directories
+.ipynb_checkpoints
 output
 rdata.files
 archive
@@ -24,6 +25,7 @@ field_comparison/
 scripts/archive/
 
 # Files
+screenlog.0
 *.csv
 *.tsv
 *scrap*
