@@ -410,9 +410,39 @@ lengthk.pcor <- lengthk.pcor %>%
 lengthk.pcor
 ```
 
+# k x lag/length in quartiles
+
+Summarize:
+
+```{r}
+hist(growth_asv$k) 
+min(growth_asv$k)
+max(growth_asv$k)
+
+# Bin into equal width quartiles
+quart_width <- (max(growth_asv$k) - min(growth_asv$k))/4
+growth_asv_qrt <- growth_asv %>% 
+  mutate(quartile =  case_when(k <= min(growth_asv$k) + quart_width ~ 1,
+                                k > min(growth_asv$k) + quart_width 
+                                & k <= min(growth_asv$k) + quart_width*2 ~ 2,
+                                k > min(growth_asv$k) + quart_width*2 
+                                & k <= min(growth_asv$k) + quart_width*3 ~ 3,
+                                k > min(growth_asv$k) + quart_width*3 ~ 4),
+         length = end_day - start_day) %>% 
+  select(ASV, quartile, k, start_day, length)
+
+growth_asv_qrt %>% 
+  group_by(quartile) %>% 
+  summarize(lag_avg = mean(start_day, na.rm=TRUE),
+            lag_sd = sd(start_day, na.rm=TRUE),
+            length_avg = mean(length, na.rm=TRUE),
+            length_sd = sd(length, na.rm=TRUE)) %>% 
+  ungroup()
+```
+
 # Figures
 
-## Change in abundance vs specific growth rate
+Change in abundance vs specific growth rate:
 
 ```{r}
 plot3 <- growth_asv %>%
