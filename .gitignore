@@ -34,3 +34,4 @@ screenlog.0
 .RData
 .Rhistory
 growthrate2018.Rproj
+.gitignore

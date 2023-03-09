@@ -60,12 +60,12 @@ Hypothesis: Positive correlation between 16S copy number and growth rate
 
 ```{r}
 # Visualize
-growth_asv %>% ggplot(aes(x=log(k), y=n16S)) +
+growth_asv %>% ggplot(aes(x=log(k), y=log(n16S))) +
   geom_point() +
   labs(title="All data") +
   theme_test()
 
-growth_asv %>% ggplot(aes(x=log(k), y=n16S)) +
+growth_asv %>% ggplot(aes(x=log(k), y=log(n16S))) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
   labs(title="By treatment") +
@@ -101,18 +101,17 @@ spearman_permute = function(x, y) {
 }
 
 # Tests
-n16Sk.all.spearperm <- spearman_permute(growth_asv$n16S, growth_asv$k)
+n16Sk.all.spearperm <- spearman_permute(log(growth_asv$n16S), log(growth_asv$k))
 
-n16Sk.C3y.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$n16S, 
-                                      log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$k))
+n16Sk.C3y.spearperm <- spearman_permute(log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$n16S), log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="Y",]$k))
 
-n16Sk.C3n.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="N",]$n16S, 
+n16Sk.C3n.spearperm <- spearman_permute(log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="N",]$n16S), 
                                       log(growth_asv[growth_asv$Soil=="C3" & growth_asv$Amendment=="N",]$k))
 
-n16Sk.S17y.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="Y",]$n16S, 
+n16Sk.S17y.spearperm <- spearman_permute(log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="Y",]$n16S), 
                                        log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="Y",]$k))
 
-n16Sk.S17n.spearperm <- spearman_permute(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="N",]$n16S, 
+n16Sk.S17n.spearperm <- spearman_permute(log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="N",]$n16S), 
                                        log(growth_asv[growth_asv$Soil=="S17" & growth_asv$Amendment=="N",]$k))
 
 # Multiple test correction
@@ -511,7 +510,7 @@ plot2 <- growth_asv %>%
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
                                Soil=="S17" & Amendment=="Y" ~ "Successional, resources",
                                Soil=="S17" & Amendment=="N" ~ "Successional, water")) %>%
-  ggplot(aes(y=log(k), x=n16S)) +
+  ggplot(aes(y=log(k), x=log(n16S))) +
   geom_point(shape=1, alpha= 0.35) +
   facet_wrap(~treatment) +
   labs(y="", x=expression(paste("Predicted ", italic("rrn" ), " copy number"))) +
@@ -523,7 +522,6 @@ plot2 <- growth_asv %>%
         strip.background = element_blank())
 plot2
 ```
-
 
 ```{r, eval=FALSE}
 ggsave(plot2, filename = "../figures/fig_rrnxk.svg", units="mm", width=85, height=85, device="svg")
