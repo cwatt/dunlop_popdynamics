@@ -1,17 +1,9 @@
----
-title: "Dunlop - death parameters analysis"
-author: "Cassandra Wattenburger"
-date: "12/3/2021"
-output: github_document
----
+Dunlop - death parameters analysis
+================
+Cassandra Wattenburger
+12/3/2021
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(results = "show")
-knitr::opts_chunk$set(message = FALSE)
-```
-
-```{r}
+``` r
 rm(list=ls())
 
 library("tidyverse")
@@ -19,9 +11,48 @@ library("tidyverse")
 sessionInfo()
 ```
 
+    ## R version 3.6.3 (2020-02-29)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Ubuntu 18.04.4 LTS
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+    ## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+    ## 
+    ## locale:
+    ##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+    ##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+    ##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+    ##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+    ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+    ## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ## [1] forcats_0.5.1   stringr_1.5.0   dplyr_1.1.0     purrr_1.0.1    
+    ## [5] readr_2.1.0     tidyr_1.3.0     tibble_3.1.6    ggplot2_3.4.1  
+    ## [9] tidyverse_1.3.1
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] tidyselect_1.2.0 xfun_0.28        haven_2.4.3      colorspace_2.0-2
+    ##  [5] vctrs_0.5.2      generics_0.1.1   htmltools_0.5.4  yaml_2.2.1      
+    ##  [9] utf8_1.2.2       rlang_1.0.6      pillar_1.6.4     withr_2.5.0     
+    ## [13] glue_1.6.2       DBI_1.1.1        dbplyr_2.1.1     modelr_0.1.8    
+    ## [17] readxl_1.3.1     lifecycle_1.0.3  munsell_0.5.0    gtable_0.3.0    
+    ## [21] cellranger_1.1.0 rvest_1.0.2      evaluate_0.14    knitr_1.36      
+    ## [25] tzdb_0.2.0       fastmap_1.1.0    fansi_0.5.0      broom_0.7.10    
+    ## [29] Rcpp_1.0.8.3     backports_1.3.0  scales_1.2.1     jsonlite_1.7.2  
+    ## [33] fs_1.5.0         hms_1.1.1        digest_0.6.28    stringi_1.7.5   
+    ## [37] grid_3.6.3       cli_3.6.0        tools_3.6.3      magrittr_2.0.1  
+    ## [41] crayon_1.4.2     pkgconfig_2.0.3  ellipsis_0.3.2   xml2_1.3.2      
+    ## [45] reprex_2.0.1     lubridate_1.8.0  assertthat_0.2.1 rmarkdown_2.11  
+    ## [49] httr_1.4.2       rstudioapi_0.13  R6_2.5.1         compiler_3.6.3
+
 # Import data
 
-```{r}
+``` r
 # Growth and death estimates
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds") %>% 
   rename(gr_start_day=start_day, gr_end_day=end_day,
@@ -55,17 +86,21 @@ growth_death <- inner_join(growth, death) %>%
 
 Total:
 
-```{r}
+``` r
 nrow(growth_death)
 ```
 
-```{r}
+    ## [1] 80
+
+``` r
 length(as.character(unique(growth_death$ASV)))
 ```
 
+    ## [1] 73
+
 ### Number of ASVs per treatment
 
-```{r}
+``` r
 death_asvs <- growth_death %>%
   group_by(Soil, Amendment) %>% 
   summarize(num_est = length(unique(ASV))) %>%
@@ -74,11 +109,19 @@ death_asvs <- growth_death %>%
 death_asvs
 ```
 
+    ## # A tibble: 4 × 3
+    ##   Soil  Amendment num_est
+    ##   <chr> <chr>       <int>
+    ## 1 C3    N              17
+    ## 2 C3    Y              38
+    ## 3 S17   N               4
+    ## 4 S17   Y              19
+
 ### Overall descriptive stats
 
 Start, end, and length of death:
 
-```{r}
+``` r
 death_overall <- growth_death %>%
   group_by() %>% 
   summarize(de_start_day_min = min(de_start_day),
@@ -94,9 +137,16 @@ death_overall <- growth_death %>%
 death_overall
 ```
 
+    ## # A tibble: 1 × 8
+    ##   de_start_day_min de_start_day_max de_start_day_mean de_start_day_sd
+    ##              <dbl>            <dbl>             <dbl>           <dbl>
+    ## 1            0.667               21              6.31            5.04
+    ## # … with 4 more variables: de_end_day_min <dbl>, de_end_day_max <dbl>,
+    ## #   de_end_day_mean <dbl>, de_end_day_sd <dbl>
+
 Halving times:
 
-```{r}
+``` r
 death_g <- growth_death %>% 
   group_by() %>% 
   summarize(half_time_min = min(half_time),
@@ -108,12 +158,21 @@ death_g <- growth_death %>%
 death_g
 ```
 
+    ## # A tibble: 1 × 4
+    ##   half_time_min half_time_max half_time_mean half_time_sd
+    ##           <dbl>         <dbl>          <dbl>        <dbl>
+    ## 1          1.35          72.8           11.7         13.3
+
 ### Phyla represented
 
-```{r}
+``` r
 # Number of phyla
 length(unique(as.character(growth_death$Phylum)))
+```
 
+    ## [1] 12
+
+``` r
 # Which phyla
 death_phyla <- growth_death %>% 
   group_by(Phylum) %>% 
@@ -124,13 +183,29 @@ death_phyla <- growth_death %>%
 death_phyla
 ```
 
+    ## # A tibble: 12 × 2
+    ##    Phylum                num_est
+    ##    <fct>                   <int>
+    ##  1 Proteobacteria             31
+    ##  2 Actinobacteria             22
+    ##  3 Acidobacteria               6
+    ##  4 Verrucomicrobia             5
+    ##  5 Chloroflexi                 4
+    ##  6 Bacteroidetes               3
+    ##  7 Thaumarchaeota              3
+    ##  8 unclassified Bacteria       2
+    ##  9 Firmicutes                  1
+    ## 10 Gemmatimonadetes            1
+    ## 11 Planctomycetes              1
+    ## 12 putative Chloroflexi        1
+
 # Community level
 
 Overview of soil treatment affects on measured community overall.
 
 ### Proportion of taxa that grew then died vs just grew
 
-```{r}
+``` r
 count_growth <- growth %>% 
   group_by(Soil, Amendment, Replicate) %>% 
   summarize(growth_count = n()) %>% 
@@ -152,7 +227,9 @@ prop_death %>%
   theme_test()
 ```
 
-```{r}
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
 # Aggregate parameters
 growth_death_agg <- growth_death %>% 
   group_by(Soil, Amendment, Replicate) %>% 
@@ -171,49 +248,79 @@ growth_death_agg <- growth_death %>%
 
 ### Death rate
 
-```{r}
+``` r
 growth_death_agg %>%
   ggplot(aes(x=Soil, y=de_rate, color=Amendment)) +
   geom_point() +
   theme_test()
 ```
 
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
 ### Death change abundance
 
-```{r}
+``` r
 growth_death_agg %>% 
   ggplot(aes(x=Soil, y=abs(de_change_abund_corr), color=Amendment)) +
   geom_point() +
   theme_test()
 ```
 
-Seems like trend of greater changes in abundance due to death in amended soils?
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+Seems like trend of greater changes in abundance due to death in amended
+soils?
 
 **Statistics**
 
-Linear model:
+Linear
+model:
 
-```{r}
+``` r
 chabund_agg_lm <- lm(abs(de_change_abund_corr) ~ Soil + Amendment + Soil*Amendment, data=growth_death_agg)
 hist(resid(chabund_agg_lm)) # normal enough
+```
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+``` r
 plot(predict(chabund_agg_lm), resid(chabund_agg_lm)) # unequal variance, log transform makes worse
 ```
 
-Welch's t-test:
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
 
-* Non-transformed data
+Welch’s t-test:
 
-```{r}
+  - Non-transformed data
+
+<!-- end list -->
+
+``` r
 # Cropped
 chabund_agg_welch <- t.test(abs(de_change_abund_corr) ~ Amendment, data=growth_death_agg, var.equal=FALSE)
 chabund_agg_welch
 ```
 
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  abs(de_change_abund_corr) by Amendment
+    ## t = -3.5147, df = 7.2961, p-value = 0.009164
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -1.7243339 -0.3440891
+    ## sample estimates:
+    ## mean in group N mean in group Y 
+    ##       0.1800754       1.2142868
+
 # ASV level
 
-Average each ASV across replicates to get a parameter estimate for each taxa in each treatment. This allows a more nuanced investigation of how soil treatments interact with growth responses of individual ASVs/populations rather than the community as a whole.
+Average each ASV across replicates to get a parameter estimate for each
+taxa in each treatment. This allows a more nuanced investigation of how
+soil treatments interact with growth responses of individual
+ASVs/populations rather than the community as a whole.
 
-```{r}
+``` r
 # Average growth estimates for each ASV
 growth_asv <- growth %>%
   group_by(ASV, Soil, Amendment) %>% 
@@ -255,7 +362,7 @@ growth_death_asv <- growth_death %>%
 
 ### Growth rate vs did death happen at all
 
-```{r}
+``` r
 # Presence/absence of death in growing ASVs
 no_death_asv <- anti_join(growth_asv, death_asv_log, by=c("ASV", "Soil", "Amendment")) %>% 
   add_column(died ="no")
@@ -268,7 +375,7 @@ all_asv <- bind_rows(no_death_asv, growth_death_asv) %>%
   mutate()
 ```
 
-```{r}
+``` r
 # Graph
 all_asv %>% 
   ggplot(aes(x=died, y=log(k))) +
@@ -278,13 +385,15 @@ all_asv %>%
   theme_test()
 ```
 
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
 ### Growth change abundance vs death yes/no
 
-Hypothesis: Taxa that grew more biomass more likely to experience death afterwards
-* boom/bust lifestyle
-* didn't sample enough/long enough to slower/less growth and death
+Hypothesis: Taxa that grew more biomass more likely to experience death
+afterwards \* boom/bust lifestyle \* didn’t sample enough/long enough to
+slower/less growth and death
 
-```{r}
+``` r
 # Graph
 all_asv %>% 
   ggplot(aes(x=died, y=log(gr_change_abund_corr))) +
@@ -294,12 +403,18 @@ all_asv %>%
   theme_test()
 ```
 
+    ## Warning: Removed 8 rows containing non-finite values (`stat_boxplot()`).
+
+    ## Warning: Removed 8 rows containing missing values (`geom_point()`).
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
 ### Growth rate vs death rate
 
-Hypothesis: Taxa with faster growth rate more likely to experience faster death
-* boom/bust lifestyle
+Hypothesis: Taxa with faster growth rate more likely to experience
+faster death \* boom/bust lifestyle
 
-```{r}
+``` r
 # Graph
 growth_death_asv %>% 
   ggplot(aes(x=log(k), y=log(abs(de_rate)))) +
@@ -309,13 +424,15 @@ growth_death_asv %>%
   theme_test()
 ```
 
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
 Perhaps a trend of slight positive relationship.
 
 **Statistics**
 
 Pearson correlations with multiple test correction
 
-```{r}
+``` r
 # Treatments
 growthrate_deathrate_pcor_trts <- data.frame()
 for (s in c("C3", "S17")) {
@@ -335,9 +452,15 @@ growthrate_deathrate_pcor_trts <- bind_cols(growthrate_deathrate_pcor_trts, padj
 growthrate_deathrate_pcor_trts
 ```
 
+    ##         Soil Amendment  estimate     pvalue       padj
+    ## cor...1   C3         Y 0.3298772 0.04311640 0.12934920
+    ## cor...2   C3         N 0.1151868 0.65977586 1.00000000
+    ## cor...3  S17         Y 0.5405026 0.01688262 0.06753048
+    ## cor...4  S17         N 0.2762204 0.72377960 1.00000000
+
 ### Growth rate vs death change in abundance
 
-```{r}
+``` r
 # Graph
 growth_death_asv %>% 
   ggplot(aes(x=log(k), y=log(abs(de_change_abund_corr)))) +
@@ -347,11 +470,17 @@ growth_death_asv %>%
   theme_test()
 ```
 
+    ## Warning: Removed 3 rows containing non-finite values (`stat_smooth()`).
+
+    ## Warning: Removed 3 rows containing missing values (`geom_point()`).
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
 ### Growth change in abundance vs death rate
 
 Hypothesis: Taxa that grew more more likely to experience faster death
 
-```{r}
+``` r
 # Graph
 growth_death_asv %>% 
   ggplot(aes(x=log(gr_change_abund_corr), y=log(abs(de_rate)))) + # cannot take ln of negative number
@@ -361,11 +490,17 @@ growth_death_asv %>%
   theme_test()
 ```
 
+    ## Warning: Removed 3 rows containing non-finite values (`stat_smooth()`).
+
+    ## Warning: Removed 3 rows containing missing values (`geom_point()`).
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
 **Statistics**
 
 Pearson correlations with multiple test correction
 
-```{r}
+``` r
 # Treatments
 grchabund_deathrate_pcor_trts <- data.frame()
 for (s in c("C3", "S17")) {
@@ -385,11 +520,18 @@ grchabund_deathrate_pcor_trts <- bind_cols(grchabund_deathrate_pcor_trts, padj=p
 grchabund_deathrate_pcor_trts
 ```
 
+    ##         Soil Amendment   estimate    pvalue      padj
+    ## cor...1   C3         Y  0.1360777 0.4219375 1.0000000
+    ## cor...2   C3         N -0.4400529 0.1006963 0.4027853
+    ## cor...3  S17         Y  0.1700391 0.4864541 1.0000000
+    ## cor...4  S17         N -0.0658960 0.9341040 1.0000000
+
 ### Growth change in abundance vs death change in abundance
 
-Hypothesis: Taxa that accumulated more biomass during growth can and will lose more biomass to death
+Hypothesis: Taxa that accumulated more biomass during growth can and
+will lose more biomass to death
 
-```{r}
+``` r
 # Graph
 growth_death_asv %>%
   filter(died=="yes") %>%
@@ -400,11 +542,17 @@ growth_death_asv %>%
   theme_test()
 ```
 
+    ## Warning: Removed 3 rows containing non-finite values (`stat_smooth()`).
+
+    ## Warning: Removed 3 rows containing missing values (`geom_point()`).
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+
 **Statistics**
 
 Pearson correlations with multiple test correction
 
-```{r}
+``` r
 # Treatments
 chabund_growth_death_pcor <- data.frame()
 for (s in c("C3", "S17")) {
@@ -424,13 +572,21 @@ chabund_growth_death_pcor_trts <- bind_cols(chabund_growth_death_pcor, padj=padj
 chabund_growth_death_pcor
 ```
 
-Positive correlation between growth and death change in abundance in amended but not unamended soil. More growth means more potential for losses to death?
+    ##         Soil Amendment  estimate       pvalue
+    ## cor...1   C3         Y 0.7600547 4.857547e-08
+    ## cor...2   C3         N 0.4262101 1.131577e-01
+    ## cor...3  S17         Y 0.9391237 2.612469e-09
+    ## cor...4  S17         N 0.2896381 7.103619e-01
+
+Positive correlation between growth and death change in abundance in
+amended but not unamended soil. More growth means more potential for
+losses to death?
 
 # Figures
 
 Aggregate death change in abundance
 
-```{r}
+``` r
 plot <- growth_death_agg %>% 
    mutate(Soil = fct_recode(Soil, Cropped = "C3", Successional = "S17"),
           Amendment = as_factor(Amendment),
@@ -448,13 +604,15 @@ plot <- growth_death_agg %>%
 plot
 ```
 
-```{r, eval=FALSE}
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+
+``` r
 ggsave(plot, filename="../figures/fig_sample_deathchabund.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 Growth vs death change in abundance
 
-```{r}
+``` r
 plot <- growth_death_asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
@@ -474,8 +632,12 @@ plot <- growth_death_asv %>%
 plot
 ```
 
-```{r, eval=FALSE}
+    ## Warning: Removed 3 rows containing non-finite values (`stat_smooth()`).
+
+    ## Warning: Removed 3 rows containing missing values (`geom_point()`).
+
+![](09_dunlop_deathparameters_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+
+``` r
 ggsave(plot, filename = "../figures/fig_growthxdeathchabund.svg", units="mm", width=85, height=85, device="svg")
 ```
-
-

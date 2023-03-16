@@ -273,9 +273,9 @@ field.norm.tax <- merge(field.norm.melt, tax, by.x=4, by.y=7)
 ```
 
 ```{r, eval=FALSE}
-save(microcosm.norm.tax, file="rdata.files/gr_microcosm.norm.tax.RData")
-save(field.norm.tax, file="rdata.files/gr_field.norm.tax.RData")
-saveRDS(totalspikesum, file="rdata.files/gr_intstd.csv")
+save(microcosm.norm.tax, file="../rdata.files/gr_microcosm.norm.tax.RData")
+save(field.norm.tax, file="../rdata.files/gr_field.norm.tax.RData")
+saveRDS(totalspikesum, file="../rdata.files/gr_intstd.csv")
 ```
 
 # Figures

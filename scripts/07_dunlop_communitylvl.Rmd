@@ -1,5 +1,5 @@
 ---
-title: "Dunlop - Growth metrics by treatment"
+title: "Dunlop - growth metrics by treatment"
 author: "Cassandra Wattenburger"
 date: "2/13/2021"
 output: github_document

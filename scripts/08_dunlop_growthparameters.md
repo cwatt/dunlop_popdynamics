@@ -1,39 +1,72 @@
----
-title: "Dunlop - growth parameters analysis"
-author: "Cassandra Wattenburger"
-date: "2/13/2021"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(results = "show")
-knitr::opts_chunk$set(message = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
-```
+Dunlop - growth parameters analysis
+================
+Cassandra Wattenburger
+2/13/2021
 
 # Import libraries
 
-```{r}
+``` r
 library(tidyverse)
 library(cowplot)
 
 sessionInfo()
+```
 
+    ## R version 3.6.3 (2020-02-29)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Ubuntu 18.04.4 LTS
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+    ## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+    ## 
+    ## locale:
+    ##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+    ##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+    ##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+    ##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+    ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+    ## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ##  [1] cowplot_1.1.1   forcats_0.5.1   stringr_1.5.0   dplyr_1.1.0    
+    ##  [5] purrr_1.0.1     readr_2.1.0     tidyr_1.3.0     tibble_3.1.6   
+    ##  [9] ggplot2_3.4.1   tidyverse_1.3.1
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] tidyselect_1.2.0 xfun_0.28        haven_2.4.3      colorspace_2.0-2
+    ##  [5] vctrs_0.5.2      generics_0.1.1   htmltools_0.5.4  yaml_2.2.1      
+    ##  [9] utf8_1.2.2       rlang_1.0.6      pillar_1.6.4     withr_2.5.0     
+    ## [13] glue_1.6.2       DBI_1.1.1        dbplyr_2.1.1     modelr_0.1.8    
+    ## [17] readxl_1.3.1     lifecycle_1.0.3  munsell_0.5.0    gtable_0.3.0    
+    ## [21] cellranger_1.1.0 rvest_1.0.2      evaluate_0.14    knitr_1.36      
+    ## [25] tzdb_0.2.0       fastmap_1.1.0    fansi_0.5.0      broom_0.7.10    
+    ## [29] Rcpp_1.0.8.3     backports_1.3.0  scales_1.2.1     jsonlite_1.7.2  
+    ## [33] fs_1.5.0         hms_1.1.1        digest_0.6.28    stringi_1.7.5   
+    ## [37] grid_3.6.3       cli_3.6.0        tools_3.6.3      magrittr_2.0.1  
+    ## [41] crayon_1.4.2     pkgconfig_2.0.3  ellipsis_0.3.2   xml2_1.3.2      
+    ## [45] reprex_2.0.1     lubridate_1.8.0  assertthat_0.2.1 rmarkdown_2.11  
+    ## [49] httr_1.4.2       rstudioapi_0.13  R6_2.5.1         compiler_3.6.3
+
+``` r
 rm(list=ls())
 ```
 
 # Import data
 
-```{r}
+``` r
 growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
 ```
 
 # Population level
 
-Average across replicates for each ASV in each treatment to produce growth parameters for each ASV.
+Average across replicates for each ASV in each treatment to produce
+growth parameters for each ASV.
 
-```{r}
+``` r
 # ASV averages
 growth_asv <- growth %>%
   group_by(Soil, Amendment, ASV, Phylum, Class, Order, Family, Genus) %>%
@@ -50,21 +83,27 @@ growth_asv <- growth %>%
             genome_size = mean(genome_size))
 ```
 
-### Specific growth rate vs. 16S copy number
+### Specific growth rate vs. 16S copy number
 
-The 16S rRNA gene encodes the ribosomal RNA. Without ribosomes, growth isn't possible, and more copies of this gene has been correlated with faster maximal growth rates. Does this relationship hold in-situ?
+The 16S rRNA gene encodes the ribosomal RNA. Without ribosomes, growth
+isn’t possible, and more copies of this gene has been correlated with
+faster maximal growth rates. Does this relationship hold in-situ?
 
 Hypothesis: Positive correlation between 16S copy number and growth rate
 
 **Visualize**
 
-```{r}
+``` r
 # Visualize
 growth_asv %>% ggplot(aes(x=log(k), y=log(n16S))) +
   geom_point() +
   labs(title="All data") +
   theme_test()
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
 growth_asv %>% ggplot(aes(x=log(k), y=log(n16S))) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
@@ -72,17 +111,26 @@ growth_asv %>% ggplot(aes(x=log(k), y=log(n16S))) +
   theme_test()
 ```
 
-Not exactly what I expected. It appears that low copy number taxa are also capable of fast growth, but not vice-versa. It's true that low copy number taxa have been observed growing rapidly, if enough ribosomes have been produced. Could it be possible that these low copy number taxa were already growing at the start of the incubation and didn't have to produce ribosomes in response to the wet-up?
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+
+Not exactly what I expected. It appears that low copy number taxa are
+also capable of fast growth, but not vice-versa. It’s true that low copy
+number taxa have been observed growing rapidly, if enough ribosomes have
+been produced. Could it be possible that these low copy number taxa were
+already growing at the start of the incubation and didn’t have to
+produce ribosomes in response to the wet-up?
 
 **Statistics:**
 
-Due to the odd shape, I'm going to use a non-parametric test.
+Due to the odd shape, I’m going to use a non-parametric test.
 
-Spearman correlation with permutation, because the data inherently contains ties. 
+Spearman correlation with permutation, because the data inherently
+contains ties.
 
-See: https://stats.stackexchange.com/questions/50015/spearman-correlation-in-the-presence-of-many-ties-how-to-spot-a-problem
+See:
+<https://stats.stackexchange.com/questions/50015/spearman-correlation-in-the-presence-of-many-ties-how-to-spot-a-problem>
 
-```{r}
+``` r
 # Create permuted spearman correlation function
 spearman_permute = function(x, y) {
   set.seed(1) # make sure it is reproducible
@@ -127,23 +175,37 @@ n16Sk.spearperm.results <- data.frame(Soil = c("overall", rep("C3", 2), rep("S17
 n16Sk.spearperm.results
 ```
 
-There are weak positive correlations for most treatments except cropped water.
+    ##      Soil Amendment p.adj        rho
+    ## 1 overall   overall 0.005 0.16596392
+    ## 2      C3         Y 0.016 0.21193302
+    ## 3      C3         N 0.870 0.01046229
+    ## 4     S17         Y 0.036 0.22631537
+    ## 5     S17         N 0.027 0.25875620
+
+There are weak positive correlations for most treatments except cropped
+water.
 
 ## n16S vs lag time
 
-If low copy number taxa were already growing at the start of the experiment, there is a good chance the growth window started early as well. Let's investigate.
+If low copy number taxa were already growing at the start of the
+experiment, there is a good chance the growth window started early as
+well. Let’s investigate.
 
 Hypothesis: No relationship
 
 **Visualize**
 
-```{r}
+``` r
 # Visualize
 growth_asv %>% ggplot(aes(x=start_day, y=n16S)) +
   geom_point() +
   labs(title="All data") +
   theme_test()
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
 growth_asv %>% ggplot(aes(x=start_day, y=n16S)) +
   geom_point() +
   facet_wrap(Soil~Amendment) +
@@ -151,20 +213,41 @@ growth_asv %>% ggplot(aes(x=start_day, y=n16S)) +
   theme_test()
 ```
 
-Indeed, most of the low copy number taxa have an early start day. Others seem to lag - perhaps not growing before start of experiment, but did when water/C was added?
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
+
+Indeed, most of the low copy number taxa have an early start day. Others
+seem to lag - perhaps not growing before start of experiment, but did
+when water/C was added?
 
 **Model**
 
 Might be able to fit an assymptotic model?
 
-```{r}
+``` r
 # Self starting asymptotic model
 # expression is Asym+(R0-Asym)*exp(-exp(lrc)*input)
 n16sstrt.fit <- nls(n16S ~ SSasymp(start_day, Asym, R0, lrc), data = growth_asv)
 summary(n16sstrt.fit)
 ```
 
-```{r, eval=FALSE}
+    ## 
+    ## Formula: n16S ~ SSasymp(start_day, Asym, R0, lrc)
+    ## 
+    ## Parameters:
+    ##      Estimate Std. Error t value Pr(>|t|)    
+    ## Asym   1.5927     0.4779   3.332 0.000912 ***
+    ## R0     2.3919     0.1237  19.341  < 2e-16 ***
+    ## lrc   -1.5915     1.3103  -1.215 0.224994    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 1.94 on 619 degrees of freedom
+    ## 
+    ## Number of iterations to convergence: 7 
+    ## Achieved convergence tolerance: 4.601e-06
+    ##   (8 observations deleted due to missingness)
+
+``` r
 # BROKEN?
 
 # Predict values based on model
@@ -178,19 +261,23 @@ growth_asv %>%
   theme_test() 
 ```
 
-02/10/21
-After consulting with statistician, decided that best course is to not try to shoehorn this data into a particular model. Best to present data graphically and build biological explanation from there.
+02/10/21 After consulting with statistician, decided that best course is
+to not try to shoehorn this data into a particular model. Best to
+present data graphically and build biological explanation from there.
 
 Permutation approach:
 
-* Shuffle 16S copy number and start day pairings
-* Calculate average 16S copy number after day 3 (chosen as "slow" responders)
-* Repeat 1000x
-* See how likely actual result is based on permuted results, if the actual result is less than the 50th lowest average consitutes 95% CI
+  - Shuffle 16S copy number and start day pairings
+  - Calculate average 16S copy number after day 3 (chosen as “slow”
+    responders)
+  - Repeat 1000x
+  - See how likely actual result is based on permuted results, if the
+    actual result is less than the 50th lowest average consitutes 95% CI
 
-One way to try to establish that the pattern observed is non-random, ie show that the tail at the end is a real signal.
+One way to try to establish that the pattern observed is non-random, ie
+show that the tail at the end is a real signal.
 
-```{r}
+``` r
 actual <- growth_asv %>%
   na.omit() %>%
   filter(start_day > 3) %>%
@@ -211,21 +298,40 @@ for (i in 1:1000) {
 }
 
 hist(perm.n16S)
+```
+
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
 perm.n16S <- sort(perm.n16S)
 actual < perm.n16S[50]
 ```
 
-Statistical evidence (P < 0.05) that the low value past day 3 isn't just due to random chance.
+    ##      avg_n16S
+    ## [1,]     TRUE
+
+Statistical evidence (P \< 0.05) that the low value past day 3 isn’t
+just due to random chance.
 
 Spearman rank correlation:
 
-```{r}
+``` r
 cor.test(growth_asv$start_day, growth_asv$n16S, method="spearman")
 ```
 
+    ## 
+    ##  Spearman's rank correlation rho
+    ## 
+    ## data:  growth_asv$start_day and growth_asv$n16S
+    ## S = 42369732, p-value = 0.1599
+    ## alternative hypothesis: true rho is not equal to 0
+    ## sample estimates:
+    ##         rho 
+    ## -0.05642077
+
 ### 16S copy number vs change in abundance
 
-```{r}
+``` r
 growth_asv %>%
   mutate(change_abund = end_abund - start_abund) %>% # calculate change in abundance
   ggplot(aes(x=n16S, y=log(change_abund))) +
@@ -235,9 +341,11 @@ growth_asv %>%
   theme_test()
 ```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
 16S copy number corrected:
 
-```{r}
+``` r
 growth_asv %>%
   ggplot(aes(x=n16S, y=log(change_abund_corr))) +
   geom_point() +
@@ -246,11 +354,15 @@ growth_asv %>%
   theme_test()
 ```
 
-Negative correlations? This totally changes the result. In this case, I think it is better to go with the corrected result, since we know that 16S copy number will affect measured abundances.
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+Negative correlations? This totally changes the result. In this case, I
+think it is better to go with the corrected result, since we know that
+16S copy number will affect measured abundances.
 
 **Statistics**
 
-```{r}
+``` r
 # Treatments
 n16S_chabund_pcor <- data.frame()
 for (s in c("C3", "S17")) {
@@ -270,16 +382,26 @@ n16S_chabund_pcor <- bind_cols(n16S_chabund_pcor, padj=padj)
 n16S_chabund_pcor
 ```
 
+    ##         Soil Amendment   estimate       pvalue         padj
+    ## cor...1   C3         Y -0.2487544 4.385770e-04 1.315731e-03
+    ## cor...2   C3         N -0.4472090 5.115422e-12 2.046169e-11
+    ## cor...3  S17         Y -0.2779892 3.579999e-03 7.159997e-03
+    ## cor...4  S17         N -0.2461113 1.265094e-02 1.265094e-02
+
 ### Change in abundance vs specific growth rate
 
-* Using corrected 16S copy number abundance
+  - Using corrected 16S copy number abundance
 
 Hypotheses:
 
-1. Correlation will depend on soil habitat and C-amendment, fast and slow bacteria more successful in different niches
-2. Positive correlation in cropped/C-amended trts, negative correlation in successional/water control
+1.  Correlation will depend on soil habitat and C-amendment, fast and
+    slow bacteria more successful in different niches
+2.  Positive correlation in cropped/C-amended trts, negative correlation
+    in successional/water control
 
-```{r}
+<!-- end list -->
+
+``` r
 growth_asv %>%
   ggplot(aes(x=log(k), y=log(change_abund_corr))) +
   geom_point() +
@@ -288,13 +410,16 @@ growth_asv %>%
   theme_test() 
 ```
 
-Seems to be strong positive correlation in water control, C-amended less so.
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+Seems to be strong positive correlation in water control, C-amended less
+so.
 
 **Statistics**
 
 Pearson correlations with multiple test correction.
 
-```{r}
+``` r
 # Treatments
 k_chabund_pcor <- data.frame()
 for (s in c("C3", "S17")) {
@@ -314,13 +439,26 @@ k_chabund_pcor <- bind_cols(k_chabund_pcor, padj=padj)
 k_chabund_pcor
 ```
 
-Possible interpretation: faster growing taxa are more competitive for flush of resources released by wetting and amendment, but when extra C is added, competition is decreased and slow growing taxa are able to have a slice of the pie, attenuating relationship. Interesting in light of change in abundance by treatment data from other script, this means that fast taxa aren't necessarily growing more, but than slow taxa are also growing more than they would, creating greater abundance changes overall.
+    ##         Soil Amendment   estimate       pvalue         padj
+    ## cor...1   C3         Y -0.0648206 3.667205e-01 3.667205e-01
+    ## cor...2   C3         N  0.3518308 1.086452e-07 4.345809e-07
+    ## cor...3  S17         Y  0.1395609 1.497139e-01 2.994279e-01
+    ## cor...4  S17         N  0.4745283 4.689338e-07 1.406801e-06
+
+Possible interpretation: faster growing taxa are more competitive for
+flush of resources released by wetting and amendment, but when extra C
+is added, competition is decreased and slow growing taxa are able to
+have a slice of the pie, attenuating relationship. Interesting in light
+of change in abundance by treatment data from other script, this means
+that fast taxa aren’t necessarily growing more, but than slow taxa are
+also growing more than they would, creating greater abundance changes
+overall.
 
 ### Lag time vs specific growth rate
 
 Hypothesis: negative correlation, faster growers start earlier
 
-```{r}
+``` r
 growth_asv %>%
   ggplot(aes(x=log(k), y=start_day)) +
   geom_point() +
@@ -329,11 +467,13 @@ growth_asv %>%
   theme_test() 
 ```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
 **Statistics**
 
 Pearson correlations with multiple test correction.
 
-```{r}
+``` r
 # Treatments
 k_lag_pcor <- data.frame()
 for (s in c("C3", "S17")) {
@@ -353,13 +493,20 @@ k_lag_pcor <- bind_cols(k_lag_pcor, padj=padj)
 k_lag_pcor
 ```
 
+    ##         Soil Amendment   estimate       pvalue         padj
+    ## cor...1   C3         Y -0.2487544 4.385770e-04 1.315731e-03
+    ## cor...2   C3         N -0.4472090 5.115422e-12 2.046169e-11
+    ## cor...3  S17         Y -0.2779892 3.579999e-03 7.159997e-03
+    ## cor...4  S17         N -0.2461113 1.265094e-02 1.265094e-02
+
 Overall negative correlation.
 
 ### Length of growth vs specific growth rate
 
-Hypothesis: negative correlation, faster growers do so for a shorter duration than slower growers
+Hypothesis: negative correlation, faster growers do so for a shorter
+duration than slower growers
 
-```{r}
+``` r
 growth_asv %>%
   mutate(length_days = end_day - start_day) %>% # calculate length of growth window
   ggplot(aes(x=log(k), y=length_days)) +
@@ -369,11 +516,13 @@ growth_asv %>%
   theme_test() 
 ```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
 **Statistics**
 
 Pearson correlations with multiple test correction.
 
-```{r}
+``` r
 # Add groth length
 growth_asv <- growth_asv %>%
   mutate(length_days = end_day - start_day)
@@ -409,15 +558,36 @@ lengthk.pcor <- lengthk.pcor %>%
 lengthk.pcor
 ```
 
+    ##         Soil Amendment   estimate          padj
+    ## cor...1   C3         Y -0.8430750  7.981657e-54
+    ## cor...2   C3         N -0.8074995  4.315704e-52
+    ## cor...3  S17         Y -0.8648865  3.331151e-33
+    ## cor...4  S17         N -0.8100416  6.419436e-25
+    ## cor...5 both      both -0.8085042 4.898574e-146
+
 # k x lag/length in quartiles
 
 Summarize:
 
-```{r}
+``` r
 hist(growth_asv$k) 
-min(growth_asv$k)
-max(growth_asv$k)
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+``` r
+min(growth_asv$k)
+```
+
+    ## [1] 0.01091517
+
+``` r
+max(growth_asv$k)
+```
+
+    ## [1] 0.9845874
+
+``` r
 # Bin into equal width quartiles
 quart_width <- (max(growth_asv$k) - min(growth_asv$k))/4
 growth_asv_qrt <- growth_asv %>% 
@@ -439,11 +609,19 @@ growth_asv_qrt %>%
   ungroup()
 ```
 
+    ## # A tibble: 4 × 5
+    ##   quartile lag_avg lag_sd length_avg length_sd
+    ##      <dbl>   <dbl>  <dbl>      <dbl>     <dbl>
+    ## 1        1   2.09   4.47      16.3      13.3  
+    ## 2        2   0.872  0.913      4.74      2.89 
+    ## 3        3   0.544  0.483      1.51      0.735
+    ## 4        4   0.5    0.624      0.967     0.415
+
 # Figures
 
 Change in abundance vs specific growth rate:
 
-```{r}
+``` r
 plot3 <- growth_asv %>%
   mutate(Treatment = paste0(Soil, Amendment),
          Treatment = fct_recode(Treatment, 'Cropped, water' = "C3N", 'Cropped, resources' = "C3Y",
@@ -463,13 +641,15 @@ plot3 <- growth_asv %>%
 plot3
 ```
 
-```{r, eval=FALSE}
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+``` r
 ggsave(plot3, filename = "../figures/fig_chabundxk.svg", units="mm", width=85, height=100, device="svg")
 ```
 
 16S copy number vs growth rates
 
-```{r, eval=FALSE}
+``` r
 plot1 <- growth_asv %>%
   ggplot(aes(y=log(k), x=n16S)) +
   geom_point(shape=1, alpha= 0.3) +
@@ -504,7 +684,7 @@ ggsave(figure, filename = "../figures/fig_16Sxk.svg", units="mm", width=160, hei
 
 16S copy number vs growth rates v2
 
-```{r, eval=FALSE}
+``` r
 plot2 <- growth_asv %>%
   mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
@@ -523,13 +703,13 @@ plot2 <- growth_asv %>%
 plot2
 ```
 
-```{r, eval=FALSE}
+``` r
 ggsave(plot2, filename = "../figures/fig_rrnxk.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 rrn copy number vs start of growth
 
-```{r}
+``` r
 plot4 <- growth_asv %>% 
   mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
@@ -546,13 +726,17 @@ plot4 <- growth_asv %>%
         axis.title = element_blank(),
         strip.background = element_blank())
 plot4
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+
+``` r
 ggsave(plot4, file="../figures/fig_rrnxlag.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 Supplemental: start of growth vs growth rate
 
-```{r}
+``` r
 plot5 <- growth_asv %>% 
   mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
@@ -566,13 +750,17 @@ plot5 <- growth_asv %>%
   theme_test() +
   theme(axis.title = element_blank())
 plot5
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+
+``` r
 ggsave(plot5, file="../figures/suppfig_kxlag.svg", units="mm", width=85, height=85, device="svg")
 ```
 
 Supplemental: length of growth vs growth rate
 
-```{r}
+``` r
 plot5 <- growth_asv %>% 
   mutate(treatment = case_when(Soil=="C3" & Amendment=="Y" ~ "Cropped, resources",
                                Soil=="C3" & Amendment=="N" ~ "Cropped, water",
@@ -586,6 +774,10 @@ plot5 <- growth_asv %>%
   theme_test() +
   theme(axis.title = element_blank())
 plot5
+```
 
+![](08_dunlop_growthparameters_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+
+``` r
 ggsave(plot5, file="../figures/suppfig_kxlength.svg", units="mm", width=85, height=85, device="svg")
 ```

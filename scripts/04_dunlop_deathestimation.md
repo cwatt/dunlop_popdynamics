@@ -1,17 +1,9 @@
----
-title: "Dunlop - death estimation"
-author: "Cassandra Wattenburger"
-date: "12/2/2021"
-output: github_document
----
+Dunlop - death estimation
+================
+Cassandra Wattenburger
+12/2/2021
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(results = "show")
-knitr::opts_chunk$set(message = FALSE)
-```
-
-```{r}
+``` r
 rm(list=ls())
 
 library("tidyverse")
@@ -20,13 +12,54 @@ library("lmtest")
 sessionInfo()
 ```
 
-Applying success from recent SFA2 experiment here to see if I can estimate death in this dataset.
+    ## R version 3.6.3 (2020-02-29)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Ubuntu 18.04.4 LTS
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+    ## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+    ## 
+    ## locale:
+    ##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+    ##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+    ##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+    ##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+    ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+    ## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ##  [1] lmtest_0.9-39   zoo_1.8-9       forcats_0.5.1   stringr_1.5.0  
+    ##  [5] dplyr_1.1.0     purrr_1.0.1     readr_2.1.0     tidyr_1.3.0    
+    ##  [9] tibble_3.1.6    ggplot2_3.4.1   tidyverse_1.3.1
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] tidyselect_1.2.0 xfun_0.28        lattice_0.20-41  haven_2.4.3     
+    ##  [5] colorspace_2.0-2 vctrs_0.5.2      generics_0.1.1   htmltools_0.5.4 
+    ##  [9] yaml_2.2.1       utf8_1.2.2       rlang_1.0.6      pillar_1.6.4    
+    ## [13] withr_2.5.0      glue_1.6.2       DBI_1.1.1        dbplyr_2.1.1    
+    ## [17] modelr_0.1.8     readxl_1.3.1     lifecycle_1.0.3  munsell_0.5.0   
+    ## [21] gtable_0.3.0     cellranger_1.1.0 rvest_1.0.2      evaluate_0.14   
+    ## [25] knitr_1.36       tzdb_0.2.0       fastmap_1.1.0    fansi_0.5.0     
+    ## [29] broom_0.7.10     Rcpp_1.0.8.3     backports_1.3.0  scales_1.2.1    
+    ## [33] jsonlite_1.7.2   fs_1.5.0         hms_1.1.1        digest_0.6.28   
+    ## [37] stringi_1.7.5    grid_3.6.3       cli_3.6.0        tools_3.6.3     
+    ## [41] magrittr_2.0.1   crayon_1.4.2     pkgconfig_2.0.3  ellipsis_0.3.2  
+    ## [45] xml2_1.3.2       reprex_2.0.1     lubridate_1.8.0  assertthat_0.2.1
+    ## [49] rmarkdown_2.11   httr_1.4.2       rstudioapi_0.13  R6_2.5.1        
+    ## [53] compiler_3.6.3
+
+Applying success from recent SFA2 experiment here to see if I can
+estimate death in this dataset.
 
 # Import data
 
 Normalized abundances, estimated growth.
 
-```{r}
+``` r
 # Normalized abundance data
 norm <- readRDS("../rdata.files/gr_ucosm.norm.clean.rds")
 
@@ -39,11 +72,11 @@ meta <- read.table(file="../metadata/growthrate_metadata.tsv", sep = '\t', heade
 
 # Prepare normalized abundance data for death estimation
 
-Same steps as 03_dunlopgr_grestimation.Rmd, with additional steps:
-* Only include ASVs with estimated growth
-* Only look for death in time points after growth period ended
+Same steps as 03\_dunlopgr\_grestimation.Rmd, with additional steps: \*
+Only include ASVs with estimated growth \* Only look for death in time
+points after growth period ended
 
-```{r}
+``` r
 # Create unique labels for each time series
 norm_label <- mutate(norm, Label = paste0(Soil, Amendment, Replicate, ASV))
 growth_label <- mutate(growth_est, Label = paste0(Soil, Amendment, Replicate, ASV))
@@ -87,9 +120,10 @@ norm_prepped <- norm_after
 
 # Window estimates: Fit linear model to time series
 
-Same method as 03_dunlopgr_grestimation.Rmd but looking for slope < 0 instead.
+Same method as 03\_dunlopgr\_grestimation.Rmd but looking for slope \< 0
+instead.
 
-```{r}
+``` r
 # Save estimate function
 savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
   est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
@@ -172,24 +206,35 @@ for (label in as.character(unique(norm_prepped$Label))) {
 }
 ```
 
-### Remove "essentially perfect fits"
+### Remove “essentially perfect fits”
 
-I can't find any guidance on how to determine whether or not a fit is "perfect" but I know that the residuals are essentially equally to 0 for perfect fits. I'll use 0.0001 as a filtering threshold for removal.
+I can’t find any guidance on how to determine whether or not a fit is
+“perfect” but I know that the residuals are essentially equally to 0
+for perfect fits. I’ll use 0.0001 as a filtering threshold for removal.
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 death_noperf <- filter(death_est, residuals >= 0.0001)
 nrow(death_est)
+```
+
+    ## [1] 153
+
+``` r
 nrow(death_noperf)
 ```
+
+    ## [1] 153
 
 None were removed.
 
 ### Select best fit for each time series
 
-* Smallest slope p-value
+  - Smallest slope p-value
 
-```{r}
+<!-- end list -->
+
+``` r
 # Best p-value for each curve
 death_lowestp <- death_noperf %>% 
   group_by(Label) %>% 
@@ -201,29 +246,40 @@ death_best <- semi_join(death_noperf, death_lowestp)
 nrow(death_best)
 ```
 
+    ## [1] 93
+
 ### False positive control
 
-Histogram of quality filtered p-values from actual estimates:
+Histogram of quality filtered p-values from actual
+estimates:
 
-```{r}
+``` r
 hist(death_best$pval, xlab="P-values", main="Histogram of quality filtered p-values")
 ```
 
-That doesn't look promising.
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
-See: http://varianceexplained.org/statistics/interpreting-pvalue-histogram/
+That doesn’t look promising.
 
-I'm choosing to use a permutation approach where I use my growth estimating algorhithm on randomly generated data with characteristics of the real data. I'll use this false positive information to filter my real estimates. Traditional false positive control methods are far too conservative for my dataset.
+See:
+<http://varianceexplained.org/statistics/interpreting-pvalue-histogram/>
+
+I’m choosing to use a permutation approach where I use my growth
+estimating algorhithm on randomly generated data with characteristics of
+the real data. I’ll use this false positive information to filter my
+real estimates. Traditional false positive control methods are far too
+conservative for my dataset.
 
 **Simulate random data**
 
-Completely random data designed to reflect actual data, if we detect "significant" growth rate estimates from this, we must control for that, because the same thing can happen in our actual data.
+Completely random data designed to reflect actual data, if we detect
+“significant” growth rate estimates from this, we must control for
+that, because the same thing can happen in our actual data.
 
-Information about real dataset to use for simulating random data:
-* number of time points
-* min and max of abundance
+Information about real dataset to use for simulating random data: \*
+number of time points \* min and max of abundance
 
-```{r, results="show"}
+``` r
 # Minimum and maximum relational abund_ln
 min_abund_ln <- min(norm_prepped$abund_ln)
 max_abund_ln <- max(norm_prepped$abund_ln)
@@ -231,7 +287,11 @@ avg_abund_ln <- mean(norm_prepped$abund_ln)
 sd_abund_ln <- sd(norm_prepped$abund_ln)
 
 hist(norm_prepped$abund_ln)
+```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
 # Number of time points
 num_tps <- norm_prepped %>% 
   group_by(Label) %>% 
@@ -246,9 +306,11 @@ sd_pts <- sd(num_tps$num_points)
 hist(num_tps$num_points)
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+
 Simulate random time series:
 
-```{r, eval=FALSE}
+``` r
 set.seed(2021)
 
 # Set time points, remove anything below day 0.667 (minimum window of growth)
@@ -295,21 +357,25 @@ colnames(sim_data)[1] <- "simulation"
 
 Save simulated data:
 
-```{r, eval=FALSE}
+``` r
 # Save simulated data for reproducibility
 saveRDS(sim_data, file="../rdata.files/gr_deathsimulation.rds")
 ```
 
 Compare simulated data properties to real data properties:
 
-```{r}
+``` r
 # Load simulated data
 sim_data <- readRDS("../rdata.files/gr_deathsimulation.rds")
 
 # Compare simulation to actual data
 # Abundances
 hist(sim_data$rand_abund_ln)
+```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
 # Number of data points
 sim_num_points <- sim_data %>% 
   group_by(simulation) %>% 
@@ -319,33 +385,14 @@ sim_num_points <- sim_data %>%
 hist(sim_num_points$num_pts)
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+
 Looks pretty comparable to actual data properties.
 
 View some simulated time series:
 
-```{r}
+``` r
 # Choose randomly
-sim_data %>%
-  filter(simulation == sample(1:1000, 1)) %>% 
-  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
-    geom_point() +
-    geom_line() +
-    theme_test()
-
-sim_data %>%
-  filter(simulation == sample(1:1000, 1)) %>% 
-  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
-    geom_point() +
-    geom_line() +
-    theme_test()
-
-sim_data %>%
-  filter(simulation == sample(1:1000, 1)) %>% 
-  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
-    geom_point() +
-    geom_line() +
-    theme_test()
-
 sim_data %>%
   filter(simulation == sample(1:1000, 1)) %>% 
   ggplot(aes(x=rand_day, y=rand_abund_ln)) +
@@ -354,9 +401,44 @@ sim_data %>%
     theme_test()
 ```
 
-Estimate "death" on simulated data:
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
-```{r}
+``` r
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+```
+
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
+
+``` r
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+```
+
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->
+
+``` r
+sim_data %>%
+  filter(simulation == sample(1:1000, 1)) %>% 
+  ggplot(aes(x=rand_day, y=rand_abund_ln)) +
+    geom_point() +
+    geom_line() +
+    theme_test()
+```
+
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-12-4.png)<!-- -->
+
+Estimate “death” on simulated data:
+
+``` r
 # Save estimate function
 savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
   est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
@@ -439,22 +521,31 @@ for (s in as.character(unique(sim_data$simulation))) {
 }
 ```
 
-Remove "essentially perfect fits":
+Remove “essentially perfect fits”:
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 sim_noperf <- filter(sim_est, residuals >= 0.0001)
 nrow(sim_est)
+```
+
+    ## [1] 82
+
+``` r
 nrow(sim_noperf)
 ```
+
+    ## [1] 82
 
 None were removed.
 
 Select best fit for each time series:
 
-* Smallest slope p-value
+  - Smallest slope p-value
 
-```{r}
+<!-- end list -->
+
+``` r
 # Best p-value for each curve
 sim_lowestp <- sim_noperf %>% 
   group_by(simulation) %>% 
@@ -466,9 +557,11 @@ sim_best <- semi_join(sim_noperf, sim_lowestp)
 nrow(sim_best)
 ```
 
+    ## [1] 56
+
 False positive rates:
 
-```{r}
+``` r
 # False positives
 a <- nrow(sim_best[sim_best$pval <= 0.05,])
 b <- nrow(sim_best[sim_best$pval <= 0.025,])
@@ -487,35 +580,56 @@ ggplot(false_pos, aes(x=pvalue, y=false)) +
   theme_test()
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
 Find 5% false positive allowance p-value threshold
 
-* Using linear model to predict
+  - Using linear model to predict
 
-```{r}
+<!-- end list -->
+
+``` r
 falsepos_lm <- lm(false ~ pvalue, data=false_pos)
 falsepos_lm
+```
 
+    ## 
+    ## Call:
+    ## lm(formula = false ~ pvalue, data = false_pos)
+    ## 
+    ## Coefficients:
+    ## (Intercept)       pvalue  
+    ##     -0.8852    1150.9396
+
+``` r
 slope <- summary(falsepos_lm)$coefficients[2,1]
 intercept <- summary(falsepos_lm)$coefficients[1,1]
 ```
 
 To reflect growth estimates, filtering at 5% false positive rate:
 
-```{r}
+``` r
 ## 5% false positive allowance
 false5_pval <- (50 - intercept)/slope
 false5_pval
+```
 
+    ## [1] 0.04421184
+
+``` r
 # ~5% false positives
 death_falsepos5 <- subset(death_best, pval <= false5_pval)
 nrow(death_falsepos5)
 ```
 
+    ## [1] 80
+
 # Long estimates: Fit linear model to time series
 
-Fitting to all data points after growth ends. Trying to accomodate high variability and oscillation.
+Fitting to all data points after growth ends. Trying to accomodate high
+variability and oscillation.
 
-```{r}
+``` r
 # Estimate death over entire remaining time period
 death_est_long <- data.frame()
 for (label in as.character(unique(norm_prepped$Label))) {
@@ -535,16 +649,23 @@ for (label in as.character(unique(norm_prepped$Label))) {
 
 ### Remove essentially perfect fits
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 death_noperf_long <- filter(death_est_long, residuals >= 0.0001)
 nrow(death_est_long)
+```
+
+    ## [1] 53
+
+``` r
 nrow(death_noperf_long)
 ```
 
+    ## [1] 53
+
 ### Control for false positives
 
-```{r}
+``` r
 sim_est_long <- data.frame()
 for (sim in as.character(unique(sim_data$simulation))) {
   data_sub <- filter(sim_data, simulation==sim) %>% 
@@ -563,18 +684,27 @@ for (sim in as.character(unique(sim_data$simulation))) {
 dim(sim_est_long)
 ```
 
+    ## [1] 15  4
+
 Remove essentially perfect fits:
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 sim_noperf_long <- filter(sim_est_long, residuals >= 0.0001)
 nrow(sim_est_long)
+```
+
+    ## [1] 15
+
+``` r
 nrow(sim_noperf_long)
 ```
 
+    ## [1] 15
+
 False positive rates:
 
-```{r}
+``` r
 # False positives
 a <- nrow(sim_noperf_long[sim_noperf_long$pval <= 0.05,])
 b <- nrow(sim_noperf_long[sim_noperf_long$pval <= 0.025,])
@@ -593,21 +723,35 @@ ggplot(false_pos_long, aes(x=pvalue, y=false)) +
   theme_test()
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
 Find 5% false positive allowance p-value threshold:
 
-* Using linear model to predict
+  - Using linear model to predict
 
-```{r}
+<!-- end list -->
+
+``` r
 falsepos_long_lm <- lm(false ~ pvalue, data=false_pos_long)
 falsepos_long_lm
+```
 
+    ## 
+    ## Call:
+    ## lm(formula = false ~ pvalue, data = false_pos_long)
+    ## 
+    ## Coefficients:
+    ## (Intercept)       pvalue  
+    ##     -0.1239     314.1375
+
+``` r
 slope_long <- summary(falsepos_long_lm)$coefficients[2,1]
 intercept_long <- summary(falsepos_long_lm)$coefficients[1,1]
 ```
 
 To reflect growth estimates, filtering at 5% false positive rate:
 
-```{r}
+``` r
 ## 5% false positive allowance
 false5_pval_long <- (50 - intercept_long)/slope_long
 
@@ -616,15 +760,20 @@ death_falsepos5_long <- subset(death_noperf_long, pval <= false5_pval_long)
 nrow(death_falsepos5_long)
 ```
 
+    ## [1] 53
+
 None removed.
 
 # Compare long and window death estimates
 
-We've decided that if the slope estimates between methods is indistinguishable, we will go with the long fit. If they are different, we will go with the window-fit to reflect possible oscillatory patterns of growth and death.
+We’ve decided that if the slope estimates between methods is
+indistinguishable, we will go with the long fit. If they are different,
+we will go with the window-fit to reflect possible oscillatory patterns
+of growth and death.
 
 Isolate time series wtih fits to both long and window model fits:
 
-```{r}
+``` r
 death_long <- death_falsepos5_long
 death_window <- death_falsepos5
 
@@ -645,15 +794,21 @@ death_window_overlap <- filter(death_long, Label %in% overlap_labels) %>%
   inner_join(death_long_overlap)
 ```
 
-These overlapping estimates fit the same data window, no point in comparisons.
+These overlapping estimates fit the same data window, no point in
+comparisons.
 
 # Linear death estimates
 
-The prior estimates were on natural log-transformed data fit to a linear model, and so modeled logarithmic decay. Death may not happen this way in all circumstances. We might expect logarithmic decay on populations that are being predated or outcompeted by an logarithmicly-growing organism, but not in other cases? I want to see if death can be estimated on data that has not been transformed to model linear death.
+The prior estimates were on natural log-transformed data fit to a linear
+model, and so modeled logarithmic decay. Death may not happen this way
+in all circumstances. We might expect logarithmic decay on populations
+that are being predated or outcompeted by an logarithmicly-growing
+organism, but not in other cases? I want to see if death can be
+estimated on data that has not been transformed to model linear death.
 
 Estimate death:
 
-```{r}
+``` r
 # Save estimate function
 savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
   est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
@@ -738,18 +893,27 @@ for (label in as.character(unique(norm_prepped$Label))) {
 
 ### Remove essentially perfect fits
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 death_linear_noperf <- filter(death_linear, residuals >= 0.0001)
 nrow(death_linear)
+```
+
+    ## [1] 15
+
+``` r
 nrow(death_linear_noperf)
 ```
 
+    ## [1] 13
+
 ### Select best fit for each time series
 
-* Smallest slope p-value
+  - Smallest slope p-value
 
-```{r}
+<!-- end list -->
+
+``` r
 # Best p-value for each curve
 death_linear_lowestp <- death_linear_noperf %>% 
   group_by(Label) %>% 
@@ -761,19 +925,21 @@ death_linear_best <- semi_join(death_linear_noperf, death_linear_lowestp)
 nrow(death_linear_best)
 ```
 
+    ## [1] 13
+
 ### False positive control
 
-* Using the previously-generated simulation data
+  - Using the previously-generated simulation data
 
 Un-log transform the data
 
-```{r}
+``` r
 sim_data_linear <- mutate(sim_data, rand_abund = e^rand_abund_ln)
 ```
 
-Estimate "death" on simulated data:
+Estimate “death” on simulated data:
 
-```{r}
+``` r
 # Save estimate function
 savefit <- function(start, end, datasub, output) { # Start point, end point, time series data, output dataframe
   est <- NULL; coeff <- NULL; resids <- NULL; pval <- NULL; thisrow <- data.frame() # clear previous
@@ -856,22 +1022,31 @@ for (s in as.character(unique(sim_data_linear$simulation))) {
 }
 ```
 
-Remove "essentially perfect fits":
+Remove “essentially perfect fits”:
 
-```{r}
+``` r
 # Remove "perfect" fits as precaution
 sim_linear_noperf <- filter(sim_linear, residuals >= 0.0001)
 nrow(sim_linear)
+```
+
+    ## [1] 9
+
+``` r
 nrow(sim_linear_noperf)
 ```
+
+    ## [1] 9
 
 None were removed.
 
 Select best fit for each time series:
 
-* Smallest slope p-value
+  - Smallest slope p-value
 
-```{r}
+<!-- end list -->
+
+``` r
 # Best p-value for each curve
 sim_linear_lowestp <- sim_linear_noperf %>% 
   group_by(simulation) %>% 
@@ -883,9 +1058,11 @@ sim_linear_best <- semi_join(sim_linear_noperf, sim_linear_lowestp)
 nrow(sim_linear_best)
 ```
 
+    ## [1] 9
+
 False positive rates:
 
-```{r}
+``` r
 # False positives
 a <- nrow(sim_linear_best[sim_linear_best$pval <= 0.05,])
 b <- nrow(sim_linear_best[sim_linear_best$pval <= 0.025,])
@@ -904,21 +1081,35 @@ ggplot(false_pos, aes(x=pvalue, y=false)) +
   theme_test()
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+
 Find 5% false positive allowance p-value threshold
 
-* Using linear model to predict
+  - Using linear model to predict
 
-```{r}
+<!-- end list -->
+
+``` r
 falsepos_lm <- lm(false ~ pvalue, data=false_pos)
 falsepos_lm
+```
 
+    ## 
+    ## Call:
+    ## lm(formula = false ~ pvalue, data = false_pos)
+    ## 
+    ## Coefficients:
+    ## (Intercept)       pvalue  
+    ##     -0.3496     175.9278
+
+``` r
 slope <- summary(falsepos_lm)$coefficients[2,1]
 intercept <- summary(falsepos_lm)$coefficients[1,1]
 ```
 
 To reflect growth estimates, filtering at 5% false positive rate:
 
-```{r}
+``` r
 ## 5% false positive allowance
 false5_pval <- (50 - intercept)/slope
 
@@ -927,27 +1118,38 @@ death_linear_falsepos5 <- subset(death_linear_best, pval <= false5_pval)
 nrow(death_linear_falsepos5)
 ```
 
+    ## [1] 13
+
 None removed.
 
 # Compare linear and logarithmic death estimates
 
 Is there any overlap?
 
-```{r}
+``` r
 est_overlap <- inner_join(death_window, death_linear_falsepos5)
 dim(est_overlap)
 ```
+
+    ## [1] 0 6
 
 Nope. No comparison or decision-making needed.
 
 Number of linear vs logarithmic death estimates:
 
-```{r}
+``` r
 nrow(death_window) # logarithmic
+```
+
+    ## [1] 80
+
+``` r
 nrow(death_linear_falsepos5) # linear
 ```
 
-Logarithmic death fit many more estimates, we'll use that.
+    ## [1] 13
+
+Logarithmic death fit many more estimates, we’ll use that.
 
 # Calculate death parameters
 
@@ -955,15 +1157,17 @@ Logarithmic death fit many more estimates, we'll use that.
 
 Logarithmic only.
 
-Calculating specific growth rate in reverse. I'm using the absolute value of the slope instead.
+Calculating specific growth rate in reverse. I’m using the absolute
+value of the slope instead.
 
-Formula: k=(log10(b)-log10(B))*2.303/t
+Formula: k=(log10(b)-log10(B))\*2.303/t
 
-Where k is specific growth rate, B is abundance at beginning, b is abundance at end, and t is the time interval.
+Where k is specific growth rate, B is abundance at beginning, b is
+abundance at end, and t is the time interval.
 
-See 03_dunlopgr_grestimation.Rmd
+See 03\_dunlopgr\_grestimation.Rmd
 
-```{r}
+``` r
 # Starting with 1 individuals (B)
 B <- 1
 # Three day time window (t)
@@ -984,9 +1188,10 @@ Calculate anti-doubling time (g)
 
 Formula: g = ln2/k
 
-Where g is generation or doubling time and k is specific growth rate (per day).
+Where g is generation or doubling time and k is specific growth rate
+(per day).
 
-```{r}
+``` r
 # Calculate doubling time based on k
 death_g <- data.frame()
 for (l in as.character(unique(death_k$Label))) {
@@ -1000,7 +1205,7 @@ for (l in as.character(unique(death_k$Label))) {
 
 ### Start and end day, change in relational abundance
 
-```{r}
+``` r
 # Convert start and end to actual day
 
 # Non-linear estimates
@@ -1079,7 +1284,7 @@ for (l in as.character(unique(death_linear_falsepos5$Label))) {
 
 # Tidy up and save data
 
-```{r}
+``` r
 # Taxonomic information
 tax <- select(norm_prepped, ASV, Domain, Phylum, Class, Order, Family, Genus) %>% 
   unique()
@@ -1096,7 +1301,7 @@ meta <- norm_prepped %>%
 
 Relational abundances:
 
-```{r}
+``` r
 # Labels of estimated taxa
 est_labels <- as.character(death_metrics_log$Label)
 
@@ -1106,13 +1311,13 @@ norm_tidy <- norm_prepped %>%
   select(Label, Soil, Amendment, Day, Replicate, ASV:Genus, norm_abund, abund_ln)
 ```
 
-```{r, eval=FALSE}
+``` r
 saveRDS(norm_tidy, file="../rdata.files/gr_norm_death_estimated.rds")
 ```
 
 Death estimates:
 
-```{r}
+``` r
 # Add metadata and taxonomic info
 death_tidy <- death_metrics_log %>% 
   left_join(meta, by="Label") %>% 
@@ -1121,7 +1326,7 @@ death_tidy <- death_metrics_log %>%
   mutate(Replicate = as.numeric(Replicate))
 ```
 
-```{r, eval=FALSE}
+``` r
 saveRDS(death_tidy, file="../rdata.files/gr_death_estimates.rds")
 ```
 
@@ -1129,7 +1334,7 @@ saveRDS(death_tidy, file="../rdata.files/gr_death_estimates.rds")
 
 Logarithmic:
 
-```{r}
+``` r
 death_exp <- filter(death_tidy, decay=="logarithmic")
 
 # Plot logarithmic death
@@ -1159,9 +1364,11 @@ for (l in as.character(death_exp$Label)) {
 }
 ```
 
+![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-2.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-3.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-4.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-5.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-6.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-7.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-8.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-9.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-10.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-11.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-12.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-13.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-14.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-15.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-16.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-17.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-18.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-19.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-20.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-21.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-22.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-23.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-24.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-25.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-26.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-27.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-28.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-29.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-30.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-31.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-32.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-33.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-34.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-35.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-36.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-37.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-38.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-39.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-40.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-41.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-42.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-43.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-44.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-45.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-46.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-47.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-48.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-49.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-50.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-51.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-52.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-53.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-54.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-55.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-56.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-57.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-58.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-59.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-60.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-61.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-62.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-63.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-64.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-65.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-66.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-67.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-68.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-69.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-70.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-71.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-72.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-73.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-74.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-75.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-76.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-77.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-78.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-79.png)<!-- -->![](04_dunlop_deathestimation_files/figure-gfm/unnamed-chunk-47-80.png)<!-- -->
+
 Linear:
 
-```{r}
+``` r
 death_linear <- filter(death_tidy, decay=="linear")
 
 # Plot logarithmic death
