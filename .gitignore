@@ -1,7 +1,6 @@
 # I'm only using git to track changes to scripts, data will not be included
 
 # Directories
-scripts/*_files/
 .ipynb_checkpoints
 output
 rdata.files
