@@ -1,3 +1,3 @@
-# dunlop_popdynamics
+# Land-use alters bacterial growth dynamics in soil
 
-Scripts for "Land-use alters bacterial growth dynamics in soil" [Link to paper goes here once accepted]
+Scripts for the above titled paper (DOI) which can be accessed here: [Link to paper goes here once accepted]
