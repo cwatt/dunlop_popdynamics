@@ -368,3 +368,873 @@ Shutdown this notebook server (y/[n])? y
 [32m[I 14:55:35.051 NotebookApp][m Starting buffering for 0e4bcf6a-7bb5-4d6d-b37e-76641abcb265:9ea686936fbe43ae871d1c7a2231251f
 [32m[I 14:56:22.959 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:671131d85e7f42e98d5a734952ffa5dd
 [32m[I 15:38:06.877 NotebookApp][m Starting buffering for 07f48d38-30a6-4b95-95de-f99de7c5bb8a:7d1b5ac38397415981bf9d2d751625b9
+[33m[W 13:50:48.280 NotebookApp][m Loading JupyterLab as a classic notebook (v6) extension.
+[33m[W 2023-06-07 13:50:48.282 LabApp][m 'port' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[33m[W 2023-06-07 13:50:48.282 LabApp][m 'port' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[33m[W 2023-06-07 13:50:48.282 LabApp][m 'port' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[32m[I 2023-06-07 13:50:48.287 LabApp][m JupyterLab extension loaded from /home/cassi/anaconda3/lib/python3.10/site-packages/jupyterlab
+[32m[I 2023-06-07 13:50:48.287 LabApp][m JupyterLab application directory is /home/cassi/anaconda3/share/jupyter/lab
+[32m[I 13:50:53.149 NotebookApp][m Serving notebooks from local directory: /home/cassi/dunlop_popdynamics
+[32m[I 13:50:53.149 NotebookApp][m Jupyter Notebook 6.5.2 is running at:
+[32m[I 13:50:53.150 NotebookApp][m http://localhost:3332/?token=3b0a5372d5e36e417fdd1fbbb2fc1485f102e539272e8634
+[32m[I 13:50:53.150 NotebookApp][m  or http://127.0.0.1:3332/?token=3b0a5372d5e36e417fdd1fbbb2fc1485f102e539272e8634
+[32m[I 13:50:53.150 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[35m[C 13:50:53.155 NotebookApp][m 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-73507-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3332/?token=3b0a5372d5e36e417fdd1fbbb2fc1485f102e539272e8634
+     or http://127.0.0.1:3332/?token=3b0a5372d5e36e417fdd1fbbb2fc1485f102e539272e8634
+[32m[I 13:51:11.233 NotebookApp][m 302 GET /?token=3b0a5372d5e36e417fdd1fbbb2fc1485f102e539272e8634 (127.0.0.1) 1.290000ms
+[32m[I 13:51:24.676 NotebookApp][m Kernel started: 3a9f10e2-d0d9-400d-861b-582a38709149, name: python3
+[32m[I 13:53:24.704 NotebookApp][m Saving file at /scripts/00_dunlopgr_DADA2pipeline.ipynb
+^[^[[3~^[[32m[I 17:28:59.615 NotebookApp][m Starting buffering for 3a9f10e2-d0d9-400d-861b-582a38709149:070046dfe43f4b769e8d52815d8eb77a
+[32m[I 15:27:29.684 NotebookApp][m 302 GET / (127.0.0.1) 1.760000ms
+[32m[I 15:27:29.732 NotebookApp][m 302 GET /tree? (127.0.0.1) 1.840000ms
+[31m[E 15:27:29.775 NotebookApp][m Uncaught exception GET /login?next=%2Ftree%3F (127.0.0.1)
+    HTTPServerRequest(protocol='http', host='localhost:3332', method='GET', uri='/login?next=%2Ftree%3F', version='HTTP/1.1', remote_ip='127.0.0.1')
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+[31m[E 15:27:29.831 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 500.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[31m[E 15:27:29.833 NotebookApp][m {
+      "Host": "localhost:3332",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"
+    }
+[31m[E 15:27:29.833 NotebookApp][m 500 GET /login?next=%2Ftree%3F (127.0.0.1) 60.220000ms referer=None
+[31m[E 15:27:30.001 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1704, in _execute
+        # instead.
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 2576, in get
+        To change the way static urls are generated (e.g. to match the behavior
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 837, in validate_absolute_path
+    tornado.web.HTTPError: HTTP 404: Not Found
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 404.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[33m[W 15:27:30.003 NotebookApp][m 404 GET /favicon.ico (127.0.0.1) 3.300000ms referer=http://localhost:3332/login?next=%2Ftree%3F
+[31m[E 15:27:35.968 NotebookApp][m Uncaught exception GET /login?next=%2Ftree%3F (127.0.0.1)
+    HTTPServerRequest(protocol='http', host='localhost:3332', method='GET', uri='/login?next=%2Ftree%3F', version='HTTP/1.1', remote_ip='127.0.0.1')
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+[31m[E 15:27:35.969 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 500.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[31m[E 15:27:35.971 NotebookApp][m {
+      "Host": "localhost:3332",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"
+    }
+[31m[E 15:27:35.971 NotebookApp][m 500 GET /login?next=%2Ftree%3F (127.0.0.1) 4.260000ms referer=None
+[31m[E 15:28:19.112 NotebookApp][m Uncaught exception GET /login (127.0.0.1)
+    HTTPServerRequest(protocol='http', host='localhost:3332', method='GET', uri='/login', version='HTTP/1.1', remote_ip='127.0.0.1')
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+[31m[E 15:28:19.114 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 500.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[31m[E 15:28:19.115 NotebookApp][m {
+      "Host": "localhost:3332",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"
+    }
+[31m[E 15:28:19.115 NotebookApp][m 500 GET /login (127.0.0.1) 4.440000ms referer=None
+[31m[E 15:28:19.211 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1704, in _execute
+        # instead.
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 2576, in get
+        To change the way static urls are generated (e.g. to match the behavior
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 837, in validate_absolute_path
+    tornado.web.HTTPError: HTTP 404: Not Found
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 404.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[33m[W 15:28:19.212 NotebookApp][m 404 GET /favicon.ico (127.0.0.1) 2.930000ms referer=http://localhost:3332/login
+[31m[E 15:28:21.327 NotebookApp][m Uncaught exception GET /login (127.0.0.1)
+    HTTPServerRequest(protocol='http', host='localhost:3332', method='GET', uri='/login', version='HTTP/1.1', remote_ip='127.0.0.1')
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+[31m[E 15:28:21.329 NotebookApp][m Uncaught exception in write_error
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1702, in _execute
+        # the body has been completely received.  The Future has no
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 71, in get
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/auth/login.py", line 26, in _render
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: login.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 580, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: 500.html
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/tornado/web.py", line 1217, in send_error
+        self.set_status(status_code, reason=reason)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 582, in write_error
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 510, in render_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/notebook/base/handlers.py", line 506, in get_template
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 1010, in get_template
+        return self._load_template(name, globals)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/environment.py", line 969, in _load_template
+        template = self.loader.load(self, name, self.make_globals(globals))
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 126, in load
+        source, filename, uptodate = self.get_source(environment, name)
+      File "/home/cassi/anaconda3/lib/python3.10/site-packages/jinja2/loaders.py", line 218, in get_source
+        raise TemplateNotFound(template)
+    jinja2.exceptions.TemplateNotFound: error.html
+[31m[E 15:28:21.330 NotebookApp][m {
+      "Host": "localhost:3332",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"
+    }
+[31m[E 15:28:21.330 NotebookApp][m 500 GET /login (127.0.0.1) 4.060000ms referer=None
+jupyter notebook list
+
+  _   _          _      _
+ | | | |_ __  __| |__ _| |_ ___
+ | |_| | '_ \/ _` / _` |  _/ -_)
+  \___/| .__/\__,_\__,_|\__\___|
+       |_|
+                       
+Read the migration plan to Notebook 7 to learn about the new features and the actions to take if you are using extensions.
+
+https://jupyter-notebook.readthedocs.io/en/latest/migrate_to_notebook7.html
+
+Please note that updating to Notebook 7 might break some of your extensions.
+
+[32m[I 15:35:07.662 NotebookApp][m Serving notebooks from local directory: /home/cassi/dunlop_popdynamics
+[32m[I 15:35:07.663 NotebookApp][m Jupyter Notebook 6.5.4 is running at:
+[32m[I 15:35:07.664 NotebookApp][m http://localhost:3332/?token=c9ab6f3000eda0686093ce938af2efe04bc42306bbbbfb72
+[32m[I 15:35:07.664 NotebookApp][m  or http://127.0.0.1:3332/?token=c9ab6f3000eda0686093ce938af2efe04bc42306bbbbfb72
+[32m[I 15:35:07.665 NotebookApp][m Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[35m[C 15:35:07.700 NotebookApp][m 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/cassi/.local/share/jupyter/runtime/nbserver-21940-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:3332/?token=c9ab6f3000eda0686093ce938af2efe04bc42306bbbbfb72
+     or http://127.0.0.1:3332/?token=c9ab6f3000eda0686093ce938af2efe04bc42306bbbbfb72
+[32m[I 15:35:16.388 NotebookApp][m 302 GET /?token=c9ab6f3000eda0686093ce938af2efe04bc42306bbbbfb72 (127.0.0.1) 3.320000ms
+[32m[I 15:35:30.936 NotebookApp][m Kernel started: 3d527269-35dc-410a-a516-b20d677de8ac, name: python3
+[32m[I 15:35:49.323 NotebookApp][m Saving file at /scripts/00_dunlopgr_DADA2pipeline.ipynb
+[32m[I 15:35:49.378 NotebookApp][m Copying scripts/00_dunlopgr_DADA2pipeline.ipynb to /scripts
+[32m[I 15:35:50.838 NotebookApp][m Kernel started: 3a2ec952-97a0-46af-8366-8ffe2a3b95ce, name: python3
+[32m[I 15:39:50.903 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:41:18.132 NotebookApp][m Starting buffering for 3d527269-35dc-410a-a516-b20d677de8ac:c9b113107bfd49d28b11d82af018214b
+[32m[I 15:41:50.837 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:43:50.877 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:45:50.876 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:47:36.332 NotebookApp][m Starting buffering for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:47:36.574 NotebookApp][m Kernel restarted: 3a2ec952-97a0-46af-8366-8ffe2a3b95ce
+[32m[I 15:47:36.655 NotebookApp][m Restoring connection for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:47:37.159 NotebookApp][m Replaying 3 buffered messages
+[32m[I 15:47:40.725 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:48:03.427 NotebookApp][m Starting buffering for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:48:03.670 NotebookApp][m Kernel restarted: 3a2ec952-97a0-46af-8366-8ffe2a3b95ce
+[32m[I 15:48:03.743 NotebookApp][m Restoring connection for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:48:04.748 NotebookApp][m Replaying 3 buffered messages
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1) Invalid value for '--i-classifier':
+  /home/databases/silva-138-99-515-806-nb-classifier.qza does not exist.
+There was an issue with loading the file /home/cassi/dunlop_popdynamics//reclassify_silva138/growthrate.taxonomy.final.qza as metadata:
+
+  Metadata file path doesn't exist, or the path points to something other than a file. Please check that the path exists, has read permissions, and points to a regular file (not a directory): /home/cassi/dunlop_popdynamics//reclassify_silva138/growthrate.taxonomy.final.qza
+
+  There may be more errors present in the metadata file. To get a full report, sample/feature metadata files can be validated with Keemei: https://keemei.qiime2.org
+
+  Find details on QIIME 2 metadata requirements here: https://docs.qiime2.org/2023.5/tutorials/metadata/
+
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1) Invalid value for '--i-classifier':
+  /home/databases/silva-138-99-515-806-nb-classifier.qza does not exist.
+There was an issue with loading the file /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza as metadata:
+
+  Metadata file path doesn't exist, or the path points to something other than a file. Please check that the path exists, has read permissions, and points to a regular file (not a directory): /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza
+
+  There may be more errors present in the metadata file. To get a full report, sample/feature metadata files can be validated with Keemei: https://keemei.qiime2.org
+
+  Find details on QIIME 2 metadata requirements here: https://docs.qiime2.org/2023.5/tutorials/metadata/
+
+[32m[I 15:49:50.867 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:51:50.910 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1) Invalid value for '--i-classifier':
+  /home/databases/silva-138-99-515-806-nb-classifier.qza does not exist.
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1) Invalid value for '--i-classifier':
+  /home/databases/silva/silva-138-99-515-806-nb-classifier.qza does not exist.
+There was an issue with loading the file /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza as metadata:
+
+  Metadata file path doesn't exist, or the path points to something other than a file. Please check that the path exists, has read permissions, and points to a regular file (not a directory): /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza
+
+  There may be more errors present in the metadata file. To get a full report, sample/feature metadata files can be validated with Keemei: https://keemei.qiime2.org
+
+  Find details on QIIME 2 metadata requirements here: https://docs.qiime2.org/2023.5/tutorials/metadata/
+
+[32m[I 15:53:50.914 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                  There were some problems with the command:                  
+ (1/2) Invalid value for '--i-classifier':
+  /home/databases/silva/silva-138-99-515-806-nb-classifier.qza does not exist.
+ (2/2) Invalid value for '--o-classification':
+  '/home/cassi/dunlop_popdynamics/reclassify_silva138/' is already a
+  directory.
+There was an issue with loading the file /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza as metadata:
+
+  Metadata file path doesn't exist, or the path points to something other than a file. Please check that the path exists, has read permissions, and points to a regular file (not a directory): /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza
+
+  There may be more errors present in the metadata file. To get a full report, sample/feature metadata files can be validated with Keemei: https://keemei.qiime2.org
+
+  Find details on QIIME 2 metadata requirements here: https://docs.qiime2.org/2023.5/tutorials/metadata/
+
+[32m[I 15:55:50.907 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:56:40.288 NotebookApp][m 302 GET /notebooks/scripts/00_dunlopgr_DADA2pipeline-Copy1.ipynb (127.0.0.1) 2.000000ms
+[32m[I 15:57:02.545 NotebookApp][m Starting buffering for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:57:02.787 NotebookApp][m Kernel restarted: 3a2ec952-97a0-46af-8366-8ffe2a3b95ce
+[32m[I 15:57:02.870 NotebookApp][m Restoring connection for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 15:57:03.744 NotebookApp][m Replaying 3 buffered messages
+Usage: qiime feature-classifier classify-sklearn [OPTIONS]
+
+  Classify reads by taxon using a fitted classifier.
+
+Inputs:
+  --i-reads ARTIFACT FeatureData[Sequence]
+                         The feature data to be classified.         [required]
+  --i-classifier ARTIFACT
+    TaxonomicClassifier  The taxonomic classifier for classifying the reads.
+                                                                    [required]
+Parameters:
+  --p-reads-per-batch VALUE Int % Range(1, None) | Str % Choices('auto')
+                         Number of reads to process in each batch. If "auto",
+                         this parameter is autoscaled to min( number of query
+                         sequences / n-jobs, 20000).         [default: 'auto']
+  --p-n-jobs INTEGER     The maximum number of concurrently worker processes.
+                         If -1 all CPUs are used. If 1 is given, no parallel
+                         computing code is used at all, which is useful for
+                         debugging. For n-jobs below -1, (n_cpus + 1 + n-jobs)
+                         are used. Thus for n-jobs = -2, all CPUs but one are
+                         used.                                    [default: 1]
+  --p-pre-dispatch TEXT  "all" or expression, as in "3*n_jobs". The number of
+                         batches (of tasks) to be pre-dispatched.
+                                                         [default: '2*n_jobs']
+  --p-confidence VALUE Float % Range(0, 1, inclusive_end=True) | Str %
+    Choices('disable')   Confidence threshold for limiting taxonomic depth.
+                         Set to "disable" to disable confidence calculation,
+                         or 0 to calculate confidence but not apply it to
+                         limit the taxonomic depth of the assignments.
+                                                                [default: 0.7]
+  --p-read-orientation TEXT Choices('same', 'reverse-complement', 'auto')
+                         Direction of reads with respect to reference
+                         sequences. same will cause reads to be classified
+                         unchanged; reverse-complement will cause reads to be
+                         reversed and complemented prior to classification.
+                         "auto" will autodetect orientation based on the
+                         confidence estimates for the first 100 reads.
+                                                             [default: 'auto']
+Outputs:
+  --o-classification ARTIFACT FeatureData[Taxonomy]
+                                                                    [required]
+Miscellaneous:
+  --output-dir PATH      Output unspecified results to a directory
+  --verbose / --quiet    Display verbose output to stdout and/or stderr
+                         during execution of this action. Or silence output if
+                         execution is successful (silence is golden).
+  --example-data PATH    Write example data and exit.
+  --citations            Show citations and exit.
+  --help                 Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1) Invalid value for '--i-classifier':
+  /home/databases/silva/silva-138-99-515-806-nb-classifier.qza does not exist.
+There was an issue with loading the file /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza as metadata:
+
+  Metadata file path doesn't exist, or the path points to something other than a file. Please check that the path exists, has read permissions, and points to a regular file (not a directory): /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza
+
+  There may be more errors present in the metadata file. To get a full report, sample/feature metadata files can be validated with Keemei: https://keemei.qiime2.org
+
+  Find details on QIIME 2 metadata requirements here: https://docs.qiime2.org/2023.5/tutorials/metadata/
+
+[32m[I 15:57:50.891 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 15:59:50.930 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+Saved FeatureData[Taxonomy] to: /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza
+Saved Visualization to: /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.summary.qzv
+[32m[I 16:21:51.004 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+Usage: qiime tools export [OPTIONS]
+
+  Exporting extracts (and optionally transforms) data stored inside an
+  Artifact or Visualization. Note that Visualizations cannot be transformed
+  with --output-format
+
+Options:
+  --input-path ARTIFACT/VISUALIZATION
+                        Path to file that should be exported        [required]
+  --output-path PATH    Path to file or directory where data should be
+                        exported to                                 [required]
+  --output-format TEXT  Format which the data should be exported as. This
+                        option cannot be used with Visualizations
+  --help                Show this message and exit.
+
+                    There was a problem with the command:                     
+ (1/1?) No such option: --output-dir
+Usage: qiime tools export [OPTIONS]
+
+  Exporting extracts (and optionally transforms) data stored inside an
+  Artifact or Visualization. Note that Visualizations cannot be transformed
+  with --output-format
+
+Options:
+  --input-path ARTIFACT/VISUALIZATION
+                        Path to file that should be exported        [required]
+  --output-path PATH    Path to file or directory where data should be
+                        exported to                                 [required]
+  --output-format TEXT  Format which the data should be exported as. This
+                        option cannot be used with Visualizations
+  --help                Show this message and exit.
+
+                  There were some problems with the command:                  
+ (1/2) Missing option '--input-path'.
+ (2/2) Got unexpected extra argument (/home/cassi/dunlop_popdynamics/reclassif
+  y_silva138/growthrate.taxonomy.final.qza)
+Exported /home/cassi/dunlop_popdynamics/reclassify_silva138/growthrate.taxonomy.final.qza as TSVTaxonomyDirectoryFormat to directory /home/cassi/dunlop_popdynamics/reclassify_silva138/
+[32m[I 16:25:51.034 NotebookApp][m Saving file at /scripts/00_dunlopgr_revisions_reclassify.ipynb
+[32m[I 17:31:19.755 NotebookApp][m Starting buffering for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:18ebc6cdf08e4c2fa7acbfbd5a40cc98
+[32m[I 17:32:26.248 NotebookApp][m Starting buffering for 3a2ec952-97a0-46af-8366-8ffe2a3b95ce:72968a219f6c4945888dd693a5753f35

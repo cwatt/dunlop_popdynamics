@@ -1,0 +1,263 @@
+---
+title: "Dunlop - revisions"
+author: "Cassandra Wattenburger"
+date: "6/8/2023"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(results = "show")
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(mclust)
+
+sessionInfo()
+
+rm(list=ls())
+```
+
+# Import data
+
+```{r}
+# Growth and death estimates
+growth <- readRDS("../rdata.files/gr_gr.paprica.clean.rds")
+death <- readRDS("../rdata.files/gr_death_estimates.rds") 
+tax_old <- bind_rows(growth, death) %>% 
+  select(ASV, Domain:Genus) %>% 
+  unique()
+
+# Clusters
+clust <- readRDS("../rdata.files/gr_growth_clusters.rds")
+  
+# Reclassified ASVs
+tax_new <- read_tsv("../reclassify_silva138/taxonomy.fixed.tsv") %>% 
+  rename(ASV = OTU) %>% 
+  mutate(across(c("Domain":"Genus"), ~ gsub("[a-z]__", "", .x)),
+         Genus_reformat = gsub("\\t.+", "", Genus))
+tax_new
+```
+
+# Taxonomy classification changes
+
+```{r}
+tax_compare <- tax_old %>% 
+  rename(Domain_old = Domain, Phylum_old = Phylum, Class_old = Class, Order_old = Order, Family_old = Family, Genus_old = Genus) %>% 
+  left_join(tax_new)
+tax_compare
+
+# Phylum level
+tax_compare %>% 
+  select(ASV, Phylum_old, Phylum) %>% 
+  mutate(same = if_else(Phylum_old==Phylum, TRUE, FALSE))
+
+# Family level
+tax_compare %>% 
+  select(ASV, Family_old, Family) %>% 
+  mutate(same = if_else(Family_old==Family, TRUE, FALSE))
+```
+
+Replace old taxonomic classifications with new:
+
+```{r}
+growth_new <- growth %>% 
+  select(everything(), -c(Domain:Genus)) %>% 
+  left_join(tax_new) %>% 
+  select(everything(), -Genus) %>% 
+  rename(Genus = Genus_reformat)
+growth_new
+
+death_new <- death %>% 
+  select(everything(), -c(Domain:Genus)) %>% 
+  left_join(tax_new) %>% 
+  select(everything(), -Genus) %>% 
+  rename(Genus = Genus_reformat)
+death_new
+```
+
+## Summary of phyla
+
+```{r}
+growth_physum <- growth_new %>% 
+  group_by(Phylum) %>% 
+  summarize(count_gr = n()) %>% 
+  ungroup() %>% 
+  arrange(-count_gr)
+
+death_physum <- death_new %>% 
+  group_by(Phylum) %>% 
+  summarize(count_de = n()) %>% 
+  ungroup() %>% 
+  arrange(-count_de)
+
+# Combine
+growthdeath_physum <- growth_physum %>% 
+  full_join(death_physum)
+
+growthdeath_physum
+```
+
+# Recreate supplemental figure with new classifications
+
+```{r}
+gratephy_plot <- growth_new %>% 
+  ggplot(aes(x=log(k), y=reorder(Phylum, -k))) +
+  geom_boxplot() +
+  theme_test() +
+  theme(text = element_text(size=12),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
+gratephy_plot
+
+dratephy_plot <- death_new %>% 
+  ggplot(aes(x=log(death_rate), y=reorder(Phylum, -death_rate))) +
+  geom_boxplot() +
+  theme_test() +
+  theme(text = element_text(size=12),
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_blank())
+dratephy_plot
+```
+
+```{r, eval=FALSE}
+ggsave(gratephy_plot, file="../figures/suppfig_phygr_reclassified.svg", units="mm", height=90, width=90, device="svg")
+ggsave(dratephy_plot, file="../figures/suppfig_phydr_reclassified.svg", units="mm", height=90, width=90, device="svg")
+```
+
+# Clusters
+
+## Add updated classifications
+
+```{r}
+# Add new classifications to clustered growth data
+clust_new <- clust %>% 
+  select(everything(), -c(Phylum:Genus)) %>% 
+  left_join(tax_new) %>% 
+  select(everything(), -Genus) %>% 
+  rename(Genus = Genus_reformat)
+clust_new
+```
+
+## ASV overlap between clusters
+
+```{r}
+clust_slim <- clust_new %>% 
+  select(Soil, Amendment, cluster, ASV)
+
+# Successional water slow vs amended slow and fast
+overlap1 <- clust_slim %>% 
+  filter(Soil=="S17" & ((Amendment=="N" & cluster=="slow") | (Amendment=="Y"))) %>% 
+  mutate(grp = if_else(Soil=="S17" & Amendment=="N" & cluster=="slow", 1, 2)) %>% 
+  select(ASV, grp) %>% 
+  unique() %>% 
+  group_by(ASV) %>% 
+  summarize(count = n()) %>% 
+  filter(count > 1)
+
+nrow(filter(clust_slim, Soil=="S17" & Amendment=="N" & cluster=="slow"))
+nrow(overlap1)
+(nrow(overlap1)/nrow(filter(clust_slim, Soil=="S17" & Amendment=="N" & cluster=="slow")))*100
+
+# Cropped water slow vs amended intermediate
+overlap2 <- clust_slim %>% 
+  filter(Soil=="C3" & ((Amendment=="N" & cluster=="slow") | (Amendment=="Y"))) %>% 
+  mutate(grp = if_else(Soil=="C3" & Amendment=="N" & cluster=="slow", 1, 2)) %>% 
+  select(ASV, grp) %>% 
+  unique() %>% 
+  group_by(ASV) %>% 
+  summarize(count = n()) %>% 
+  filter(count > 1)
+
+nrow(filter(clust_slim, Soil=="C3" & Amendment=="N" & cluster=="slow"))
+nrow(overlap2)
+(nrow(overlap2)/nrow(filter(clust_slim, Soil=="C3" & Amendment=="N" & cluster=="slow")))*100
+```
+
+## Growth change of overlapping taxa
+
+```{r}
+clust_widek <- clust_new %>% 
+  mutate(label = paste0(Soil, Amendment, cluster)) %>% 
+    select(label, ASV, k) %>% 
+  pivot_wider(names_from = label, values_from=k)
+clust_widek
+
+# If points are above dashed line, growing faster in y axis trt
+## Successional
+## water slow vs amended slow
+plot1 <- clust_widek %>%
+  ggplot(aes(x=S17Nslow, y=S17Yslow)) +
+  geom_point() +
+  geom_abline(a=1, b=0, linetype=2) +
+  theme_test() +
+  ylim(0,0.5) +
+  xlim(0,0.2) +
+  theme(axis.text=element_text(size=10))
+plot1
+
+# water slow vs amended fast
+plot2 <- clust_widek %>%
+  ggplot(aes(x=S17Nslow, y=S17Yfast)) +
+  geom_point() +
+  geom_abline(a=1, b=0, linetype=2) +
+  theme_test() +
+  ylim(0,0.5) +
+  xlim(0,0.2) +
+  theme(axis.text=element_text(size=10))
+plot2
+
+## Cropped
+## water slow vs amended intermediate
+plot3 <- clust_widek %>%
+  ggplot(aes(x=C3Nslow, y=C3Yintermediate)) +
+  geom_point() +
+  geom_abline(a=1, b=0, linetype=2) +
+  theme_test() +
+  ylim(0,0.5) +
+  xlim(0,0.2) +
+  theme(axis.text=element_text(size=10))
+plot3
+```
+
+```{r, eval=FALSE}
+ggsave(plot1, file="../figures/suppfig_clustshift1.svg", units="mm", width=60, height=60, device="svg")
+ggsave(plot2, file="../figures/suppfig_clustshift2.svg", units="mm", width=60, height=60, device="svg")
+ggsave(plot3, file="../figures/suppfig_clustshift3.svg", units="mm", width=60, height=60, device="svg")
+```
+
+
+# Cluster phylogenies
+
+```{r}
+clust_phy <- clust_new %>%
+  select(Soil, Amendment, cluster, ASV, Phylum) %>% 
+  group_by(Soil, Amendment, cluster, Phylum) %>% 
+  summarize(count = n()) %>% 
+  mutate(label = paste0(Soil, Amendment))
+clust_phy  
+
+clust_phy_plot <- clust_phy %>% 
+  ggplot(aes(x=count, y=reorder(Phylum, count), fill=cluster)) +
+  geom_col(position="dodge") +
+  facet_wrap(~label, scales="free") +
+  theme_test() +
+  theme(text = element_text(size=12),
+      strip.background = element_blank(),
+      axis.line = element_line(colour = "black"),
+      axis.title = element_blank())
+clust_phy_plot
+```
+
+```{r, eval=FALSE}
+ggsave(clust_phy_plot, file="../figures/suppfig_clustphy.svg", units="mm", height=180, width=180, device="svg")
+```
+
+

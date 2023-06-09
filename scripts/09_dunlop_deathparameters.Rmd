@@ -204,8 +204,10 @@ Welch's t-test:
 * Non-transformed data
 
 ```{r}
-# Cropped
 chabund_agg_welch <- t.test(abs(de_change_abund_corr) ~ Amendment, data=growth_death_agg, var.equal=FALSE)
+chabund_agg_welch
+
+chabund_agg_welch <- t.test(abs(de_change_abund_corr) ~ Soil, data=growth_death_agg, var.equal=FALSE)
 chabund_agg_welch
 ```
 

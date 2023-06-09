@@ -36,19 +36,19 @@ sessionInfo()
     ## [9] tidyverse_1.3.1
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] tidyselect_1.2.0 xfun_0.28        haven_2.4.3      colorspace_2.0-2
-    ##  [5] vctrs_0.5.2      generics_0.1.1   htmltools_0.5.4  yaml_2.2.1      
-    ##  [9] utf8_1.2.2       rlang_1.0.6      pillar_1.6.4     withr_2.5.0     
-    ## [13] glue_1.6.2       DBI_1.1.1        dbplyr_2.1.1     modelr_0.1.8    
-    ## [17] readxl_1.3.1     lifecycle_1.0.3  munsell_0.5.0    gtable_0.3.0    
-    ## [21] cellranger_1.1.0 rvest_1.0.2      evaluate_0.14    knitr_1.36      
-    ## [25] tzdb_0.2.0       fastmap_1.1.0    fansi_0.5.0      broom_0.7.10    
-    ## [29] Rcpp_1.0.8.3     backports_1.3.0  scales_1.2.1     jsonlite_1.7.2  
-    ## [33] fs_1.5.0         hms_1.1.1        digest_0.6.28    stringi_1.7.5   
-    ## [37] grid_3.6.3       cli_3.6.0        tools_3.6.3      magrittr_2.0.1  
-    ## [41] crayon_1.4.2     pkgconfig_2.0.3  ellipsis_0.3.2   xml2_1.3.2      
+    ##  [1] tidyselect_1.2.0 xfun_0.39        haven_2.4.3      colorspace_2.1-0
+    ##  [5] vctrs_0.5.2      generics_0.1.3   htmltools_0.5.5  yaml_2.3.7      
+    ##  [9] utf8_1.2.3       rlang_1.1.1      pillar_1.6.4     withr_2.5.0     
+    ## [13] glue_1.6.2       DBI_1.1.3        dbplyr_2.1.1     modelr_0.1.8    
+    ## [17] readxl_1.3.1     lifecycle_1.0.3  munsell_0.5.0    gtable_0.3.3    
+    ## [21] cellranger_1.1.0 rvest_1.0.2      evaluate_0.21    knitr_1.36      
+    ## [25] tzdb_0.2.0       fastmap_1.1.1    fansi_1.0.4      broom_0.7.10    
+    ## [29] Rcpp_1.0.10      backports_1.4.1  scales_1.2.1     jsonlite_1.8.4  
+    ## [33] fs_1.6.2         hms_1.1.1        digest_0.6.31    stringi_1.7.12  
+    ## [37] grid_3.6.3       cli_3.6.1        tools_3.6.3      magrittr_2.0.3  
+    ## [41] crayon_1.5.2     pkgconfig_2.0.3  ellipsis_0.3.2   xml2_1.3.4      
     ## [45] reprex_2.0.1     lubridate_1.8.0  assertthat_0.2.1 rmarkdown_2.11  
-    ## [49] httr_1.4.2       rstudioapi_0.13  R6_2.5.1         compiler_3.6.3
+    ## [49] httr_1.4.6       rstudioapi_0.14  R6_2.5.1         compiler_3.6.3
 
 ``` r
 rm(list=ls())

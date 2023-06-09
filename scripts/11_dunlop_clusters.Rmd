@@ -728,6 +728,3 @@ plot_bootstrap
 ```{r, eval=FALSE}
 ggsave(plot_bootstrap, filename = "../figures/suppfig_meanboot.svg", units="mm", width=140, height=100, device="svg")
 ```
-
-
-
