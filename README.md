@@ -1,5 +1,3 @@
-# dunlop_popdynamics
+# Land-use alters bacterial growth dynamics in soil
 
-Scripts for Wattenburger and Buckley 2023.
-
-<Link to paper goes here>
+Scripts for the above titled paper (DOI) which can be accessed here: [Link to paper goes here once accepted]
