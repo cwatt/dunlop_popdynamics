@@ -15,7 +15,11 @@ knitr::opts_chunk$set(warning = FALSE)
 # Import libraries
 
 ```{r}
-library(tidyverse)
+#library(tidyverse)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(ggplot2)
 library(mclust)
 
 sessionInfo()
@@ -235,9 +239,10 @@ ggsave(plot3, file="../figures/suppfig_clustshift3.svg", units="mm", width=60, h
 
 
 # Cluster phylogenies
-
+# BOOKMARK
 ```{r}
 clust_phy <- clust_new %>%
+  mutate(cluster = if_else(cluster=="intermediate", "fast", cluster)) %>% 
   select(Soil, Amendment, cluster, ASV, Phylum) %>% 
   group_by(Soil, Amendment, cluster, Phylum) %>% 
   summarize(count = n()) %>% 
